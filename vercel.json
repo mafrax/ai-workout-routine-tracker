@@ -1,26 +1,17 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "dist/index.js",
-      "use": "@vercel/node"
+      "source": "/(.*)",
+      "destination": "/api"
     }
   ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "dist/index.js"
-    }
-  ],
+  "buildCommand": "npm run build",
   "env": {
     "DATABASE_URL": "@database_url",
-    "ANTHROPIC_API_KEY": "@anthropic_api_key",
+    "ANTHROPIC_API_KEY": "@anthropic_api_key", 
     "OPENAI_API_KEY": "@openai_api_key",
-    "NODE_ENV": "production"
-  },
-  "functions": {
-    "dist/index.js": {
-      "maxDuration": 30
-    }
+    "NODE_ENV": "production",
+    "CORS_ORIGIN": "*"
   }
 }

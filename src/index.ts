@@ -47,34 +47,37 @@ app.use('*', (req: express.Request, res: express.Response) => {
   });
 });
 
-// Start server
-const server = app.listen(port, () => {
-  console.log(`🚀 Workout Backend Server running on port ${port}`);
-  console.log(`📊 Health check: http://localhost:${port}/api/health`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  
-  // Start the Telegram scheduler
-  if (process.env.NODE_ENV !== 'test') {
-    const scheduler = new TelegramSchedulerService();
-    scheduler.startScheduler();
-  }
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-    process.exit(0);
+// Start server for local development
+if (process.env.NODE_ENV !== 'production') {
+  const server = app.listen(port, () => {
+    console.log(`🚀 Workout Backend Server running on port ${port}`);
+    console.log(`📊 Health check: http://localhost:${port}/api/health`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    
+    // Start the Telegram scheduler
+    if (process.env.NODE_ENV !== 'test') {
+      const scheduler = new TelegramSchedulerService();
+      scheduler.startScheduler();
+    }
   });
-});
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-    process.exit(0);
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    server.close(() => {
+      console.log('Process terminated');
+      process.exit(0);
+    });
   });
-});
 
+  process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully');
+    server.close(() => {
+      console.log('Process terminated');
+      process.exit(0);
+    });
+  });
+}
+
+// Export for Vercel serverless deployment
 export default app;
