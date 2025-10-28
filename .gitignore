@@ -1,8 +1,15 @@
-# Backend
+# Backend (Java)
 backend/target/
 backend/.mvn/
 backend/mvnw
 backend/mvnw.cmd
+
+# Backend (Node.js) - Keep in root for Vercel
+node_modules/
+dist/
+*.db
+*.sqlite
+*.sqlite3
 
 # Frontend
 frontend/node_modules/
