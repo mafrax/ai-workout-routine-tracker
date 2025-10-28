@@ -1,0 +1,38 @@
+.daily-tasks-container {
+  padding: 16px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 20px;
+}
+
+.empty-state h2 {
+  color: #667eea;
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  color: #666;
+  font-size: 14px;
+}
+
+.task-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: #333;
+}
+
+.completed-task {
+  opacity: 0.7;
+}
+
+ion-card {
+  margin: 16px 0;
+}

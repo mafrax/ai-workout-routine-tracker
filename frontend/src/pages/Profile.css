@@ -1,0 +1,98 @@
+.profile-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+  min-height: 100vh;
+}
+
+.no-user-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  text-align: center;
+  color: #6c757d;
+  font-size: 18px;
+}
+
+.profile-card,
+.equipment-card,
+.goals-card {
+  margin-bottom: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #212529;
+  margin-bottom: 20px;
+  letter-spacing: -0.3px;
+}
+
+.section-title ion-icon {
+  color: #667eea;
+  font-size: 24px;
+}
+
+.equipment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.equipment-chips,
+.goals-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.equipment-chips ion-chip {
+  cursor: pointer;
+}
+
+.no-equipment {
+  color: #6c757d;
+  font-style: italic;
+  margin: 20px 0;
+}
+
+.save-button {
+  --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  margin: 24px 0;
+  font-weight: 700;
+  height: 52px;
+  font-size: 17px;
+  --border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+ion-item {
+  --background: transparent;
+  --border-color: #e9ecef;
+  margin-bottom: 8px;
+}
+
+ion-label[position="stacked"] {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+ion-input,
+ion-select {
+  --background: #f8f9fa;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  border-radius: 8px;
+  margin-top: 4px;
+}

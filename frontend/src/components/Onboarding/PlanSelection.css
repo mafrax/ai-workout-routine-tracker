@@ -1,0 +1,227 @@
+.plan-selection-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+  min-height: 100vh;
+}
+
+.intro-section {
+  text-align: center;
+  margin-bottom: 48px;
+  padding: 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  color: white;
+}
+
+.intro-section h2 {
+  color: white;
+  margin-bottom: 16px;
+  font-weight: 700;
+  font-size: 32px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.intro-section p {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 18px;
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 768px) {
+  .plans-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.plan-card {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 3px solid transparent;
+  margin: 0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  background: white;
+}
+
+.plan-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.plan-card.selected {
+  border-color: #667eea;
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4);
+  transform: scale(1.02);
+}
+
+.selected-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: linear-gradient(135deg, #2dd36f 0%, #28ba62 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(45, 211, 111, 0.4);
+}
+
+.selected-badge ion-icon {
+  font-size: 18px;
+}
+
+.plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-right: 100px;
+  margin-bottom: 16px;
+}
+
+.plan-description {
+  color: #495057;
+  margin: 20px 0;
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.plan-stats {
+  display: flex;
+  gap: 24px;
+  margin: 24px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #495057;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.stat-item ion-icon {
+  color: #667eea;
+  font-size: 22px;
+}
+
+.plan-details {
+  margin-top: 24px;
+}
+
+.plan-details h3 {
+  font-size: 18px;
+  color: #212529;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.plan-details h3 ion-icon {
+  color: #667eea;
+  font-size: 24px;
+}
+
+.plan-details-content {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 20px;
+  border-radius: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 2px solid #dee2e6;
+}
+
+.plan-details-content p {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #495057;
+  line-height: 1.6;
+}
+
+.plan-details-content p.day-header {
+  font-weight: 700;
+  color: #667eea;
+  margin-top: 20px;
+  margin-bottom: 12px;
+  font-size: 17px;
+  letter-spacing: -0.2px;
+}
+
+.more-indicator {
+  color: #667eea;
+  font-style: italic;
+  margin-top: 12px !important;
+  font-weight: 600;
+}
+
+.action-section {
+  max-width: 600px;
+  margin: 32px auto 0;
+  text-align: center;
+}
+
+.selected-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  border-radius: 12px;
+  color: #155724;
+  border: 2px solid #28a745;
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.selected-info ion-icon {
+  font-size: 28px;
+}
+
+.select-prompt {
+  color: #6c757d;
+  margin-bottom: 24px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.confirm-button {
+  --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-size: 19px;
+  font-weight: 700;
+  height: 60px;
+  --border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+.confirm-button ion-spinner {
+  margin-right: 12px;
+}

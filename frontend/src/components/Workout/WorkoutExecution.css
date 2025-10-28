@@ -1,0 +1,404 @@
+.workout-execution-container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 12px;
+  background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+  min-height: 100vh;
+  padding-bottom: 24px;
+}
+
+.workout-progress {
+  height: 10px;
+  margin-bottom: 24px;
+  border-radius: 10px;
+  background: #e9ecef;
+  --background: #e9ecef;
+  --progress-background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.workout-info {
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.exercise-counter {
+  font-size: 15px;
+  color: white;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin: 0;
+}
+
+/* Rest Card */
+.rest-card {
+  text-align: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.rest-title {
+  font-size: 28px;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.timer-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 30px 0;
+}
+
+.timer-icon {
+  font-size: 48px;
+}
+
+.timer-text {
+  font-size: 72px;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+}
+
+.next-exercise-text {
+  font-size: 16px;
+  margin: 20px 0;
+  opacity: 0.9;
+}
+
+.timer-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+/* Exercise Card */
+.exercise-card {
+  margin-bottom: 16px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  background: white;
+}
+
+.exercise-card ion-card-content {
+  padding: 16px;
+  background: white;
+}
+
+.exercise-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.exercise-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: #212529;
+  flex: 1;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+  word-wrap: break-word;
+}
+
+.set-badge {
+  font-size: 14px;
+  padding: 8px 14px;
+  font-weight: 700;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.exercise-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  border: 2px solid #dee2e6;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  padding: 4px 0;
+}
+
+.detail-item.weight-item {
+  background: white;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin: -2px -4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.detail-item ion-icon {
+  font-size: 22px;
+  color: #667eea;
+  flex-shrink: 0;
+}
+
+.detail-label {
+  color: #495057;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+}
+
+.detail-value {
+  font-weight: 800;
+  color: #212529;
+  margin-left: auto;
+  font-size: 18px;
+}
+
+/* Sets Tracker */
+.sets-tracker {
+  margin: 16px 0;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+}
+
+.sets-label {
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #212529;
+  text-align: center;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sets-dots {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.set-dot {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  border: 3px solid #dee2e6;
+  background: white;
+  color: #adb5bd;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.set-dot.current {
+  border-color: #667eea;
+  color: #667eea;
+  transform: scale(1.15);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.set-dot.completed {
+  background: linear-gradient(135deg, #2dd36f 0%, #28ba62 100%);
+  border-color: #2dd36f;
+  color: white;
+  box-shadow: 0 4px 12px rgba(45, 211, 111, 0.3);
+}
+
+.set-dot.completed ion-icon {
+  font-size: 28px;
+}
+
+.workout-navigation-buttons {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.previous-set-btn {
+  --background: transparent;
+  --border-color: #adb5bd;
+  --border-width: 2px;
+  --color: #495057;
+  font-size: 15px;
+  font-weight: 700;
+  height: 52px;
+  --border-radius: 12px;
+}
+
+.previous-set-btn[disabled] {
+  opacity: 0.4;
+}
+
+.complete-set-btn {
+  --background: linear-gradient(135deg, #2dd36f 0%, #28ba62 100%);
+  font-size: 16px;
+  font-weight: 700;
+  height: 52px;
+  --border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(45, 211, 111, 0.3);
+}
+
+/* Upcoming Exercises */
+.upcoming-exercises {
+  background: linear-gradient(135deg, #fff9e6 0%, #fff3cc 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* Exercise Info Card */
+.exercise-info-card {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.upcoming-exercises h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #212529;
+  letter-spacing: -0.3px;
+}
+
+.upcoming-exercise {
+  font-weight: 700;
+  color: #212529;
+  margin-bottom: 6px;
+  font-size: 16px;
+}
+
+.upcoming-details {
+  font-size: 14px;
+  color: #495057;
+  font-weight: 600;
+}
+
+.finish-message {
+  text-align: center;
+  font-size: 18px;
+  padding: 24px;
+  color: #2dd36f;
+  font-weight: 700;
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  border-radius: 12px;
+  margin: 16px 0;
+}
+
+/* Workout Start Screen */
+.workout-start-screen {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 0;
+  text-align: center;
+}
+
+.workout-start-screen h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #212529;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.workout-summary {
+  font-size: 18px;
+  color: #495057;
+  margin: 24px 0;
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+.start-workout-btn {
+  --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-size: 22px;
+  font-weight: 700;
+  height: 64px;
+  margin-top: 32px;
+  --border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* Exercise Instructions */
+.exercise-instruction {
+  font-size: 13px;
+  color: #667eea;
+  font-style: italic;
+  margin-top: 6px;
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.exercise-instruction-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  background: linear-gradient(135deg, #e8eeff 0%, #f0f3ff 100%);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  border-left: 4px solid #667eea;
+}
+
+.instruction-text {
+  font-size: 14px;
+  color: #495057;
+  line-height: 1.5;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Reorder Modal */
+ion-modal ion-card {
+  margin: 0;
+}
+
+ion-modal ion-list ion-item {
+  --padding-start: 12px;
+  --inner-padding-end: 8px;
+}
+
+ion-modal ion-label {
+  margin: 8px 0;
+}
+
+ion-modal ion-label h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  word-wrap: break-word;
+}
+
+ion-modal ion-label p {
+  font-size: 14px;
+  margin: 2px 0;
+}

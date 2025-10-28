@@ -1,0 +1,117 @@
+.plans-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 20px 0;
+  color: #212529;
+}
+
+.plan-card {
+  margin: 0 0 16px 0;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.plan-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.plan-card.archived {
+  background: #f8f9fa;
+}
+
+.plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.plan-description {
+  font-size: 14px;
+  color: #6c757d;
+  margin: 12px 0;
+  line-height: 1.5;
+}
+
+.plan-stats {
+  display: flex;
+  gap: 20px;
+  margin: 16px 0;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #495057;
+  font-weight: 600;
+}
+
+.stat-item ion-icon {
+  font-size: 20px;
+  color: #667eea;
+}
+
+.plan-progress {
+  margin: 16px 0;
+}
+
+.plan-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.color-option {
+  height: 80px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.color-option:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.color-option:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 768px) {
+  .plans-container {
+    padding: 16px;
+  }
+
+  .plan-stats {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .plan-actions {
+    flex-direction: column;
+  }
+
+  .plan-actions ion-button {
+    width: 100%;
+  }
+}
