@@ -4,10 +4,12 @@ An intelligent workout application that integrates with Claude AI or ChatGPT to 
 
 ## 🏗️ Architecture
 
-### Backend (Spring Boot + Java)
-- **Database**: H2 (development), PostgreSQL (production-ready)
+### Backend (Node.js + TypeScript)
+- **Framework**: Express.js with TypeScript
+- **Database**: SQLite with Prisma ORM
 - **LLM Integration**: Claude AI (Anthropic) and ChatGPT (OpenAI)
-- **API**: RESTful endpoints for chat, workouts, and progress tracking
+- **API**: RESTful endpoints for daily tasks, migration, and health checks
+- **Deployment**: Vercel Serverless Functions
 
 ### Frontend (React + Ionic)
 - **Framework**: React with TypeScript
@@ -19,19 +21,18 @@ An intelligent workout application that integrates with Claude AI or ChatGPT to 
 
 ```
 workout/
-├── backend/                    # Spring Boot backend
-│   ├── src/main/java/com/workout/app/
-│   │   ├── entity/            # JPA entities (User, WorkoutPlan, WorkoutSession, etc.)
-│   │   ├── repository/        # Spring Data repositories
-│   │   ├── service/           # Business logic & LLM integration
-│   │   ├── controller/        # REST API controllers
-│   │   ├── dto/               # Data Transfer Objects
-│   │   └── config/            # Configuration classes
-│   ├── src/main/resources/
-│   │   └── application.properties
-│   └── pom.xml
+├── src/                       # Node.js/TypeScript backend
+│   ├── routes/               # Express.js route handlers
+│   ├── services/             # Business logic & LLM integration
+│   ├── types/                # TypeScript interfaces and types
+│   └── lib/                  # Database connection
+├── prisma/                   # Database schema and migrations
+├── api/                      # Vercel serverless function entry point
+├── package.json              # Node.js dependencies
+├── tsconfig.json             # TypeScript configuration
+├── vercel.json               # Vercel deployment config
 │
-└── frontend/                   # React + Ionic frontend
+└── frontend/                 # React + Ionic frontend
     ├── src/
     │   ├── components/
     │   │   ├── Chat/          # AI chat interface

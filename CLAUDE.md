@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-An AI-powered workout tracking application with integrated Telegram reminders, built with React/Ionic frontend and Spring Boot backend.
+An AI-powered workout tracking application with integrated Telegram reminders, built with React/Ionic frontend and Node.js/TypeScript backend.
 
 ## Visual Development & Testing
 
@@ -121,12 +121,13 @@ When implementing UI features, verify:
 - **Notifications**: Capacitor Local Notifications + Telegram Bot API
 
 ### Backend
-- **Framework**: Spring Boot 3.x
-- **Language**: Java 17
-- **Database**: H2 (file-based for development)
-- **ORM**: JPA/Hibernate
-- **Scheduling**: Spring @Scheduled
-- **Messaging**: Telegram Bot API via RestTemplate
+- **Framework**: Express.js with TypeScript
+- **Runtime**: Node.js 18+
+- **Database**: SQLite (file-based with Prisma ORM)
+- **ORM**: Prisma Client
+- **Scheduling**: node-cron
+- **Messaging**: Telegram Bot API via Axios
+- **Deployment**: Vercel Serverless Functions
 
 ## Key Features
 
@@ -180,26 +181,26 @@ When implementing UI features, verify:
 └─────────────────────────────────────────────────────────────┘
                             ↕ HTTP/REST
 ┌─────────────────────────────────────────────────────────────┐
-│                    Backend (Spring Boot)                     │
+│                  Backend (Express.js/TypeScript)             │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │              Controllers (REST APIs)                  │   │
-│  │  • DailyTaskController  • MigrationController        │   │
-│  │  • HealthController                                   │   │
+│  │                Routes (REST APIs)                     │   │
+│  │  • /api/daily-tasks  • /api/migration                │   │
+│  │  • /api/health                                       │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │                  Services                             │   │
 │  │  • DailyTaskService    • TelegramService             │   │
-│  │  • TelegramSchedulerService (Cron Jobs)              │   │
+│  │  • TelegramSchedulerService (node-cron)              │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │              Repositories (JPA)                       │   │
-│  │  • DailyTaskRepository  • TelegramConfigRepository   │   │
-│  │  • WorkoutPlanRepository • WorkoutSessionRepository  │   │
+│  │             Database Layer (Prisma)                   │   │
+│  │  • Daily Tasks  • Telegram Config  • Workout Plans   │   │
+│  │  • Workout Sessions  • Users                         │   │
 │  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                             ↕
 ┌─────────────────────────────────────────────────────────────┐
-│                  Database (H2 File-based)                    │
+│                  Database (SQLite File-based)                │
 │  • daily_tasks  • telegram_config  • workout_plans          │
 │  • workout_sessions  • users                                 │
 └─────────────────────────────────────────────────────────────┘
@@ -421,8 +422,7 @@ cors.allowed.origins=*
 
 ### Prerequisites
 - Node.js 18+
-- Java 17+
-- Maven 3.6+
+- npm or yarn
 - Xcode (for iOS) or Android Studio
 
 ### Frontend Setup
@@ -439,17 +439,20 @@ npx cap open ios    # or android
 
 ### Backend Setup
 ```bash
-cd backend
+# Install dependencies
+npm install
 
-# Create API keys file
-cat > src/main/resources/application-local.properties << EOF
-llm.anthropic.api.key=your_key
-llm.openai.api.key=your_key
-EOF
+# Create environment file
+cp .env.example .env
+# Edit .env with your API keys
+
+# Generate Prisma client and setup database
+npx prisma generate
+npx prisma db push
 
 # Build and run
-mvn clean install
-mvn spring-boot:run  # Runs on http://localhost:8080
+npm run build
+npm run dev  # Runs on http://localhost:8080
 ```
 
 ## Testing
@@ -462,8 +465,8 @@ npm run test.e2e     # Cypress E2E tests
 
 ### Backend
 ```bash
-mvn test             # Unit tests
-mvn spring-boot:run  # Manual testing
+npm test             # Unit tests (when implemented)
+npm run dev          # Manual testing
 ```
 
 ### Test Telegram Integration
@@ -488,15 +491,14 @@ curl -X POST http://localhost:8080/api/daily-tasks/user/1 \
 
 ### Backend (Production)
 ```bash
-# Package
-mvn clean package -DskipTests
+# Deploy to Vercel
+git push origin vercel-deploy-root
+# Or use Vercel CLI
+vercel deploy
 
-# Run
-java -jar target/workout-app-0.0.1-SNAPSHOT.jar
-
-# Or with Docker
-docker build -t workout-backend .
-docker run -p 8080:8080 workout-backend
+# Local production build
+npm run build
+npm start
 ```
 
 ## Key Implementation Details
@@ -658,7 +660,7 @@ const getPressureLevel = (hour: number): string => {
 ## Resources
 
 - [Ionic Documentation](https://ionicframework.com/docs)
-- [Spring Boot Scheduling](https://spring.io/guides/gs/scheduling-tasks/)
+- [Node.js Cron Jobs](https://www.npmjs.com/package/node-cron)
 - [Telegram Bot API](https://core.telegram.org/bots/api)
 - [Anthropic Claude API](https://docs.anthropic.com/claude/reference)
 - [Capacitor Plugins](https://capacitorjs.com/docs/plugins)
