@@ -62,11 +62,11 @@ export class MigrationService {
           where: { userId }
         });
 
-        // Create new workout sessions
+        // Create new workout sessions (planId set to null since old IDs won't match)
         await tx.workoutSession.createMany({
           data: workoutSessions.map(session => ({
             userId,
-            planId: session.planId ?? null,
+            planId: null, // Skip plan relationships during migration
             dayNumber: session.dayNumber ?? null,
             sessionDate: session.sessionDate,
             durationMinutes: session.durationMinutes ?? null,
