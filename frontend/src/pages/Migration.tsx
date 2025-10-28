@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   IonContent,
   IonHeader,
@@ -18,10 +18,12 @@ import {
 } from '@ionic/react';
 import { cloudUploadOutline, checkmarkCircle, alertCircle } from 'ionicons/icons';
 import { useStore } from '../store/useStore';
+import { Preferences } from '@capacitor/preferences';
+import { workoutPlanStorage, workoutSessionStorage, userStorage } from '../services/localStorage';
 import axios from 'axios';
 import './Migration.css';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://workout-ap7adfrmm-marcs-projects-3a713b55.vercel.app/api';
 
 const Migration: React.FC = () => {
   const { user } = useStore();
@@ -29,8 +31,14 @@ const Migration: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [migrationStatus, setMigrationStatus] = useState<any>(null);
+  const [localData, setLocalData] = useState<any>(null);
 
-  const collectLocalStorageData = () => {
+  // Load local data on component mount
+  useEffect(() => {
+    collectLocalStorageData();
+  }, []);
+
+  const collectLocalStorageData = async () => {
     const data: any = {
       userId: user?.id || Date.now(),
       tasks: [],
@@ -40,60 +48,63 @@ const Migration: React.FC = () => {
       telegramConfig: null,
     };
 
-    // Collect Daily Tasks
-    const tasksStr = localStorage.getItem('dailyTasks');
-    if (tasksStr) {
-      try {
-        data.tasks = JSON.parse(tasksStr);
-      } catch (e) {
-        console.error('Error parsing tasks', e);
+    try {
+      // Collect Daily Tasks (from localStorage)
+      const tasksStr = localStorage.getItem('dailyTasks');
+      if (tasksStr) {
+        const rawTasks = JSON.parse(tasksStr);
+        data.tasks = rawTasks.map((task: any) => ({
+          title: task.title || 'Untitled Task',
+          completed: task.completed || false
+        }));
       }
-    }
 
-    // Collect Workout Plans
-    const plansStr = localStorage.getItem('workoutPlans');
-    if (plansStr) {
-      try {
-        data.workoutPlans = JSON.parse(plansStr);
-      } catch (e) {
-        console.error('Error parsing workout plans', e);
+      // Collect Workout Plans (from Capacitor Preferences)
+      const rawWorkoutPlans = await workoutPlanStorage.getAll();
+      data.workoutPlans = rawWorkoutPlans.map(plan => ({
+        name: plan.name || 'Untitled Plan',
+        planDetails: plan.planDetails || '',
+        isActive: plan.isActive || false,
+        isArchived: plan.isArchived || false,
+        completedWorkouts: plan.completedWorkouts || [],
+        telegramPreviewHour: plan.telegramPreviewHour || null
+      }));
+
+      // Collect Workout Sessions (from Capacitor Preferences)
+      const rawWorkoutSessions = await workoutSessionStorage.getAll();
+      data.workoutSessions = rawWorkoutSessions.map(session => ({
+        planId: session.workoutPlanId || null,
+        dayNumber: null, // Frontend doesn't track this field
+        sessionDate: session.sessionDate || new Date().toISOString(),
+        durationMinutes: session.durationMinutes || null,
+        completionRate: session.completionRate || null,
+        notes: session.notes || null
+      }));
+
+      // Collect User Profile (from Capacitor Preferences)
+      data.userProfile = await userStorage.get();
+
+      // Collect Telegram Config (from Capacitor Preferences)
+      const telegramBotToken = await Preferences.get({ key: 'telegram_bot_token' });
+      const telegramChatId = await Preferences.get({ key: 'telegram_chat_id' });
+      const startHourStr = localStorage.getItem('dailyTasksStartHour');
+
+      if (telegramBotToken.value && telegramChatId.value) {
+        data.telegramConfig = {
+          botToken: telegramBotToken.value,
+          chatId: telegramChatId.value,
+          startHour: startHourStr ? parseInt(startHourStr) : 9,
+        };
       }
+
+      console.log('Collected local data:', data);
+      setLocalData(data);
+      return data;
+    } catch (error) {
+      console.error('Error collecting local data:', error);
+      setLocalData(data);
+      return data;
     }
-
-    // Collect Workout Sessions
-    const sessionsStr = localStorage.getItem('workoutSessions');
-    if (sessionsStr) {
-      try {
-        data.workoutSessions = JSON.parse(sessionsStr);
-      } catch (e) {
-        console.error('Error parsing workout sessions', e);
-      }
-    }
-
-    // Collect User Profile
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        data.userProfile = JSON.parse(userStr);
-      } catch (e) {
-        console.error('Error parsing user', e);
-      }
-    }
-
-    // Collect Telegram Config
-    const telegramBotToken = localStorage.getItem('telegram_bot_token');
-    const telegramChatId = localStorage.getItem('telegram_chat_id');
-    const startHourStr = localStorage.getItem('dailyTasksStartHour');
-
-    if (telegramBotToken && telegramChatId) {
-      data.telegramConfig = {
-        botToken: telegramBotToken,
-        chatId: telegramChatId,
-        startHour: startHourStr ? parseInt(startHourStr) : 9,
-      };
-    }
-
-    return data;
   };
 
   const migrateData = async () => {
@@ -101,7 +112,7 @@ const Migration: React.FC = () => {
     setMigrationStatus(null);
 
     try {
-      const data = collectLocalStorageData();
+      const data = await collectLocalStorageData();
 
       console.log('Migrating data:', data);
 
@@ -122,7 +133,13 @@ const Migration: React.FC = () => {
     }
   };
 
-  const data = collectLocalStorageData();
+  // Use empty defaults while loading
+  const data = localData || {
+    tasks: [],
+    workoutPlans: [],
+    workoutSessions: [],
+    telegramConfig: null
+  };
 
   return (
     <IonPage>
@@ -208,7 +225,7 @@ const Migration: React.FC = () => {
             <div style={{ marginTop: '20px', padding: '15px', background: '#f5f5f5', borderRadius: '8px' }}>
               <h4 style={{ margin: '0 0 10px 0' }}>⚠️ Before Migration:</h4>
               <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px' }}>
-                <li>Make sure the backend server is running on localhost:8080</li>
+                <li>Backend server is running on Vercel (cloud deployment)</li>
                 <li>Your local data will NOT be deleted</li>
                 <li>After migration, you can switch the app to use the backend</li>
                 <li>Telegram reminders will be sent automatically by the backend</li>

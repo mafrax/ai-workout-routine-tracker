@@ -32,6 +32,7 @@ import {
   checkmarkCircle,
   logoWhatsapp,
   send,
+  cloudUploadOutline,
 } from 'ionicons/icons';
 import { useStore } from '../store/useStore';
 import { userApi, workoutPlanApi } from '../services/api';
@@ -661,6 +662,25 @@ Return ONLY the workout content, no extra text.`;
                   Setup Telegram
                 </IonButton>
               )}
+            </IonCardContent>
+          </IonCard>
+
+          <IonCard className="migration-card">
+            <IonCardContent>
+              <h2 className="section-title">
+                <IonIcon icon={cloudUploadOutline} /> Backend Migration
+              </h2>
+              <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '16px' }}>
+                Migrate your data to the cloud backend and enable automatic sync
+              </p>
+              <IonButton
+                expand="block"
+                fill="outline"
+                routerLink="/migration"
+              >
+                <IonIcon icon={cloudUploadOutline} slot="start" />
+                Open Migration Page
+              </IonButton>
             </IonCardContent>
           </IonCard>
 

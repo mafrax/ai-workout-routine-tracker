@@ -1,9 +1,8 @@
 import axios from 'axios';
 import { User, WorkoutPlan, WorkoutSession, ProgressSummary } from '../types';
 
-// For mobile app, use your computer's IP address when on same WiFi
-// Make sure your backend is running on your computer at this IP
-const API_BASE_URL = 'http://172.20.12.56:8080/api';
+// Vercel backend deployment
+const API_BASE_URL = 'https://workout-ap7adfrmm-marcs-projects-3a713b55.vercel.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
