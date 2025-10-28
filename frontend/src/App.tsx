@@ -10,6 +10,7 @@ import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Plans from './pages/Plans';
 import DailyTasks from './pages/DailyTasks';
+import Migration from './pages/Migration';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -71,6 +72,9 @@ const App: React.FC = () => (
           </Route>
           <Route exact path="/tasks">
             <DailyTasks />
+          </Route>
+          <Route exact path="/migration">
+            <Migration />
           </Route>
           <Route exact path="/">
             <Redirect to="/home" />

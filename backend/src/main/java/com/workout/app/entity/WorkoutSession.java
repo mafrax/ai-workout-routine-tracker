@@ -1,56 +1,110 @@
 package com.workout.app.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "workout_sessions")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class WorkoutSession {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-    private User user;
+    @Column(nullable = false, name = "user_id")
+    private Long userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "workout_plan_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-    private WorkoutPlan workoutPlan;
+    @Column(name = "plan_id")
+    private Long planId;
 
-    @Column(name = "session_date", nullable = false)
-    private LocalDateTime sessionDate;
+    @Column(name = "day_number")
+    private Integer dayNumber;
+
+    @Column(name = "session_date")
+    private String sessionDate;
 
     @Column(name = "duration_minutes")
     private Integer durationMinutes;
 
-    @Column(columnDefinition = "TEXT")
-    private String exercises; // JSON string containing exercises performed
-
     @Column(name = "completion_rate")
-    private Double completionRate; // 0.0 to 1.0
-
-    @Column(name = "difficulty_rating")
-    private Integer difficultyRating; // 1-10 scale
+    private Double completionRate;
 
     @Column(columnDefinition = "TEXT")
     private String notes;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
+    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public Long getPlanId() {
+        return planId;
+    }
+
+    public void setPlanId(Long planId) {
+        this.planId = planId;
+    }
+
+    public Integer getDayNumber() {
+        return dayNumber;
+    }
+
+    public void setDayNumber(Integer dayNumber) {
+        this.dayNumber = dayNumber;
+    }
+
+    public String getSessionDate() {
+        return sessionDate;
+    }
+
+    public void setSessionDate(String sessionDate) {
+        this.sessionDate = sessionDate;
+    }
+
+    public Integer getDurationMinutes() {
+        return durationMinutes;
+    }
+
+    public void setDurationMinutes(Integer durationMinutes) {
+        this.durationMinutes = durationMinutes;
+    }
+
+    public Double getCompletionRate() {
+        return completionRate;
+    }
+
+    public void setCompletionRate(Double completionRate) {
+        this.completionRate = completionRate;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }
