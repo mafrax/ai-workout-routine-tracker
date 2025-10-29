@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Use the same backend URL as other services
-const API_BASE_URL = 'https://workout-bqxxgza02-marcs-projects-3a713b55.vercel.app/api';
+// Use the same backend URL as other services (stable production URL)
+const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

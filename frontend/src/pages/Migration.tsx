@@ -23,7 +23,7 @@ import { workoutPlanStorage, workoutSessionStorage, userStorage } from '../servi
 import axios from 'axios';
 import './Migration.css';
 
-const API_BASE_URL = 'https://workout-bqxxgza02-marcs-projects-3a713b55.vercel.app/api';
+const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
 
 const Migration: React.FC = () => {
   const { user } = useStore();
