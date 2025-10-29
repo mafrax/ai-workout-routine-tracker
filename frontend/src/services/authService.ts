@@ -42,18 +42,32 @@ class AuthService {
         this.token = token;
         localStorage.setItem('auth_token', token);
 
-        // Fetch user details
-        const response = await axios.get(`${API_BASE_URL}/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        // Decode JWT to get user info (JWT format: header.payload.signature)
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          this.user = {
+            id: payload.id,
+            email: payload.email,
+            name: payload.name
+          };
+          localStorage.setItem('auth_user', JSON.stringify(this.user));
+          console.log('✅ OAuth user saved:', this.user);
+          resolve(this.user!);
+        } catch (decodeError) {
+          console.error('Failed to decode JWT:', decodeError);
+          // Fallback: try to fetch user details from API
+          const response = await axios.get(`${API_BASE_URL}/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
 
-        this.user = response.data.user;
-        localStorage.setItem('auth_user', JSON.stringify(this.user));
-        resolve(this.user!);
+          this.user = response.data.user;
+          localStorage.setItem('auth_user', JSON.stringify(this.user));
+          resolve(this.user!);
+        }
       } catch (error) {
-        console.error('Failed to fetch user:', error);
+        console.error('Failed to handle auth callback:', error);
         this.logout();
         reject(error);
       }

@@ -22,20 +22,23 @@ const Home: React.FC = () => {
       // Check if user is authenticated via OAuth first
       if (authService.isAuthenticated()) {
         const oauthUser = authService.getCurrentUser();
-        if (oauthUser && !user) {
-          console.log('Found OAuth user:', oauthUser);
-          setUser({
-            id: parseInt(oauthUser.id),
-            email: oauthUser.email,
-            name: oauthUser.name
-          });
+        if (oauthUser) {
+          console.log('✅ Found OAuth user:', oauthUser);
+          // Always set OAuth user (even if user already exists in Zustand from AuthCallback)
+          if (!user || user.email !== oauthUser.email) {
+            setUser({
+              id: parseInt(oauthUser.id),
+              email: oauthUser.email,
+              name: oauthUser.name
+            });
+          }
           return; // Don't load from old API if OAuth user exists
         }
       }
 
-      // Fallback to old localStorage-based user system
+      // Fallback to old localStorage-based user system (for legacy users)
       const users = await userApi.getAll();
-      console.log('Loaded users:', users);
+      console.log('Loaded legacy users:', users);
       if (users.length > 0) {
         setUser(users[0]);
       } else {

@@ -63,4 +63,23 @@ router.post('/save', async (req: Request, res: Response<ApiResponse>) => {
   }
 });
 
+// POST /api/migration/merge-users
+router.post('/merge-users', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    const result = await migrationService.mergeUsers();
+    res.json({
+      success: true,
+      message: 'Users merged successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error merging users:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;

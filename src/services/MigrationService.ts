@@ -97,4 +97,87 @@ export class MigrationService {
       }
     });
   }
+
+  async mergeUsers(): Promise<{ message: string, mergedUser: any, deletedUser: any }> {
+    // Find all users
+    const users = await prisma.user.findMany({
+      include: {
+        workoutPlans: true,
+        workoutSessions: true,
+        dailyTasks: true,
+        telegramConfig: true
+      }
+    });
+
+    console.log('📊 Found users:', users.length);
+
+    if (users.length !== 2) {
+      throw new Error(`Expected 2 users, found ${users.length}`);
+    }
+
+    // Identify OAuth user (has googleId) and legacy user (no googleId)
+    const oauthUser = users.find(u => u.googleId !== null);
+    const legacyUser = users.find(u => u.googleId === null);
+
+    if (!oauthUser || !legacyUser) {
+      throw new Error('Could not identify OAuth and legacy users');
+    }
+
+    console.log(`🔄 Merging User ${legacyUser.id} into User ${oauthUser.id}`);
+
+    await prisma.$transaction(async (tx) => {
+      // Update workout plans
+      await tx.workoutPlan.updateMany({
+        where: { userId: legacyUser.id },
+        data: { userId: oauthUser.id }
+      });
+
+      // Update workout sessions
+      await tx.workoutSession.updateMany({
+        where: { userId: legacyUser.id },
+        data: { userId: oauthUser.id }
+      });
+
+      // Update daily tasks
+      await tx.dailyTask.updateMany({
+        where: { userId: legacyUser.id },
+        data: { userId: oauthUser.id }
+      });
+
+      // Update telegram config if exists
+      if (legacyUser.telegramConfig) {
+        // Delete OAuth user's telegram config if it exists (keep legacy user's config)
+        if (oauthUser.telegramConfig) {
+          await tx.telegramConfig.delete({
+            where: { userId: oauthUser.id }
+          });
+        }
+
+        await tx.telegramConfig.update({
+          where: { userId: legacyUser.id },
+          data: { userId: oauthUser.id }
+        });
+      }
+
+      // Delete legacy user
+      await tx.user.delete({
+        where: { id: legacyUser.id }
+      });
+    });
+
+    console.log('✅ Users merged successfully');
+
+    return {
+      message: 'Users merged successfully',
+      mergedUser: {
+        id: oauthUser.id.toString(),
+        email: oauthUser.email,
+        name: oauthUser.name
+      },
+      deletedUser: {
+        id: legacyUser.id.toString(),
+        email: legacyUser.email
+      }
+    };
+  }
 }
