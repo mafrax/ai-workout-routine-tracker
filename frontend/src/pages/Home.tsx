@@ -2,6 +2,7 @@ import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonCard, IonCardH
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { userApi, workoutPlanApi } from '../services/api';
+import { authService } from '../services/authService';
 import OnboardingQuestionnaire from '../components/Onboarding/OnboardingQuestionnaire';
 import { chatbubbles, barChart, fitness, today, personCircle, trophy, calendar, trash } from 'ionicons/icons';
 import { clearAllData } from '../services/localStorage';
@@ -18,6 +19,21 @@ const Home: React.FC = () => {
 
   const loadUser = async () => {
     try {
+      // Check if user is authenticated via OAuth first
+      if (authService.isAuthenticated()) {
+        const oauthUser = authService.getCurrentUser();
+        if (oauthUser && !user) {
+          console.log('Found OAuth user:', oauthUser);
+          setUser({
+            id: parseInt(oauthUser.id),
+            email: oauthUser.email,
+            name: oauthUser.name
+          });
+          return; // Don't load from old API if OAuth user exists
+        }
+      }
+
+      // Fallback to old localStorage-based user system
       const users = await userApi.getAll();
       console.log('Loaded users:', users);
       if (users.length > 0) {
