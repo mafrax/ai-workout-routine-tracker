@@ -30,36 +30,58 @@ router.get('/google', passport.authenticate('google', {
 }));
 
 router.get('/google/callback',
-  passport.authenticate('google', {
-    session: false,
-    failureRedirect: process.env.FRONTEND_URL + '/login?error=auth_failed'
-  }),
-  (req: express.Request, res: express.Response) => {
-    try {
-      const user = req.user as any;
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    passport.authenticate('google', {
+      session: false,
+      failureRedirect: process.env.FRONTEND_URL + '/login?error=auth_failed'
+    }, (err: any, user: any, info: any) => {
+      console.log('📝 OAuth callback received');
+      console.log('Error:', err);
+      console.log('User:', user);
+      console.log('Info:', info);
 
-      if (!user) {
-        return res.redirect(process.env.FRONTEND_URL + '/login?error=no_user');
+      if (err) {
+        console.error('❌ Error in passport authentication:', err);
+        return res.status(500).json({
+          success: false,
+          error: 'Authentication error',
+          message: err.message,
+          details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
       }
 
-      // Generate JWT token
-      const token = jwt.sign(
-        {
-          id: user.id.toString(),
-          email: user.email,
-          name: user.name
-        },
-        process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '30d' }
-      );
+      if (!user) {
+        console.error('❌ No user returned from OAuth');
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=no_user`);
+      }
 
-      // Redirect to frontend with token
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback?token=${token}`;
-      res.redirect(redirectUrl);
-    } catch (error) {
-      console.error('❌ Error in Google callback:', error);
-      res.redirect(process.env.FRONTEND_URL + '/login?error=callback_failed');
-    }
+      try {
+        console.log('✅ User authenticated, generating JWT token');
+        // Generate JWT token
+        const token = jwt.sign(
+          {
+            id: user.id.toString(),
+            email: user.email,
+            name: user.name
+          },
+          process.env.JWT_SECRET || 'your-secret-key',
+          { expiresIn: '30d' }
+        );
+
+        console.log('✅ Token generated, redirecting to frontend');
+        // Redirect to frontend with token
+        const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback?token=${token}`;
+        res.redirect(redirectUrl);
+      } catch (error: any) {
+        console.error('❌ Error generating token or redirecting:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Token generation error',
+          message: error.message,
+          details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+      }
+    })(req, res, next);
   }
 );
 
