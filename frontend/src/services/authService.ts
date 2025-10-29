@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://workout-bqxxgza02-marcs-projects-3a713b55.vercel.app/api';
+const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
 
 export interface AuthUser {
   id: string;

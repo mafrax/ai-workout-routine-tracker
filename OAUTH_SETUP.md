@@ -68,10 +68,10 @@ CORS_ORIGIN="http://localhost:5173"
    - **Authorized JavaScript origins**:
      - `http://localhost:5173` (frontend dev)
      - `http://localhost:8080` (backend dev)
-     - Your production frontend URL
+     - `https://workout-marcs-projects-3a713b55.vercel.app` (production backend - stable URL)
    - **Authorized redirect URIs**:
      - `http://localhost:8080/api/auth/google/callback` (dev)
-     - `https://your-backend-url.vercel.app/api/auth/google/callback` (production)
+     - `https://workout-marcs-projects-3a713b55.vercel.app/api/auth/google/callback` (production - stable URL)
 
 5. Click **Create**
 6. Copy the **Client ID** and **Client Secret**
