@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { User, WorkoutPlan, WorkoutSession, ProgressSummary } from '../types';
 
-// Vercel backend deployment - PostgreSQL enabled
-const API_BASE_URL = 'https://workout-dxqwxg9z6-marcs-projects-3a713b55.vercel.app/api';
+// Vercel backend deployment - PostgreSQL + Migration fix
+const API_BASE_URL = 'https://workout-bqxxgza02-marcs-projects-3a713b55.vercel.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

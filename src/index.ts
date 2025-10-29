@@ -1,12 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import passport from './config/passport';
+import cookieParser from 'cookie-parser';
 import { TelegramSchedulerService } from './services/TelegramSchedulerService';
 
 // Routes
 import healthRoutes from './routes/health';
 import dailyTaskRoutes from './routes/daily-tasks';
 import migrationRoutes from './routes/migration';
+import authRoutes from './routes/auth';
 
 // Load environment variables
 dotenv.config();
@@ -16,13 +19,19 @@ const port = process.env.PORT || 8080;
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*'
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(passport.initialize());
 
 // Health check endpoint
 app.use('/api/health', healthRoutes);
+
+// Auth routes
+app.use('/api/auth', authRoutes);
 
 // API routes
 app.use('/api/daily-tasks', dailyTaskRoutes);

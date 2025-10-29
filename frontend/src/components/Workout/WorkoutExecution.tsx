@@ -26,7 +26,8 @@ import { KeepAwake } from '@capacitor-community/keep-awake';
 import type { DailyWorkout, Exercise } from '../../types/workout';
 import { useStore } from '../../store/useStore';
 import { saveWorkoutSession } from '../../services/workoutSessionService';
-import { workoutPlanApi } from '../../services/api';
+import { workoutPlanApi as localWorkoutPlanApi } from '../../services/api';
+import { workoutPlanApi as backendWorkoutPlanApi } from '../../services/api_backend';
 import { getExerciseInstruction } from '../../data/exerciseInstructions';
 import { aiService } from '../../services/aiService';
 import { telegramService } from '../../services/telegramService';
@@ -48,6 +49,7 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [completedSets, setCompletedSets] = useState<Set<string>>(new Set());
+  const [skippedExercises, setSkippedExercises] = useState<Set<number>>(new Set());
   const [workoutStarted, setWorkoutStarted] = useState(false);
   const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -165,6 +167,25 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
     setTimerSeconds(0);
   };
 
+  const skipExercise = () => {
+    // Mark this exercise as skipped
+    setSkippedExercises(new Set(skippedExercises).add(currentExerciseIndex));
+    
+    // Mark all sets for this exercise as "completed" with 0 reps to track it was skipped
+    const newCompletedSets = new Set(completedSets);
+    for (let setNum = 1; setNum <= currentExercise.sets; setNum++) {
+      newCompletedSets.add(`${currentExerciseIndex}-${setNum}`);
+    }
+    setCompletedSets(newCompletedSets);
+
+    // Show toast to confirm skip
+    setToastMessage(`Skipped: ${currentExercise.name}`);
+    setShowToast(true);
+
+    // Move to next exercise or complete workout
+    completeExercise();
+  };
+
   const goToPreviousSet = () => {
     const setKey = `${currentExerciseIndex}-${currentSet}`;
     const newCompletedSets = new Set(completedSets);
@@ -217,13 +238,16 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
     const exercisesData = reorderedExercises.map((exercise, idx) => {
       const completedSetsForExercise = Array.from({ length: exercise.sets }, (_, i) => i + 1)
         .filter(setNum => completedSets.has(`${idx}-${setNum}`)).length;
+      
+      const wasSkipped = skippedExercises.has(idx);
 
       return {
         name: exercise.name,
         sets: exercise.sets,
         completedSets: completedSetsForExercise,
-        reps: exercise.reps,
+        reps: wasSkipped ? 0 : exercise.reps, // Set reps to 0 if skipped
         weight: exercise.weight,
+        skipped: wasSkipped, // Track that it was intentionally skipped
       };
     });
 
@@ -253,13 +277,27 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
         const updatedCompletedWorkouts = [...currentCompletedWorkouts, workout.dayNumber];
 
         console.log('Marking workout day', workout.dayNumber, 'as complete');
-        const updatedPlan = await workoutPlanApi.update(activeWorkoutPlan.id, {
+
+        // Update local storage first (immediate UI update)
+        const updatedPlanLocal = await localWorkoutPlanApi.update(activeWorkoutPlan.id, {
           ...activeWorkoutPlan,
           completedWorkouts: updatedCompletedWorkouts
         });
 
-        setActiveWorkoutPlan(updatedPlan);
-        console.log('Workout plan updated with completed workout');
+        // Update store immediately for instant UI feedback
+        setActiveWorkoutPlan(updatedPlanLocal);
+        console.log('Workout plan updated locally with completed workout');
+
+        // Sync to backend
+        try {
+          await backendWorkoutPlanApi.updatePlan(activeWorkoutPlan.id, {
+            completedWorkouts: updatedCompletedWorkouts
+          });
+          console.log('Workout plan synced to backend');
+        } catch (error) {
+          console.warn('Failed to sync workout completion to backend:', error);
+          // Continue - local storage is already updated
+        }
       }
 
       setToastMessage('Workout saved successfully! 🎉');
@@ -342,15 +380,27 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
         )
       );
 
-      // Call API to update weight across all workouts in the plan
-      const updatedPlan = await workoutPlanApi.updateExerciseWeight(
+      // Update local storage first
+      const updatedPlanLocal = await localWorkoutPlanApi.updateExerciseWeight(
         activeWorkoutPlan.id,
         exerciseName,
         newWeightStr
       );
 
-      // Update the store with the new plan
-      setActiveWorkoutPlan(updatedPlan);
+      // Update the store immediately
+      setActiveWorkoutPlan(updatedPlanLocal);
+
+      // Sync to backend
+      try {
+        await backendWorkoutPlanApi.updateExerciseWeight(
+          activeWorkoutPlan.id,
+          exerciseName,
+          newWeightStr
+        );
+        console.log('Exercise weight synced to backend');
+      } catch (error) {
+        console.warn('Failed to sync exercise weight to backend:', error);
+      }
 
       setShowWeightModal(false);
       setCustomWeight('');
@@ -545,20 +595,25 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
                 <div className="sets-tracker">
                   <p className="sets-label">Sets Progress:</p>
                   <div className="sets-dots">
-                    {Array.from({ length: currentExercise.sets }, (_, i) => i + 1).map((setNum) => (
-                      <div
-                        key={setNum}
-                        className={`set-dot ${isSetCompleted(currentExerciseIndex, setNum) ? 'completed' : ''} ${
-                          setNum === currentSet ? 'current' : ''
-                        }`}
-                      >
-                        {isSetCompleted(currentExerciseIndex, setNum) ? (
-                          <IonIcon icon={checkmarkCircle} />
-                        ) : (
-                          setNum
-                        )}
-                      </div>
-                    ))}
+                    {Array.from({ length: currentExercise.sets }, (_, i) => i + 1).map((setNum) => {
+                      const isSkipped = skippedExercises.has(currentExerciseIndex);
+                      return (
+                        <div
+                          key={setNum}
+                          className={`set-dot ${
+                            isSetCompleted(currentExerciseIndex, setNum) ? 'completed' : ''
+                          } ${setNum === currentSet ? 'current' : ''} ${isSkipped ? 'skipped' : ''}`}
+                        >
+                          {isSkipped ? (
+                            <IonIcon icon={close} />
+                          ) : isSetCompleted(currentExerciseIndex, setNum) ? (
+                            <IonIcon icon={checkmarkCircle} />
+                          ) : (
+                            setNum
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -584,6 +639,17 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
                   >
                     <IonIcon icon={checkmarkCircle} slot="start" />
                     Complete Set {currentSet}
+                  </IonButton>
+                  <IonButton
+                    expand="block"
+                    size="large"
+                    onClick={skipExercise}
+                    fill="outline"
+                    color="warning"
+                    className="skip-exercise-btn"
+                  >
+                    <IonIcon icon={close} slot="start" />
+                    Skip Exercise
                   </IonButton>
                 </div>
               </IonCardContent>

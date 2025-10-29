@@ -25,14 +25,8 @@ import { useStore } from '../store/useStore';
 import { telegramService } from '../services/telegramService';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { App as CapacitorApp } from '@capacitor/app';
+import { dailyTasksService, DailyTask } from '../services/dailyTasksService';
 import './DailyTasks.css';
-
-interface DailyTask {
-  id: number;
-  title: string;
-  completed: boolean;
-  createdAt: string;
-}
 
 const DailyTasks: React.FC = () => {
   const { user } = useStore();
@@ -54,24 +48,11 @@ const DailyTasks: React.FC = () => {
     setupNotifications();
   }, [user]);
 
-  // Separate effect for app state listener (only set up once)
-  useEffect(() => {
-    let cleanup: (() => void) | undefined;
+  // App state listener removed - backend now handles scheduled reminders
 
-    setupAppStateListener().then((cleanupFn) => {
-      cleanup = cleanupFn;
-    });
-
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, []);
-
-  const loadTasks = () => {
-    const storedTasks = localStorage.getItem('dailyTasks');
-    if (storedTasks) {
-      setTasks(JSON.parse(storedTasks));
-    }
+  const loadTasks = async () => {
+    const loadedTasks = await dailyTasksService.loadTasks(user?.id);
+    setTasks(loadedTasks);
   };
 
   const loadSettings = () => {
@@ -93,12 +74,6 @@ const DailyTasks: React.FC = () => {
     }));
   };
 
-  const saveTasks = (updatedTasks: DailyTask[]) => {
-    localStorage.setItem('dailyTasks', JSON.stringify(updatedTasks));
-    setTasks(updatedTasks);
-    // Reschedule notifications when tasks change
-    scheduleNotifications();
-  };
 
   const checkTelegramConfig = async () => {
     await telegramService.loadConfig();
@@ -116,32 +91,34 @@ const DailyTasks: React.FC = () => {
     }
   };
 
-  const addTask = () => {
+  const addTask = async () => {
     if (!newTaskTitle.trim()) return;
 
-    const newTask: DailyTask = {
-      id: Date.now(),
-      title: newTaskTitle,
-      completed: false,
-      createdAt: new Date().toISOString(),
-    };
-
+    const newTask = await dailyTasksService.addTask(newTaskTitle, user?.id);
     const updatedTasks = [...tasks, newTask];
-    saveTasks(updatedTasks);
+    setTasks(updatedTasks);
     setNewTaskTitle('');
     setShowModal(false);
+    // Reschedule notifications when tasks change
+    scheduleNotifications();
   };
 
-  const toggleTask = (taskId: number) => {
+  const toggleTask = async (taskId: number) => {
+    await dailyTasksService.toggleTask(taskId, user?.id);
     const updatedTasks = tasks.map(task =>
       task.id === taskId ? { ...task, completed: !task.completed } : task
     );
-    saveTasks(updatedTasks);
+    setTasks(updatedTasks);
+    // Reschedule notifications when tasks change
+    scheduleNotifications();
   };
 
-  const deleteTask = (taskId: number) => {
+  const deleteTask = async (taskId: number) => {
+    await dailyTasksService.deleteTask(taskId, user?.id);
     const updatedTasks = tasks.filter(task => task.id !== taskId);
-    saveTasks(updatedTasks);
+    setTasks(updatedTasks);
+    // Reschedule notifications when tasks change
+    scheduleNotifications();
   };
 
   const generateReminderSchedule = (startHourParam?: number): number[] => {
@@ -198,17 +175,11 @@ const DailyTasks: React.FC = () => {
     }, msUntilMidnight);
   };
 
-  const resetAllTasks = () => {
-    // Read from localStorage to avoid stale closure issues
-    const storedTasks = localStorage.getItem('dailyTasks');
-    if (storedTasks) {
-      const currentTasks = JSON.parse(storedTasks);
-      const updatedTasks = currentTasks.map((task: DailyTask) => ({ ...task, completed: false }));
-      saveTasks(updatedTasks);
-      console.log(`✅ Reset ${updatedTasks.length} tasks at midnight - unchecked all tasks`);
-    } else {
-      console.log('⚠️ No tasks found in localStorage during midnight reset');
-    }
+  const resetAllTasks = async () => {
+    await dailyTasksService.resetAllTasks(user?.id);
+    // Reload tasks from storage after reset
+    await loadTasks();
+    console.log(`✅ Reset tasks at midnight - unchecked all tasks`);
   };
 
   const setupNotifications = async () => {
@@ -285,106 +256,7 @@ const DailyTasks: React.FC = () => {
     }
   };
 
-  const checkAndSendAutoReminder = async () => {
-    console.log('🔍 Checking if we should send auto Telegram reminder...');
-
-    // Check if we should send a reminder
-    const storedTasks = localStorage.getItem('dailyTasks');
-    if (!storedTasks) {
-      console.log('❌ No tasks found');
-      return;
-    }
-
-    const currentTasks = JSON.parse(storedTasks);
-    const incompleteTasks = currentTasks.filter((t: DailyTask) => !t.completed);
-
-    if (incompleteTasks.length === 0) {
-      console.log('✅ All tasks completed!');
-      return;
-    }
-
-    console.log(`📋 Found ${incompleteTasks.length} incomplete tasks`);
-
-    // Check if enough time has passed since last reminder
-    const lastReminderTime = localStorage.getItem('lastTelegramReminder');
-    const now = Date.now();
-    const minInterval = 60 * 60 * 1000; // 1 hour minimum between auto-reminders
-
-    if (lastReminderTime) {
-      const timeSince = now - parseInt(lastReminderTime);
-      const minutesSince = Math.floor(timeSince / 60000);
-      console.log(`⏰ Last reminder was ${minutesSince} minutes ago`);
-
-      if (timeSince < minInterval) {
-        console.log('⏳ Too soon since last reminder, skipping');
-        setToastMessage(`Auto-reminder in ${60 - minutesSince} minutes`);
-        setShowToast(true);
-        return;
-      }
-    }
-
-    // Send Telegram reminder if configured
-    await telegramService.loadConfig();
-    if (!telegramService.isConfigured()) {
-      console.log('❌ Telegram not configured');
-      return;
-    }
-
-    console.log('📤 Sending auto Telegram reminder...');
-    const currentHour = new Date().getHours();
-    const userName = user?.name;
-
-    const message = await telegramService.generatePersonalizedTaskReminder(
-      incompleteTasks,
-      currentHour,
-      userName
-    );
-
-    const success = await telegramService.sendMessage(message);
-    if (success) {
-      localStorage.setItem('lastTelegramReminder', now.toString());
-      console.log('✅ Auto-sent Telegram reminder');
-      setToastMessage('Auto-reminder sent to Telegram! 📱');
-      setShowToast(true);
-    } else {
-      console.log('❌ Failed to send Telegram message');
-    }
-  };
-
-  const setupAppStateListener = async () => {
-    console.log('🎯 Setting up app state listener...');
-
-    // Listen for app resume (when user unlocks phone or returns to app)
-    const appListener = await CapacitorApp.addListener('appStateChange', async ({ isActive }) => {
-      console.log(`📱 App state changed: ${isActive ? 'ACTIVE' : 'BACKGROUND'}`);
-      if (isActive) {
-        await checkAndSendAutoReminder();
-      }
-    });
-
-    // For browser testing: trigger on page visibility change
-    const visibilityHandler = async () => {
-      if (!document.hidden) {
-        console.log('👁️ Page became visible (browser)');
-        await checkAndSendAutoReminder();
-      }
-    };
-
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', visibilityHandler);
-    }
-
-    // Return cleanup function
-    return () => {
-      console.log('🧹 Cleaning up app state listener');
-      if (appListener && typeof appListener.remove === 'function') {
-        appListener.remove();
-      }
-      if (typeof document !== 'undefined') {
-        document.removeEventListener('visibilitychange', visibilityHandler);
-      }
-    };
-  };
+  // Auto-reminder functionality removed - backend now handles scheduled reminders
 
   const sendReminderNow = async () => {
     const incompleteTasks = tasks.filter(t => !t.completed);
@@ -462,9 +334,6 @@ const DailyTasks: React.FC = () => {
                     <IonButton size="small" fill="solid" color="light" onClick={sendReminderNow}>
                       <IonIcon icon={sendOutline} slot="start" />
                       Send Now
-                    </IonButton>
-                    <IonButton size="small" fill="outline" color="light" onClick={checkAndSendAutoReminder}>
-                      Test Auto
                     </IonButton>
                   </div>
                 </div>
@@ -699,7 +568,7 @@ const DailyTasks: React.FC = () => {
                   Telegram messages will be sent at these times:
                 </p>
                 <p style={{ fontSize: '12px', color: '#999', marginBottom: '12px' }}>
-                  📱 Local notifications scheduled automatically. 💬 Telegram messages sent when you open the app (max once per hour).
+                  📱 Local notifications scheduled automatically. 💬 Telegram reminders managed by backend.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {generateReminderSchedule().map((hour, idx) => {

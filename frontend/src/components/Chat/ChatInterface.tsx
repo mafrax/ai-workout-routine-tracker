@@ -19,7 +19,8 @@ import {
 } from '@ionic/react';
 import { checkmarkCircle, refresh, copy } from 'ionicons/icons';
 import { useStore } from '../../store/useStore';
-import { chatApi, workoutPlanApi } from '../../services/api';
+import { chatApi } from '../../services/api_backend';
+import { workoutPlanApi } from '../../services/api';
 import './ChatInterface.css';
 
 const ChatInterface: React.FC = () => {

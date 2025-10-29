@@ -11,6 +11,8 @@ import Profile from './pages/Profile';
 import Plans from './pages/Plans';
 import DailyTasks from './pages/DailyTasks';
 import Migration from './pages/Migration';
+import Login from './pages/Login';
+import AuthCallback from './pages/AuthCallback';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -49,6 +51,12 @@ const App: React.FC = () => (
     <IonReactRouter>
       <IonTabs>
         <IonRouterOutlet>
+          <Route exact path="/login">
+            <Login />
+          </Route>
+          <Route exact path="/auth/callback">
+            <AuthCallback />
+          </Route>
           <Route exact path="/home">
             <Home />
           </Route>

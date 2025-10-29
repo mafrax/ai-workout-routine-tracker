@@ -1,4 +1,5 @@
 import { workoutSessionStorage } from './localStorage';
+import { workoutSessionApi } from './api_backend';
 
 export interface WorkoutSessionData {
   userId: number;
@@ -19,8 +20,27 @@ export const saveWorkoutSession = async (sessionData: WorkoutSessionData) => {
     ...sessionData,
   };
 
+  // Save to local storage first (immediate response)
   const savedSession = await workoutSessionStorage.save(session);
   console.log('Workout session saved to local storage:', savedSession);
+
+  // Also save to backend (cloud sync)
+  try {
+    const backendSession = await workoutSessionApi.create({
+      userId: sessionData.userId,
+      workoutPlanId: sessionData.workoutPlanId,
+      sessionDate: sessionData.sessionDate,
+      durationMinutes: sessionData.durationMinutes,
+      exercises: sessionData.exercises,
+      completionRate: sessionData.completionRate,
+      notes: sessionData.notes
+    });
+    console.log('Workout session synced to backend:', backendSession);
+  } catch (error) {
+    console.warn('Failed to sync workout session to backend:', error);
+    // Continue with local storage - don't fail the operation
+  }
+
   return savedSession;
 };
 

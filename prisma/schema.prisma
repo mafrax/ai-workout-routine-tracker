@@ -12,7 +12,16 @@ datasource db {
 
 model User {
   id        BigInt   @id @default(autoincrement())
+  email     String?  @unique
+  name      String?
+  picture   String?  // Profile picture URL from OAuth
+
+  // OAuth fields
+  googleId  String?  @unique @map("google_id")
+  provider  String?  // 'google', 'facebook', etc.
+
   createdAt DateTime @default(now()) @map("created_at")
+  lastLogin DateTime? @map("last_login")
 
   // Relations
   dailyTasks     DailyTask[]

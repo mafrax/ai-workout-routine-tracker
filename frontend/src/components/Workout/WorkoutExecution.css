@@ -232,9 +232,20 @@
   font-size: 28px;
 }
 
+.set-dot.skipped {
+  background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
+  border-color: #ffa726;
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 167, 38, 0.3);
+}
+
+.set-dot.skipped ion-icon {
+  font-size: 28px;
+}
+
 .workout-navigation-buttons {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr 2fr 1fr;
   gap: 10px;
   margin-top: 12px;
 }
@@ -261,6 +272,17 @@
   height: 52px;
   --border-radius: 12px;
   box-shadow: 0 4px 16px rgba(45, 211, 111, 0.3);
+}
+
+.skip-exercise-btn {
+  --background: transparent;
+  --border-color: #ffa726;
+  --border-width: 2px;
+  --color: #fb8c00;
+  font-size: 14px;
+  font-weight: 700;
+  height: 52px;
+  --border-radius: 12px;
 }
 
 /* Upcoming Exercises */
