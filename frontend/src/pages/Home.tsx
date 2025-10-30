@@ -1,7 +1,7 @@
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonList, IonItem, IonLabel, IonIcon, IonButton, IonGrid, IonRow, IonCol } from '@ionic/react';
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { userApi, workoutPlanApi } from '../services/api';
+import { workoutPlanApi as backendWorkoutPlanApi } from '../services/api_backend';
 import { authService } from '../services/authService';
 import OnboardingQuestionnaire from '../components/Onboarding/OnboardingQuestionnaire';
 import { chatbubbles, barChart, fitness, today, personCircle, trophy, calendar, trash } from 'ionicons/icons';
@@ -19,31 +19,23 @@ const Home: React.FC = () => {
 
   const loadUser = async () => {
     try {
-      // Check if user is authenticated via OAuth first
+      // Check if user is authenticated via OAuth
       if (authService.isAuthenticated()) {
         const oauthUser = authService.getCurrentUser();
         if (oauthUser) {
           console.log('✅ Found OAuth user:', oauthUser);
-          // Always set OAuth user (even if user already exists in Zustand from AuthCallback)
-          if (!user || user.email !== oauthUser.email) {
-            setUser({
-              id: parseInt(oauthUser.id),
-              email: oauthUser.email,
-              name: oauthUser.name
-            });
-          }
-          return; // Don't load from old API if OAuth user exists
+          const userId = parseInt(oauthUser.id);
+          setUser({
+            id: userId,
+            email: oauthUser.email,
+            name: oauthUser.name
+          });
+          // Load workout plans after setting user
+          await loadActivePlanForUser(userId);
+          return;
         }
       }
-
-      // Fallback to old localStorage-based user system (for legacy users)
-      const users = await userApi.getAll();
-      console.log('Loaded legacy users:', users);
-      if (users.length > 0) {
-        setUser(users[0]);
-      } else {
-        console.log('No users found - showing onboarding');
-      }
+      console.log('No authenticated user found');
     } catch (error) {
       console.error('Error loading user:', error);
     }
@@ -51,31 +43,31 @@ const Home: React.FC = () => {
 
   const loadActivePlan = async () => {
     if (!user?.id) return;
+    await loadActivePlanForUser(user.id);
+  };
+
+  const loadActivePlanForUser = async (userId: number) => {
     try {
-      const plans = await workoutPlanApi.getUserPlans(user.id);
+      console.log('🔄 Loading workout plans for user:', userId);
+      const plans = await backendWorkoutPlanApi.getUserPlans(userId);
+      console.log('📦 Loaded plans:', plans);
       const active = plans.find((p: any) => p.isActive);
       if (active) {
+        console.log('✅ Found active plan:', active);
         setActiveWorkoutPlan(active);
+      } else {
+        console.log('⚠️ No active plan found');
       }
     } catch (error) {
-      console.error('Error loading active plan:', error);
+      console.error('❌ Error loading workout plans:', error);
     }
   };
 
   const handleOnboardingComplete = async () => {
     setShowOnboarding(false);
     // Reload user and active plan after onboarding
-    const users = await userApi.getAll();
-    if (users.length > 0) {
-      const newUser = users[0];
-      setUser(newUser);
-
-      // Load active plan for the new user
-      const plans = await workoutPlanApi.getUserPlans(newUser.id!);
-      const active = plans.find((p: any) => p.isActive);
-      if (active) {
-        setActiveWorkoutPlan(active);
-      }
+    if (user?.id) {
+      await loadActivePlanForUser(user.id);
     }
   };
 

@@ -13,6 +13,7 @@ import DailyTasks from './pages/DailyTasks';
 import Migration from './pages/Migration';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
+import PrivateRoute from './components/Auth/PrivateRoute';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -57,33 +58,15 @@ const App: React.FC = () => (
           <Route exact path="/auth/callback">
             <AuthCallback />
           </Route>
-          <Route exact path="/home">
-            <Home />
-          </Route>
-          <Route exact path="/today">
-            <TodaysWorkout />
-          </Route>
-          <Route exact path="/plans">
-            <Plans />
-          </Route>
-          <Route exact path="/chat">
-            <ChatInterface />
-          </Route>
-          <Route exact path="/workout">
-            <WorkoutLog />
-          </Route>
-          <Route exact path="/progress">
-            <Progress />
-          </Route>
-          <Route exact path="/profile">
-            <Profile />
-          </Route>
-          <Route exact path="/tasks">
-            <DailyTasks />
-          </Route>
-          <Route exact path="/migration">
-            <Migration />
-          </Route>
+          <PrivateRoute exact path="/home" component={Home} />
+          <PrivateRoute exact path="/today" component={TodaysWorkout} />
+          <PrivateRoute exact path="/plans" component={Plans} />
+          <PrivateRoute exact path="/chat" component={ChatInterface} />
+          <PrivateRoute exact path="/workout" component={WorkoutLog} />
+          <PrivateRoute exact path="/progress" component={Progress} />
+          <PrivateRoute exact path="/profile" component={Profile} />
+          <PrivateRoute exact path="/tasks" component={DailyTasks} />
+          <PrivateRoute exact path="/migration" component={Migration} />
           <Route exact path="/">
             <Redirect to="/home" />
           </Route>

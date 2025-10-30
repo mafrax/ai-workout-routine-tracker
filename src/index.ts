@@ -10,6 +10,7 @@ import healthRoutes from './routes/health';
 import dailyTaskRoutes from './routes/daily-tasks';
 import migrationRoutes from './routes/migration';
 import authRoutes from './routes/auth';
+import workoutPlanRoutes from './routes/workout-plans';
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +37,7 @@ app.use('/api/auth', authRoutes);
 // API routes
 app.use('/api/daily-tasks', dailyTaskRoutes);
 app.use('/api/migration', migrationRoutes);
+app.use('/api/plans', workoutPlanRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
