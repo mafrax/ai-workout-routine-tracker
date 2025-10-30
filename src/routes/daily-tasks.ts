@@ -23,17 +23,17 @@ router.get('/user/:userId', async (req: Request, res: Response<DailyTaskDto[]>) 
     
     const tasks = await dailyTaskService.getUserTasks(userId);
     const taskDtos = tasks.map(task => ({
-      id: task.id,
-      userId: task.userId,
+      id: Number(task.id),
+      userId: Number(task.userId),
       title: task.title,
       completed: task.completed,
-      createdAt: task.createdAt
+      createdAt: task.createdAt.toISOString()
     }));
-    
-    res.json(taskDtos);
+
+    return res.json(taskDtos);
   } catch (error) {
     console.error('Error getting user tasks:', error);
-    res.status(500).json({ error: 'Internal server error' } as any);
+    return res.status(500).json({ error: 'Internal server error' } as any);
   }
 });
 
@@ -44,17 +44,17 @@ router.get('/user/:userId/incomplete', async (req: Request, res: Response<DailyT
     const tasks = await dailyTaskService.getIncompleteTasks(userId);
     
     const taskDtos = tasks.map(task => ({
-      id: task.id,
-      userId: task.userId,
+      id: Number(task.id),
+      userId: Number(task.userId),
       title: task.title,
       completed: task.completed,
-      createdAt: task.createdAt
+      createdAt: task.createdAt.toISOString()
     }));
-    
-    res.json(taskDtos);
+
+    return res.json(taskDtos);
   } catch (error) {
     console.error('Error getting incomplete tasks:', error);
-    res.status(500).json({ error: 'Internal server error' } as any);
+    return res.status(500).json({ error: 'Internal server error' } as any);
   }
 });
 
@@ -65,22 +65,22 @@ router.post('/user/:userId', async (req: Request, res: Response<DailyTaskDto>) =
     const { title } = createTaskSchema.parse(req.body);
     
     const task = await dailyTaskService.createTask(userId, title);
-    
+
     const taskDto: DailyTaskDto = {
-      id: task.id,
-      userId: task.userId,
+      id: Number(task.id),
+      userId: Number(task.userId),
       title: task.title,
       completed: task.completed,
-      createdAt: task.createdAt
+      createdAt: task.createdAt.toISOString()
     };
-    
-    res.json(taskDto);
+
+    return res.json(taskDto);
   } catch (error) {
     console.error('Error creating task:', error);
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid request data' } as any);
+      return res.status(400).json({ error: 'Invalid request data' } as any);
     } else {
-      res.status(500).json({ error: 'Internal server error' } as any);
+      return res.status(500).json({ error: 'Internal server error' } as any);
     }
   }
 });
@@ -90,19 +90,19 @@ router.put('/:taskId/toggle', async (req: Request, res: Response<DailyTaskDto>) 
   try {
     const taskId = taskIdSchema.parse(req.params.taskId);
     const task = await dailyTaskService.toggleTask(taskId);
-    
+
     const taskDto: DailyTaskDto = {
-      id: task.id,
-      userId: task.userId,
+      id: Number(task.id),
+      userId: Number(task.userId),
       title: task.title,
       completed: task.completed,
-      createdAt: task.createdAt
+      createdAt: task.createdAt.toISOString()
     };
-    
-    res.json(taskDto);
+
+    return res.json(taskDto);
   } catch (error) {
     console.error('Error toggling task:', error);
-    res.status(500).json({ error: 'Internal server error' } as any);
+    return res.status(500).json({ error: 'Internal server error' } as any);
   }
 });
 

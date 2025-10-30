@@ -21,7 +21,8 @@ import {
 } from '@ionic/react';
 import { calendar, barbell, time, checkmarkCircleOutline, fitness, eyeOff, eye } from 'ionicons/icons';
 import { useStore } from '../../store/useStore';
-import { workoutPlanApi } from '../../services/api';
+import { workoutPlanApi as localWorkoutPlanApi } from '../../services/api';
+import { workoutPlanApi as backendWorkoutPlanApi } from '../../services/api_backend';
 import { parseWorkoutPlan, type DailyWorkout } from '../../types/workout';
 import WorkoutExecution from './WorkoutExecution';
 import { aiService } from '../../services/aiService';
@@ -74,7 +75,7 @@ const TodaysWorkout: React.FC = () => {
   useEffect(() => {
     if (user?.id && activeWorkoutPlan) {
       const refreshPlans = async () => {
-        const allPlans = await workoutPlanApi.getUserPlans(user.id!);
+        const allPlans = await backendWorkoutPlanApi.getUserPlans(user.id!);
         const activePlans = allPlans.filter(p => p.isActive && !p.isArchived);
         setActiveWorkoutPlans(activePlans);
 
@@ -96,7 +97,7 @@ const TodaysWorkout: React.FC = () => {
 
     try {
       // Load all plans
-      const allPlans = await workoutPlanApi.getUserPlans(user.id);
+      const allPlans = await backendWorkoutPlanApi.getUserPlans(user.id);
       const activePlans = allPlans.filter(p => p.isActive && !p.isArchived);
 
       setActiveWorkoutPlans(activePlans);
@@ -134,7 +135,7 @@ const TodaysWorkout: React.FC = () => {
     // Reload the active plan to get updated completedWorkouts
     if (user?.id) {
       try {
-        const updatedPlan = await workoutPlanApi.getActivePlan(user.id);
+        const updatedPlan = await backendWorkoutPlanApi.getActivePlan(user.id);
         setActiveWorkoutPlan(updatedPlan);
 
         // Check if we need to generate new workouts
@@ -176,7 +177,7 @@ const TodaysWorkout: React.FC = () => {
         }
 
         // Save the updated plan
-        const updatedPlan = await workoutPlanApi.update(plan.id, {
+        const updatedPlan = await backendWorkoutPlanApi.updatePlan(plan.id, {
           planDetails: plan.planDetails
         });
         setActiveWorkoutPlan(updatedPlan);

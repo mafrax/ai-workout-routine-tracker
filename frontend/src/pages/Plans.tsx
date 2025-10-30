@@ -37,7 +37,8 @@ import {
   time,
 } from 'ionicons/icons';
 import { useStore } from '../store/useStore';
-import { workoutPlanApi, userApi } from '../services/api';
+import { workoutPlanApi as localWorkoutPlanApi, userApi } from '../services/api';
+import { workoutPlanApi as backendWorkoutPlanApi } from '../services/api_backend';
 import type { WorkoutPlan } from '../types';
 import { generateWorkoutPlans, generateCustomWorkoutPlan, type GeneratedPlan } from '../services/workoutPlanService';
 import PlanSelection from '../components/Onboarding/PlanSelection';
@@ -79,10 +80,20 @@ const Plans: React.FC = () => {
   const loadPlans = async () => {
     if (!user?.id) return;
     try {
-      const allPlans = await workoutPlanApi.getUserPlans(user.id);
+      console.log('📦 Loading plans for user:', user.id);
+      const allPlans = await backendWorkoutPlanApi.getUserPlans(user.id);
+      console.log('✅ Loaded plans from backend:', allPlans);
       setPlans(allPlans);
     } catch (error) {
-      console.error('Error loading plans:', error);
+      console.error('❌ Error loading plans from backend:', error);
+      // Fallback to local storage for compatibility
+      try {
+        const localPlans = await localWorkoutPlanApi.getUserPlans(user.id);
+        console.log('⚠️ Using local plans as fallback:', localPlans);
+        setPlans(localPlans);
+      } catch (localError) {
+        console.error('❌ Error loading local plans too:', localError);
+      }
     }
   };
 
@@ -91,7 +102,7 @@ const Plans: React.FC = () => {
 
     try {
       // Toggle the plan's active status
-      const updatedPlan = await workoutPlanApi.update(plan.id!, { ...plan, isActive: !plan.isActive });
+      const updatedPlan = await backendWorkoutPlanApi.updatePlan(plan.id!, { ...plan, isActive: !plan.isActive });
 
       // If we're activating the first plan, set it as the active workout plan
       if (updatedPlan.isActive) {
@@ -114,7 +125,7 @@ const Plans: React.FC = () => {
 
   const handleArchivePlan = async (plan: WorkoutPlan) => {
     try {
-      await workoutPlanApi.update(plan.id!, { ...plan, isArchived: !plan.isArchived, isActive: false });
+      await backendWorkoutPlanApi.updatePlan(plan.id!, { ...plan, isArchived: !plan.isArchived, isActive: false });
 
       if (plan.isActive) {
         setActiveWorkoutPlan(null);
@@ -134,7 +145,7 @@ const Plans: React.FC = () => {
     if (!selectedPlan) return;
 
     try {
-      await workoutPlanApi.update(selectedPlan.id!, { ...selectedPlan, color });
+      await backendWorkoutPlanApi.updatePlan(selectedPlan.id!, { ...selectedPlan, color });
       await loadPlans();
       setShowColorModal(false);
       setSelectedPlan(null);
@@ -220,7 +231,7 @@ const Plans: React.FC = () => {
     if (!plan.id) return;
 
     try {
-      await workoutPlanApi.update(plan.id, {
+      await backendWorkoutPlanApi.updatePlan(plan.id, {
         ...plan,
         telegramPreviewHour: hour
       });
@@ -265,7 +276,7 @@ const Plans: React.FC = () => {
       console.log('Fixed plan details preview:', fixed.substring(0, 500));
 
       // Update the plan
-      await workoutPlanApi.update(plan.id, {
+      await backendWorkoutPlanApi.updatePlan(plan.id, {
         ...plan,
         planDetails: fixed
       });
@@ -351,7 +362,7 @@ const Plans: React.FC = () => {
       );
 
       // Save the plan
-      const savedPlan = await workoutPlanApi.create({
+      const savedPlan = await backendWorkoutPlanApi.create({
         userId: user.id,
         name: customPlan.name,
         description: customPlan.description,

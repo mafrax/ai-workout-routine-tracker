@@ -1,9 +1,9 @@
 export interface DailyTaskDto {
-  id: bigint;
-  userId: bigint;
+  id: number;
+  userId: number;
   title: string;
   completed: boolean;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export interface CreateDailyTaskRequest {
