@@ -15,6 +15,11 @@ import workoutPlanRoutes from './routes/workout-plans';
 // Load environment variables
 dotenv.config();
 
+// Global BigInt serialization fix for JSON
+(BigInt.prototype as any).toJSON = function() {
+  return Number(this);
+};
+
 const app = express();
 const port = process.env.PORT || 8080;
 
