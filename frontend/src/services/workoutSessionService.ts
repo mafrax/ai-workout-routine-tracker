@@ -46,10 +46,20 @@ export const saveWorkoutSession = async (sessionData: WorkoutSessionData) => {
 
 export const getUserSessions = async (userId: number) => {
   console.log('getUserSessions called for userId:', userId);
-  const allSessions = await workoutSessionStorage.getAll();
-  const userSessions = allSessions.filter(s => s.userId === userId);
-  console.log('Found sessions:', userSessions.length);
-  return userSessions;
+
+  // Try to load from backend first
+  try {
+    const backendSessions = await workoutSessionApi.getUserSessions(userId);
+    console.log('Loaded sessions from backend:', backendSessions.length);
+    return backendSessions;
+  } catch (error) {
+    console.warn('Failed to load sessions from backend, using localStorage:', error);
+    // Fallback to localStorage
+    const allSessions = await workoutSessionStorage.getAll();
+    const userSessions = allSessions.filter(s => s.userId === userId);
+    console.log('Found sessions in localStorage:', userSessions.length);
+    return userSessions;
+  }
 };
 
 export const getUserProgress = async (userId: number) => {

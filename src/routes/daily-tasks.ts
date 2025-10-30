@@ -13,6 +13,15 @@ const createTaskSchema = z.object({
 const userIdSchema = z.string().transform((val) => BigInt(val));
 const taskIdSchema = z.string().transform((val) => BigInt(val));
 
+// Helper to convert BigInt fields to JSON-safe format
+const serializeTask = (task: any): DailyTaskDto => ({
+  id: Number(task.id),
+  userId: Number(task.userId),
+  title: String(task.title),
+  completed: Boolean(task.completed),
+  createdAt: task.createdAt instanceof Date ? task.createdAt.toISOString() : String(task.createdAt)
+});
+
 // GET /api/daily-tasks/user/:userId
 router.get('/user/:userId', async (req: Request, res: Response<DailyTaskDto[]>) => {
   try {
@@ -22,13 +31,7 @@ router.get('/user/:userId', async (req: Request, res: Response<DailyTaskDto[]>) 
     await dailyTaskService.checkAndResetTasksIfNeeded(userId);
     
     const tasks = await dailyTaskService.getUserTasks(userId);
-    const taskDtos = tasks.map(task => ({
-      id: Number(task.id),
-      userId: Number(task.userId),
-      title: task.title,
-      completed: task.completed,
-      createdAt: task.createdAt.toISOString()
-    }));
+    const taskDtos = tasks.map(serializeTask);
 
     return res.json(taskDtos);
   } catch (error) {
@@ -42,14 +45,7 @@ router.get('/user/:userId/incomplete', async (req: Request, res: Response<DailyT
   try {
     const userId = userIdSchema.parse(req.params.userId);
     const tasks = await dailyTaskService.getIncompleteTasks(userId);
-    
-    const taskDtos = tasks.map(task => ({
-      id: Number(task.id),
-      userId: Number(task.userId),
-      title: task.title,
-      completed: task.completed,
-      createdAt: task.createdAt.toISOString()
-    }));
+    const taskDtos = tasks.map(serializeTask);
 
     return res.json(taskDtos);
   } catch (error) {
@@ -65,14 +61,7 @@ router.post('/user/:userId', async (req: Request, res: Response<DailyTaskDto>) =
     const { title } = createTaskSchema.parse(req.body);
     
     const task = await dailyTaskService.createTask(userId, title);
-
-    const taskDto: DailyTaskDto = {
-      id: Number(task.id),
-      userId: Number(task.userId),
-      title: task.title,
-      completed: task.completed,
-      createdAt: task.createdAt.toISOString()
-    };
+    const taskDto = serializeTask(task);
 
     return res.json(taskDto);
   } catch (error) {
@@ -90,14 +79,7 @@ router.put('/:taskId/toggle', async (req: Request, res: Response<DailyTaskDto>) 
   try {
     const taskId = taskIdSchema.parse(req.params.taskId);
     const task = await dailyTaskService.toggleTask(taskId);
-
-    const taskDto: DailyTaskDto = {
-      id: Number(task.id),
-      userId: Number(task.userId),
-      title: task.title,
-      completed: task.completed,
-      createdAt: task.createdAt.toISOString()
-    };
+    const taskDto = serializeTask(task);
 
     return res.json(taskDto);
   } catch (error) {
