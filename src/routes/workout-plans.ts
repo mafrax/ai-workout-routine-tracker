@@ -6,6 +6,9 @@ const router = Router();
 // GET /api/plans/user/:userId - Get all workout plans for a user
 router.get('/user/:userId', async (req: Request, res: Response) => {
   try {
+    if (!req.params.userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
     const userId = BigInt(req.params.userId);
 
     const plans = await prisma.workoutPlan.findMany({
@@ -21,16 +24,19 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
       completedWorkouts: plan.completedWorkouts ? JSON.parse(plan.completedWorkouts as string) : []
     }));
 
-    res.json(serializedPlans);
+    return res.json(serializedPlans);
   } catch (error) {
     console.error('Error fetching workout plans:', error);
-    res.status(500).json({ error: 'Failed to fetch workout plans' });
+    return res.status(500).json({ error: 'Failed to fetch workout plans' });
   }
 });
 
 // GET /api/plans/user/:userId/active - Get active workout plan for a user
 router.get('/user/:userId/active', async (req: Request, res: Response) => {
   try {
+    if (!req.params.userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
     const userId = BigInt(req.params.userId);
 
     const plan = await prisma.workoutPlan.findFirst({
@@ -51,10 +57,10 @@ router.get('/user/:userId/active', async (req: Request, res: Response) => {
       completedWorkouts: plan.completedWorkouts ? JSON.parse(plan.completedWorkouts as string) : []
     };
 
-    res.json(serializedPlan);
+    return res.json(serializedPlan);
   } catch (error) {
     console.error('Error fetching active plan:', error);
-    res.status(500).json({ error: 'Failed to fetch active plan' });
+    return res.status(500).json({ error: 'Failed to fetch active plan' });
   }
 });
 
@@ -82,16 +88,19 @@ router.post('/', async (req: Request, res: Response) => {
       completedWorkouts: []
     };
 
-    res.json(serializedPlan);
+    return res.json(serializedPlan);
   } catch (error) {
     console.error('Error creating workout plan:', error);
-    res.status(500).json({ error: 'Failed to create workout plan' });
+    return res.status(500).json({ error: 'Failed to create workout plan' });
   }
 });
 
 // PUT /api/plans/:planId - Update a workout plan
 router.put('/:planId', async (req: Request, res: Response) => {
   try {
+    if (!req.params.planId) {
+      return res.status(400).json({ error: 'Plan ID is required' });
+    }
     const planId = BigInt(req.params.planId);
     const updates = req.body;
 
@@ -112,16 +121,19 @@ router.put('/:planId', async (req: Request, res: Response) => {
       completedWorkouts: plan.completedWorkouts ? JSON.parse(plan.completedWorkouts as string) : []
     };
 
-    res.json(serializedPlan);
+    return res.json(serializedPlan);
   } catch (error) {
     console.error('Error updating workout plan:', error);
-    res.status(500).json({ error: 'Failed to update workout plan' });
+    return res.status(500).json({ error: 'Failed to update workout plan' });
   }
 });
 
 // PUT /api/plans/:planId/activate - Activate a workout plan
 router.put('/:planId/activate', async (req: Request, res: Response) => {
   try {
+    if (!req.params.planId) {
+      return res.status(400).json({ error: 'Plan ID is required' });
+    }
     const planId = BigInt(req.params.planId);
 
     // Get the plan to find userId
@@ -152,16 +164,19 @@ router.put('/:planId/activate', async (req: Request, res: Response) => {
       completedWorkouts: activatedPlan.completedWorkouts ? JSON.parse(activatedPlan.completedWorkouts as string) : []
     };
 
-    res.json(serializedPlan);
+    return res.json(serializedPlan);
   } catch (error) {
     console.error('Error activating workout plan:', error);
-    res.status(500).json({ error: 'Failed to activate workout plan' });
+    return res.status(500).json({ error: 'Failed to activate workout plan' });
   }
 });
 
 // POST /api/plans/:planId/update-exercise-weight - Update exercise weight
 router.post('/:planId/update-exercise-weight', async (req: Request, res: Response) => {
   try {
+    if (!req.params.planId) {
+      return res.status(400).json({ error: 'Plan ID is required' });
+    }
     const planId = BigInt(req.params.planId);
     const { exerciseName, newWeight } = req.body;
 
@@ -171,6 +186,10 @@ router.post('/:planId/update-exercise-weight', async (req: Request, res: Respons
 
     if (!plan) {
       return res.status(404).json({ error: 'Plan not found' });
+    }
+
+    if (!plan.planDetails) {
+      return res.status(400).json({ error: 'Plan has no details to update' });
     }
 
     // Parse planDetails and update the weight
@@ -190,10 +209,10 @@ router.post('/:planId/update-exercise-weight', async (req: Request, res: Respons
       completedWorkouts: updatedPlan.completedWorkouts ? JSON.parse(updatedPlan.completedWorkouts as string) : []
     };
 
-    res.json(serializedPlan);
+    return res.json(serializedPlan);
   } catch (error) {
     console.error('Error updating exercise weight:', error);
-    res.status(500).json({ error: 'Failed to update exercise weight' });
+    return res.status(500).json({ error: 'Failed to update exercise weight' });
   }
 });
 
