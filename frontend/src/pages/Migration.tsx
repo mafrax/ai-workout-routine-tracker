@@ -81,7 +81,9 @@ const Migration: React.FC = () => {
         sessionDate: session.sessionDate || new Date().toISOString(),
         durationMinutes: session.durationMinutes || null,
         completionRate: session.completionRate || null,
-        exercises: session.exercises ? JSON.stringify(session.exercises) : null,
+        exercises: session.exercises
+          ? (typeof session.exercises === 'string' ? session.exercises : JSON.stringify(session.exercises))
+          : null,
         notes: session.notes || null
       }));
 
