@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 
 const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
 
@@ -28,9 +30,21 @@ class AuthService {
 
   /**
    * Redirect to Google OAuth login
+   * Uses system browser on mobile to avoid Google's webview restrictions
    */
-  loginWithGoogle() {
-    window.location.href = `${API_BASE_URL}/auth/google`;
+  async loginWithGoogle() {
+    const isNative = Capacitor.isNativePlatform();
+
+    if (isNative) {
+      // Open OAuth in system browser on mobile with mobile flag
+      await Browser.open({
+        url: `${API_BASE_URL}/auth/google?mobile=true`,
+        windowName: '_self'
+      });
+    } else {
+      // Use normal redirect on web
+      window.location.href = `${API_BASE_URL}/auth/google`;
+    }
   }
 
   /**

@@ -1,7 +1,9 @@
-import { Redirect, Route } from 'react-router-dom';
+import { Redirect, Route, useHistory } from 'react-router-dom';
 import { IonApp, IonRouterOutlet, IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { chatbubbles, barChart, fitness, today, home, person, listCircle, checkmarkDoneCircle } from 'ionicons/icons';
+import { App as CapacitorApp } from '@capacitor/app';
+import { useEffect } from 'react';
 import ChatInterface from './components/Chat/ChatInterface';
 import Progress from './components/Progress/Progress';
 import WorkoutLog from './components/Workout/WorkoutLog';
@@ -47,9 +49,37 @@ import './theme/variables.css';
 
 setupIonicReact();
 
+const AppContent: React.FC = () => {
+  const history = useHistory();
+
+  useEffect(() => {
+    // Listen for app URL open events (deep links from OAuth redirect)
+    const handleAppUrlOpen = CapacitorApp.addListener('appUrlOpen', (event: any) => {
+      console.log('📱 App URL opened:', event.url);
+
+      // Parse the URL to extract token
+      const url = new URL(event.url);
+      const token = url.searchParams.get('token');
+
+      if (token) {
+        console.log('✅ Token found in deep link, redirecting to /auth/callback');
+        // Navigate to auth callback with token
+        history.push(`/auth/callback?token=${token}`);
+      }
+    });
+
+    return () => {
+      handleAppUrlOpen.remove();
+    };
+  }, [history]);
+
+  return null;
+};
+
 const App: React.FC = () => (
   <IonApp>
     <IonReactRouter>
+      <AppContent />
       <IonTabs>
         <IonRouterOutlet>
           <Route exact path="/login">

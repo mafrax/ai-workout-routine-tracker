@@ -24,10 +24,20 @@ export const isAuthenticated = (req: express.Request, res: express.Response, nex
 };
 
 // Google OAuth routes
-router.get('/google', passport.authenticate('google', {
-  scope: ['profile', 'email'],
-  session: false
-}));
+router.get('/google', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // Store mobile flag in session/state for callback
+  const isMobile = req.query.mobile === 'true';
+  if (isMobile) {
+    // Store in query state that will be passed through OAuth
+    req.query.state = 'mobile';
+  }
+
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    session: false,
+    state: isMobile ? 'mobile' : undefined
+  })(req, res, next);
+});
 
 router.get('/google/callback',
   (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -69,8 +79,21 @@ router.get('/google/callback',
         );
 
         console.log('✅ Token generated, redirecting to frontend');
-        // Redirect to frontend with token
-        const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback?token=${token}`;
+
+        // Check if request is from mobile app
+        const isMobile = req.query.state === 'mobile';
+
+        let redirectUrl;
+        if (isMobile) {
+          // Use custom URL scheme for mobile app
+          redirectUrl = `com.workout.aicoach://auth/callback?token=${token}`;
+          console.log('📱 Redirecting to mobile app:', redirectUrl);
+        } else {
+          // Use web URL for browser
+          redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback?token=${token}`;
+          console.log('🌐 Redirecting to web:', redirectUrl);
+        }
+
         res.redirect(redirectUrl);
       } catch (error: any) {
         console.error('❌ Error generating token or redirecting:', error);
