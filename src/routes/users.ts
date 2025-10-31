@@ -6,6 +6,9 @@ const router = Router();
 // GET /api/users/:userId
 router.get('/:userId', async (req: Request, res: Response) => {
   try {
+    if (!req.params.userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
     const userId = BigInt(req.params.userId);
 
     const user = await prisma.user.findUnique({
@@ -43,6 +46,9 @@ router.get('/:userId', async (req: Request, res: Response) => {
 // PUT /api/users/:userId
 router.put('/:userId', async (req: Request, res: Response) => {
   try {
+    if (!req.params.userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
     const userId = BigInt(req.params.userId);
     const {
       name,

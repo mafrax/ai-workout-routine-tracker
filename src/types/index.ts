@@ -71,6 +71,17 @@ export interface MigrationRequest {
     chatId?: string | null;
     startHour?: number | null;
   };
+  userProfile?: {
+    name?: string;
+    email?: string;
+    age?: number;
+    weight?: number;
+    height?: number;
+    fitnessLevel?: string;
+    goals?: string[];
+    availableEquipment?: string[];
+    bodyweightExercises?: string[];
+  };
 }
 
 export interface ApiResponse<T = unknown> {

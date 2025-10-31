@@ -6,6 +6,9 @@ const router = Router();
 // GET /api/telegram-config/user/:userId
 router.get('/user/:userId', async (req: Request, res: Response) => {
   try {
+    if (!req.params.userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
     const userId = BigInt(req.params.userId);
 
     const config = await prisma.telegramConfig.findUnique({
@@ -30,6 +33,9 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
 // POST /api/telegram-config/user/:userId
 router.post('/user/:userId', async (req: Request, res: Response) => {
   try {
+    if (!req.params.userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
     const userId = BigInt(req.params.userId);
     const { botToken, chatId, dailyTasksStartHour } = req.body;
 
