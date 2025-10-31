@@ -267,9 +267,11 @@ const Progress: React.FC = () => {
     setSessionToDelete(null);
   };
 
-  const parseExercises = (exercisesJson: string): Exercise[] => {
+  const parseExercises = (exercisesJson: string | null): Exercise[] => {
+    if (!exercisesJson) {
+      return [];
+    }
     try {
-      console.log(exercisesJson)
       return JSON.parse(exercisesJson);
     } catch (error) {
       console.error('Error parsing exercises:', error);
