@@ -97,6 +97,7 @@ const Progress: React.FC = () => {
   }, [user]);
 
   const loadSessions = async () => {
+    console.log("LOAD SESSION")
     if (!user?.id) return;
 
     try {
@@ -104,7 +105,10 @@ const Progress: React.FC = () => {
 
       // Load workout plan details for each session
       const workoutPlans = await workoutPlanStorage.getAll();
+      console.log(JSON.stringify(workoutPlans))
+
       const sessionsWithPlans = data.map(session => {
+        console.log(JSON.stringify(session))
         if (session.workoutPlanId) {
           const plan = workoutPlans.find(p => p.id == session.workoutPlanId);
           if (plan) {
@@ -126,6 +130,8 @@ const Progress: React.FC = () => {
       // Extract unique exercises
       const exercises = new Set<string>();
       sessionsWithPlans.forEach(session => {
+        console.log(session)
+
         const sessionExercises = parseExercises(session.exercises);
         sessionExercises.forEach(ex => exercises.add(ex.name));
       });
@@ -143,6 +149,8 @@ const Progress: React.FC = () => {
       setFilteredSessions(sessions);
     } else {
       const filtered = sessions.filter(session => {
+        console.log(session)
+
         const exercises = parseExercises(session.exercises);
         return exercises.some(ex => ex.name === exerciseName);
       });
@@ -261,6 +269,7 @@ const Progress: React.FC = () => {
 
   const parseExercises = (exercisesJson: string): Exercise[] => {
     try {
+      console.log(exercisesJson)
       return JSON.parse(exercisesJson);
     } catch (error) {
       console.error('Error parsing exercises:', error);
@@ -303,6 +312,8 @@ const Progress: React.FC = () => {
   const getWorkoutTitle = (session: WorkoutSession): string => {
     if (session.workoutPlan?.planDetails) {
       // Parse the plan details to find the workout day that matches this session's exercises
+      console.log(session)
+
       const exercises = parseExercises(session.exercises);
       if (exercises.length > 0) {
         const planDetails = session.workoutPlan.planDetails;
@@ -353,6 +364,8 @@ const Progress: React.FC = () => {
     };
 
     sessions.forEach(session => {
+      console.log(session)
+
       const exercises = parseExercises(session.exercises);
       const exercise = exercises.find(ex => ex.name === exerciseName);
       if (exercise) {
@@ -457,7 +470,7 @@ const Progress: React.FC = () => {
                       {Math.round(
                         (sessions.reduce((sum, s) => sum + (s.completionRate || 0), 0) /
                           sessions.length) *
-                          100
+                        100
                       )}
                       %
                     </div>
@@ -527,6 +540,7 @@ const Progress: React.FC = () => {
 
           <div className="sessions-list">
             {filteredSessions.map((session) => {
+              console.log(JSON.stringify(session))
               const exercises = parseExercises(session.exercises);
               const displayExercises = exerciseFilter === 'all'
                 ? exercises
@@ -745,8 +759,8 @@ const Progress: React.FC = () => {
                               parseFloat(entry.weight) > parseFloat(exerciseProgression.history[idx + 1].weight)
                                 ? 'success'
                                 : parseFloat(entry.weight) < parseFloat(exerciseProgression.history[idx + 1].weight)
-                                ? 'danger'
-                                : 'medium'
+                                  ? 'danger'
+                                  : 'medium'
                             }
                           />
                         )}

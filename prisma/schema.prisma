@@ -96,6 +96,7 @@ model WorkoutSession {
   sessionDate    String    @map("session_date") // Stored as string for compatibility
   durationMinutes Int?     @map("duration_minutes")
   completionRate Float?    @map("completion_rate")
+  exercises      String?   // JSON array of exercises
   notes          String?
   createdAt      DateTime  @default(now()) @map("created_at")
 

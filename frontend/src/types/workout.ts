@@ -50,7 +50,8 @@ export function parseWorkoutPlan(planDetails: string): ParsedWorkoutPlan {
     const cleanLine = trimmed.replace(/[\u200B-\u200D\uFEFF\u2060]/g, '').trim();
 
     // Match exercise line - try new format first: "1. Exercise Name - 4x10 @ 40-50kg | 90s | 120s"
-    let exerciseMatch = cleanLine.match(/^\d+[a-z]?\.\s*(.+?)\s*-\s*(\d+)(?:x|X)([\d-]+)\s+(?:@|reps @)\s+(.+?)(?:\s*\|\s*(\d+)s)?(?:\s*\|\s*(\d+)s)?$/i);
+    // Also handles: "1. Exercise - 2x1 @ bodyweight | 120s rest" or "1. Exercise - 2x1 @ bodyweight | 120s rest (notes)"
+    let exerciseMatch = cleanLine.match(/^\d+[a-z]?\.\s*(.+?)\s*-\s*(\d+)(?:x|X)([\d-]+)\s+(?:@|reps @)\s+(.+?)(?:\s*\|\s*(\d+)s(?:\s+rest)?)?(?:\s*\|\s*(\d+)s)?(?:\s*\([^)]*\))?$/i);
 
     // Try old format with rest and optional per side/each direction:
     // "1. Exercise Name - 2 sets x 10 reps each direction @ Body Weight (10s rest)"
@@ -69,7 +70,7 @@ export function parseWorkoutPlan(planDetails: string): ParsedWorkoutPlan {
     }
 
     if (exerciseMatch && currentDay) {
-      const [, name, sets, reps, weight, restSets] = exerciseMatch;
+      const [, name, sets, reps, weight, restSets, restNext] = exerciseMatch;
 
       // Clean up weight - remove "% 1RM" suffix, handle ranges
       let cleanWeight = weight.trim();
@@ -80,8 +81,8 @@ export function parseWorkoutPlan(planDetails: string): ParsedWorkoutPlan {
       // Handle "50-60% 1RM" -> "50-60kg"
       cleanWeight = cleanWeight.replace(/\s*%\s*1RM/gi, 'kg');
 
-      // Remove any trailing text in parentheses
-      cleanWeight = cleanWeight.replace(/\s*\([^)]*\).*$/,'').trim();
+      // Remove any trailing text in parentheses or pipes
+      cleanWeight = cleanWeight.replace(/\s*\([^)]*\).*$/,'').replace(/\s*\|.*$/,'').trim();
 
       // Handle "bodyweight-15kg" format
       if (!cleanWeight.includes('kg') && !cleanWeight.toLowerCase().includes('bodyweight')) {
@@ -96,7 +97,7 @@ export function parseWorkoutPlan(planDetails: string): ParsedWorkoutPlan {
         reps: reps.trim(),
         weight: cleanWeight,
         restBetweenSets: restSets ? parseInt(restSets) : 60,
-        restBeforeNext: 90,
+        restBeforeNext: restNext ? parseInt(restNext) : (restSets ? parseInt(restSets) : 90),
       });
       console.log(`  Added exercise: ${name.trim()} @ ${cleanWeight}`);
     }

@@ -36,7 +36,7 @@ const TodaysWorkout: React.FC = () => {
   const [hasCheckedGeneration, setHasCheckedGeneration] = useState(false);
   const [activeWorkoutPlans, setActiveWorkoutPlans] = useState<any[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
-  const [hideCompleted, setHideCompleted] = useState(true);
+  const [hideCompleted, setHideCompleted] = useState(false);
 
   useEffect(() => {
     const initializeData = async () => {
@@ -195,8 +195,9 @@ const TodaysWorkout: React.FC = () => {
   };
 
   const generateNextWorkout = async (plan: any, dayNumber: number, existingWorkouts: DailyWorkout[]): Promise<string> => {
-    // Determine the muscle group rotation pattern
-    const rotationIndex = (dayNumber - 1) % plan.daysPerWeek;
+    // Determine the muscle group rotation pattern based on existing workouts
+    const daysPerWeek = existingWorkouts.length; // Infer from parsed workouts
+    const rotationIndex = (dayNumber - 1) % daysPerWeek;
     const targetWorkout = existingWorkouts[rotationIndex];
 
     const bodyweightExercises = user?.bodyweightExercises || [];
@@ -217,9 +218,8 @@ ${plan.planDetails}
 
 CONTEXT:
 - Plan Name: ${plan.name}
-- Difficulty: ${plan.difficultyLevel}
-- Days per week: ${plan.daysPerWeek}
-- This is a ${plan.daysPerWeek}-day split rotation
+- Days per week: ${daysPerWeek}
+- This is a ${daysPerWeek}-day split rotation
 - Day ${dayNumber} should follow the same muscle group pattern as Day ${rotationIndex + 1}
 ${bodyweightInfo}
 
