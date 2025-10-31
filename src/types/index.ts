@@ -72,16 +72,16 @@ export interface MigrationRequest {
     startHour?: number | null;
   };
   userProfile?: {
-    name?: string;
-    email?: string;
-    age?: number;
-    weight?: number;
-    height?: number;
-    fitnessLevel?: string;
-    goals?: string[];
-    availableEquipment?: string[];
-    bodyweightExercises?: string[];
-  };
+    name?: string | null;
+    email?: string | null;
+    age?: number | null;
+    weight?: number | null;
+    height?: number | null;
+    fitnessLevel?: string | null;
+    goals?: string[] | null;
+    availableEquipment?: string[] | null;
+    bodyweightExercises?: Array<{ name: string; maxReps: number }> | null;
+  } | null;
 }
 
 export interface ApiResponse<T = unknown> {

@@ -8,16 +8,16 @@ export class MigrationService {
     await prisma.$transaction(async (tx) => {
       // Ensure user exists and update profile if provided
       const userUpdateData: any = {};
-      if (userProfile) {
-        if (userProfile.name) userUpdateData.name = userProfile.name;
-        if (userProfile.email) userUpdateData.email = userProfile.email;
-        if (userProfile.age) userUpdateData.age = userProfile.age;
-        if (userProfile.weight) userUpdateData.weight = userProfile.weight;
-        if (userProfile.height) userUpdateData.height = userProfile.height;
-        if (userProfile.fitnessLevel) userUpdateData.fitnessLevel = userProfile.fitnessLevel;
-        if (userProfile.goals) userUpdateData.goals = JSON.stringify(userProfile.goals);
-        if (userProfile.availableEquipment) userUpdateData.availableEquipment = JSON.stringify(userProfile.availableEquipment);
-        if (userProfile.bodyweightExercises) userUpdateData.bodyweightExercises = JSON.stringify(userProfile.bodyweightExercises);
+      if (userProfile && userProfile !== null) {
+        if (userProfile.name !== undefined && userProfile.name !== null) userUpdateData.name = userProfile.name;
+        if (userProfile.email !== undefined && userProfile.email !== null) userUpdateData.email = userProfile.email;
+        if (userProfile.age !== undefined && userProfile.age !== null) userUpdateData.age = userProfile.age;
+        if (userProfile.weight !== undefined && userProfile.weight !== null) userUpdateData.weight = userProfile.weight;
+        if (userProfile.height !== undefined && userProfile.height !== null) userUpdateData.height = userProfile.height;
+        if (userProfile.fitnessLevel !== undefined && userProfile.fitnessLevel !== null) userUpdateData.fitnessLevel = userProfile.fitnessLevel;
+        if (userProfile.goals !== undefined && userProfile.goals !== null) userUpdateData.goals = JSON.stringify(userProfile.goals);
+        if (userProfile.availableEquipment !== undefined && userProfile.availableEquipment !== null) userUpdateData.availableEquipment = JSON.stringify(userProfile.availableEquipment);
+        if (userProfile.bodyweightExercises !== undefined && userProfile.bodyweightExercises !== null) userUpdateData.bodyweightExercises = JSON.stringify(userProfile.bodyweightExercises);
       }
 
       await tx.user.upsert({
