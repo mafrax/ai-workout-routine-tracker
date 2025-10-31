@@ -87,6 +87,7 @@ export class MigrationService {
             sessionDate: session.sessionDate,
             durationMinutes: session.durationMinutes ?? null,
             completionRate: session.completionRate ?? null,
+            exercises: session.exercises ?? null,
             notes: session.notes ?? null,
             createdAt: new Date()
           }))

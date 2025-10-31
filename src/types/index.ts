@@ -64,6 +64,7 @@ export interface MigrationRequest {
     sessionDate: string;
     durationMinutes?: number | null;
     completionRate?: number | null;
+    exercises?: string | null;
     notes?: string | null;
   }>;
   telegramConfig?: {
