@@ -23,7 +23,10 @@ import { workoutPlanStorage, workoutSessionStorage, userStorage } from '../servi
 import axios from 'axios';
 import './Migration.css';
 
+// Local backend for testing (switch back to Vercel after rate limit expires)
 const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
+// Vercel backend deployment - PostgreSQL + Migration fix (stable production URL)
+// const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
 
 const Migration: React.FC = () => {
   const { user } = useStore();

@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { User, WorkoutPlan, WorkoutSession, ProgressSummary } from '../types';
 
-// Vercel backend deployment - PostgreSQL + Migration fix (stable production URL)
+// Local backend for testing (switch back to Vercel after rate limit expires)
 const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
+// Vercel backend deployment - PostgreSQL + Migration fix (stable production URL)
+// const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -19,20 +21,12 @@ export const chatApi = {
 };
 
 export const userApi = {
-  getAll: async () => {
-    const response = await api.get<User[]>('/users');
-    return response.data;
-  },
   getById: async (id: number) => {
     const response = await api.get<User>(`/users/${id}`);
     return response.data;
   },
-  create: async (user: User) => {
-    const response = await api.post<User>('/users', user);
-    return response.data;
-  },
-  update: async (id: number, user: User) => {
-    const response = await api.put<User>(`/users/${id}`, user);
+  update: async (id: number, userData: Partial<User>) => {
+    const response = await api.put<User>(`/users/${id}`, userData);
     return response.data;
   },
 };
@@ -78,6 +72,17 @@ export const workoutSessionApi = {
   },
   getProgress: async (userId: number) => {
     const response = await api.get<ProgressSummary>(`/sessions/user/${userId}/progress`);
+    return response.data;
+  },
+};
+
+export const telegramConfigApi = {
+  get: async (userId: number) => {
+    const response = await api.get(`/telegram-config/user/${userId}`);
+    return response.data;
+  },
+  save: async (userId: number, config: { botToken: string; chatId: string; dailyTasksStartHour?: number }) => {
+    const response = await api.post(`/telegram-config/user/${userId}`, config);
     return response.data;
   },
 };

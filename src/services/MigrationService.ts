@@ -3,14 +3,30 @@ import prisma from '../lib/database';
 
 export class MigrationService {
   async migrateUserData(migrationData: MigrationRequest): Promise<void> {
-    const { userId, tasks, workoutPlans, workoutSessions, telegramConfig } = migrationData;
+    const { userId, tasks, workoutPlans, workoutSessions, telegramConfig, userProfile } = migrationData;
 
     await prisma.$transaction(async (tx) => {
-      // Ensure user exists
+      // Ensure user exists and update profile if provided
+      const userUpdateData: any = {};
+      if (userProfile) {
+        if (userProfile.name) userUpdateData.name = userProfile.name;
+        if (userProfile.email) userUpdateData.email = userProfile.email;
+        if (userProfile.age) userUpdateData.age = userProfile.age;
+        if (userProfile.weight) userUpdateData.weight = userProfile.weight;
+        if (userProfile.height) userUpdateData.height = userProfile.height;
+        if (userProfile.fitnessLevel) userUpdateData.fitnessLevel = userProfile.fitnessLevel;
+        if (userProfile.goals) userUpdateData.goals = JSON.stringify(userProfile.goals);
+        if (userProfile.availableEquipment) userUpdateData.availableEquipment = JSON.stringify(userProfile.availableEquipment);
+        if (userProfile.bodyweightExercises) userUpdateData.bodyweightExercises = JSON.stringify(userProfile.bodyweightExercises);
+      }
+
       await tx.user.upsert({
         where: { id: userId },
-        update: {},
-        create: { id: userId }
+        update: userUpdateData,
+        create: {
+          id: userId,
+          ...userUpdateData
+        }
       });
 
       // Migrate daily tasks

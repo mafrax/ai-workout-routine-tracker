@@ -20,6 +20,7 @@ import {
 import { checkmarkCircle, refresh, copy } from 'ionicons/icons';
 import { useStore } from '../../store/useStore';
 import { chatApi } from '../../services/api_backend';
+import { frontchatApi } from '../../services/api';
 import { workoutPlanApi } from '../../services/api';
 import './ChatInterface.css';
 
@@ -50,7 +51,7 @@ const ChatInterface: React.FC = () => {
     addChatMessage({ role: 'user', content: userMessage });
 
     try {
-      const response = await chatApi.sendMessage(user.id!, userMessage, sessionId || undefined);
+      const response = await frontchatApi.sendMessage(user.id!, userMessage, sessionId || undefined);
 
       // Set session ID if this is a new conversation
       if (!sessionId) {

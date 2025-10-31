@@ -106,7 +106,7 @@ const Plans: React.FC = () => {
 
       // If we're activating the first plan, set it as the active workout plan
       if (updatedPlan.isActive) {
-        const activePlans = plans.filter(p => p.isActive || p.id === plan.id);
+        const activePlans = plans.filter(p => p.isActive || p.id == plan.id);
         if (activePlans.length === 1) {
           setActiveWorkoutPlan(updatedPlan);
         }

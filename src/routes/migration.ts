@@ -28,6 +28,20 @@ const migrationSchema = z.object({
     completionRate: z.number().optional().nullable(),
     notes: z.string().optional().nullable()
   })),
+  userProfile: z.object({
+    name: z.string().optional().nullable(),
+    email: z.string().optional().nullable(),
+    age: z.number().optional().nullable(),
+    weight: z.number().optional().nullable(),
+    height: z.number().optional().nullable(),
+    fitnessLevel: z.string().optional().nullable(),
+    goals: z.array(z.string()).optional().nullable(),
+    availableEquipment: z.array(z.string()).optional().nullable(),
+    bodyweightExercises: z.array(z.object({
+      name: z.string(),
+      maxReps: z.number()
+    })).optional().nullable()
+  }).optional().nullable(),
   telegramConfig: z.object({
     botToken: z.string().optional().nullable(),
     chatId: z.string().optional().nullable(),

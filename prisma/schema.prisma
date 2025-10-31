@@ -20,6 +20,15 @@ model User {
   googleId  String?  @unique @map("google_id")
   provider  String?  // 'google', 'facebook', etc.
 
+  // Profile fields
+  age                  Int?
+  weight               Float?
+  height               Float?
+  fitnessLevel         String?   @map("fitness_level")
+  goals                String?   // JSON array of strings
+  availableEquipment   String?   @map("available_equipment") // JSON array of strings
+  bodyweightExercises  String?   @map("bodyweight_exercises") // JSON array of {name: string, maxReps: number}
+
   createdAt DateTime @default(now()) @map("created_at")
   lastLogin DateTime? @map("last_login")
 

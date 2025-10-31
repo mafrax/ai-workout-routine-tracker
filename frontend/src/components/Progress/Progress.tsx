@@ -106,7 +106,7 @@ const Progress: React.FC = () => {
       const workoutPlans = await workoutPlanStorage.getAll();
       const sessionsWithPlans = data.map(session => {
         if (session.workoutPlanId) {
-          const plan = workoutPlans.find(p => p.id === session.workoutPlanId);
+          const plan = workoutPlans.find(p => p.id == session.workoutPlanId);
           if (plan) {
             return {
               ...session,

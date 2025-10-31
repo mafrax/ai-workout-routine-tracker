@@ -3,7 +3,7 @@ import { userStorage, workoutPlanStorage, workoutSessionStorage, chatStorage } f
 import { aiService } from './aiService';
 
 // Chat API - uses AI service directly
-export const chatApi = {
+export const frontchatApi = {
   sendMessage: async (userId: number, message: string, sessionId?: string) => {
     const activePlan = await workoutPlanStorage.getActive();
     const recentSessions = await workoutSessionStorage.getRecent(3);

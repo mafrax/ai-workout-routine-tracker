@@ -80,8 +80,8 @@ const TodaysWorkout: React.FC = () => {
         setActiveWorkoutPlans(activePlans);
 
         // Update the selected plan if it matches the activeWorkoutPlan
-        if (selectedPlanId === activeWorkoutPlan.id) {
-          const updatedPlan = activePlans.find(p => p.id === activeWorkoutPlan.id);
+        if (selectedPlanId == activeWorkoutPlan.id) {
+          const updatedPlan = activePlans.find(p => p.id == activeWorkoutPlan.id);
           if (updatedPlan) {
             // Force re-render by updating both states
             setActiveWorkoutPlans([...activePlans]);
@@ -116,7 +116,10 @@ const TodaysWorkout: React.FC = () => {
   };
 
   const handlePlanSelect = (planId: number) => {
-    const plan = activeWorkoutPlans.find(p => p.id === planId);
+    const plan = activeWorkoutPlans.find(p => p.id == planId);
+    console.log(activeWorkoutPlans)
+    console.log(planId);
+    console.log(plan);
     if (plan) {
       setSelectedPlanId(planId);
       setActiveWorkoutPlan(plan);
@@ -301,7 +304,7 @@ NOW GENERATE:`;
     );
   }
 
-  const currentPlan = activeWorkoutPlans.find(p => p.id === selectedPlanId) || activeWorkoutPlans[0];
+  const currentPlan = activeWorkoutPlans.find(p => p.id == selectedPlanId) || activeWorkoutPlans[0];
   if (!currentPlan) {
     return null;
   }

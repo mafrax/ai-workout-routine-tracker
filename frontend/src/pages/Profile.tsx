@@ -35,7 +35,8 @@ import {
   cloudUploadOutline,
 } from 'ionicons/icons';
 import { useStore } from '../store/useStore';
-import { userApi, workoutPlanApi } from '../services/api';
+import { workoutPlanApi as localWorkoutPlanApi } from '../services/api';
+import { userApi as backendUserApi, workoutPlanApi as backendWorkoutPlanApi } from '../services/api_backend';
 import { parseWorkoutPlan } from '../types/workout';
 import { aiService } from '../services/aiService';
 import { telegramService } from '../services/telegramService';
@@ -128,7 +129,29 @@ const Profile: React.FC = () => {
   const [sendingRecap, setSendingRecap] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
+      loadUserProfile();
+      loadTelegramConfig();
+    }
+  }, [user?.id]);
+
+  const loadUserProfile = async () => {
+    if (!user?.id) return;
+
+    try {
+      const userData = await backendUserApi.getById(user.id);
+      setName(userData.name || '');
+      setEmail(userData.email || '');
+      setAge(userData.age || 0);
+      setWeight(userData.weight || 0);
+      setHeight(userData.height || 0);
+      setFitnessLevel(userData.fitnessLevel || '');
+      setGoals(userData.goals || []);
+      setAvailableEquipment(userData.availableEquipment || []);
+      setBodyweightExercises(userData.bodyweightExercises || []);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+      // Fallback to current user state if backend fails
       setName(user.name || '');
       setEmail(user.email || '');
       setAge(user.age || 0);
@@ -139,21 +162,40 @@ const Profile: React.FC = () => {
       setAvailableEquipment(user.availableEquipment || []);
       setBodyweightExercises(user.bodyweightExercises || []);
     }
-    loadTelegramConfig();
-  }, [user]);
+  };
 
   const loadTelegramConfig = async () => {
-    await telegramService.loadConfig();
+    if (!user?.id) return;
 
-    // Load saved values into state
-    const botToken = await Preferences.get({ key: 'telegram_bot_token' });
-    const chatId = await Preferences.get({ key: 'telegram_chat_id' });
-    if (botToken.value) setTelegramBotToken(botToken.value);
-    if (chatId.value) setTelegramChatId(chatId.value);
+    try {
+      // Load from database
+      const { telegramConfigApi } = await import('../services/api_backend');
+      const config = await telegramConfigApi.get(user.id);
 
-    // Setup daily notification if Telegram is configured
-    if (telegramService.isConfigured()) {
-      await dailyRecapService.setupDailyNotification();
+      if (config.botToken && config.chatId) {
+        setTelegramBotToken(config.botToken);
+        setTelegramChatId(config.chatId);
+
+        // Also save to local Preferences for telegramService compatibility
+        await Preferences.set({ key: 'telegram_bot_token', value: config.botToken });
+        await Preferences.set({ key: 'telegram_chat_id', value: config.chatId });
+
+        // Load into telegram service
+        await telegramService.loadConfig();
+
+        // Setup daily notification if Telegram is configured
+        if (telegramService.isConfigured()) {
+          await dailyRecapService.setupDailyNotification();
+        }
+      }
+    } catch (error) {
+      console.error('Error loading telegram config:', error);
+      // Fallback to Preferences if backend fails
+      await telegramService.loadConfig();
+      const botToken = await Preferences.get({ key: 'telegram_bot_token' });
+      const chatId = await Preferences.get({ key: 'telegram_chat_id' });
+      if (botToken.value) setTelegramBotToken(botToken.value);
+      if (chatId.value) setTelegramChatId(chatId.value);
     }
   };
 
@@ -161,7 +203,7 @@ const Profile: React.FC = () => {
     if (!user?.id) return;
 
     try {
-      const updatedUser = await userApi.update(user.id, {
+      const updatedUser = await backendUserApi.update(user.id, {
         name,
         email,
         age,
@@ -345,7 +387,7 @@ Return ONLY the workout content, no extra text.`;
       }
 
       // Update the workout plan
-      const updatedPlan = await workoutPlanApi.update(activeWorkoutPlan.id!, {
+      const updatedPlan = await backendWorkoutPlanApi.updatePlan(activeWorkoutPlan.id!, {
         planDetails: newPlanDetails,
         // Keep the completed workouts array
         completedWorkouts: activeWorkoutPlan.completedWorkouts,
@@ -370,16 +412,31 @@ Return ONLY the workout content, no extra text.`;
   };
 
   const handleSaveTelegram = async () => {
-    if (!telegramBotToken || !telegramChatId) {
+    if (!user?.id || !telegramBotToken || !telegramChatId) {
       setToastMessage('Please fill in both Bot Token and Chat ID');
       setShowToast(true);
       return;
     }
 
-    await telegramService.saveConfig(telegramBotToken, telegramChatId);
-    setShowTelegramModal(false);
-    setToastMessage('Telegram settings saved!');
-    setShowToast(true);
+    try {
+      // Save to database
+      const { telegramConfigApi } = await import('../services/api_backend');
+      await telegramConfigApi.save(user.id, {
+        botToken: telegramBotToken,
+        chatId: telegramChatId
+      });
+
+      // Also save to local Preferences for telegram service
+      await telegramService.saveConfig(telegramBotToken, telegramChatId);
+
+      setShowTelegramModal(false);
+      setToastMessage('Telegram settings saved!');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error saving telegram config:', error);
+      setToastMessage('Failed to save Telegram settings');
+      setShowToast(true);
+    }
   };
 
   const handleTestTelegram = async () => {
