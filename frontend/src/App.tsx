@@ -53,23 +53,29 @@ const AppContent: React.FC = () => {
   const history = useHistory();
 
   useEffect(() => {
+    let listenerHandle: any;
+
     // Listen for app URL open events (deep links from OAuth redirect)
-    const handleAppUrlOpen = CapacitorApp.addListener('appUrlOpen', (event: any) => {
-      console.log('📱 App URL opened:', event.url);
+    const setupListener = async () => {
+      listenerHandle = await CapacitorApp.addListener('appUrlOpen', (event: any) => {
+        console.log('📱 App URL opened:', event.url);
 
-      // Parse the URL to extract token
-      const url = new URL(event.url);
-      const token = url.searchParams.get('token');
+        // Parse the URL to extract token
+        const url = new URL(event.url);
+        const token = url.searchParams.get('token');
 
-      if (token) {
-        console.log('✅ Token found in deep link, redirecting to /auth/callback');
-        // Navigate to auth callback with token
-        history.push(`/auth/callback?token=${token}`);
-      }
-    });
+        if (token) {
+          console.log('✅ Token found in deep link, redirecting to /auth/callback');
+          // Navigate to auth callback with token
+          history.push(`/auth/callback?token=${token}`);
+        }
+      });
+    };
+
+    setupListener();
 
     return () => {
-      handleAppUrlOpen.remove();
+      listenerHandle?.remove();
     };
   }, [history]);
 
