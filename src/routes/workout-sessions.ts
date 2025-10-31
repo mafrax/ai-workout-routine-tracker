@@ -25,6 +25,7 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
       sessionDate: session.sessionDate,
       durationMinutes: session.durationMinutes,
       completionRate: session.completionRate ? Number(session.completionRate) : null,
+      exercises: session.exercises,
       notes: session.notes,
       createdAt: session.createdAt.toISOString()
     }));
@@ -65,6 +66,7 @@ router.post('/', async (req: Request, res: Response) => {
       sessionDate: session.sessionDate,
       durationMinutes: session.durationMinutes,
       completionRate: session.completionRate ? Number(session.completionRate) : null,
+      exercises: session.exercises,
       notes: session.notes,
       createdAt: session.createdAt.toISOString()
     };
