@@ -8,6 +8,7 @@ import {
   IonToolbar,
   IonInput,
   IonButton,
+  IonButtons,
   IonList,
   IonItem,
   IonLabel,
@@ -17,16 +18,15 @@ import {
   IonIcon,
   IonToast,
 } from '@ionic/react';
-import { checkmarkCircle, refresh, copy } from 'ionicons/icons';
+import { checkmarkCircle, refresh, copy, trashOutline } from 'ionicons/icons';
 import { useStore } from '../../store/useStore';
 import { chatApi } from '../../services/api_backend';
-import { frontchatApi } from '../../services/api';
 import { workoutPlanApi } from '../../services/api';
 import './ChatInterface.css';
 
 const ChatInterface: React.FC = () => {
   const [message, setMessage] = useState('');
-  const { user, sessionId, chatHistory, isLoading, setSessionId, addChatMessage, setLoading, activeWorkoutPlan, setActiveWorkoutPlan } = useStore();
+  const { user, sessionId, chatHistory, isLoading, setSessionId, addChatMessage, clearChatHistory, setLoading, activeWorkoutPlan, setActiveWorkoutPlan } = useStore();
   const contentRef = useRef<HTMLIonContentElement>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -51,7 +51,7 @@ const ChatInterface: React.FC = () => {
     addChatMessage({ role: 'user', content: userMessage });
 
     try {
-      const response = await frontchatApi.sendMessage(user.id!, userMessage, sessionId || undefined);
+      const response = await chatApi.sendMessage(user.id!, userMessage, sessionId || undefined);
 
       // Set session ID if this is a new conversation
       if (!sessionId) {
@@ -72,11 +72,18 @@ const ChatInterface: React.FC = () => {
         // Auto-scroll to show the Apply Changes button
         setTimeout(() => scrollToBottom(), 300);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+
+      const errorMessage = error.message || 'Unknown error';
       addChatMessage({
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.'
+        content: `Sorry, I encountered an error: ${errorMessage}\n\nPlease check:\n1. Your internet connection\n2. That your API keys are valid\n3. The browser console for more details`
       });
     } finally {
       setLoading(false);
@@ -139,14 +146,26 @@ const ChatInterface: React.FC = () => {
     }
   };
 
+  const handleClearChat = () => {
+    clearChatHistory();
+    setLastSuggestedPlan(null);
+    setToastMessage('Chat history cleared! 🗑️');
+    setShowToast(true);
+  };
+
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
           <IonTitle>Workout Coach</IonTitle>
-          <IonButton slot="end" fill="clear" onClick={copyChatToClipboard} disabled={chatHistory.length === 0}>
-            <IonIcon icon={copy} slot="icon-only" />
-          </IonButton>
+          <IonButtons slot="end">
+            <IonButton fill="clear" onClick={handleClearChat} disabled={chatHistory.length === 0}>
+              <IonIcon icon={trashOutline} slot="icon-only" />
+            </IonButton>
+            <IonButton fill="clear" onClick={copyChatToClipboard} disabled={chatHistory.length === 0}>
+              <IonIcon icon={copy} slot="icon-only" />
+            </IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
 

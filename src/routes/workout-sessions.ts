@@ -13,6 +13,16 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
 
     const sessions = await prisma.workoutSession.findMany({
       where: { userId },
+      include: {
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            planDetails: true
+          }
+        }
+      },
       orderBy: { sessionDate: 'desc' }
     });
 
@@ -20,6 +30,7 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
     const serializedSessions = sessions.map(session => ({
       id: Number(session.id),
       userId: Number(session.userId),
+      workoutPlanId: session.planId ? Number(session.planId) : null,
       planId: session.planId ? Number(session.planId) : null,
       dayNumber: session.dayNumber,
       sessionDate: session.sessionDate,
@@ -27,6 +38,12 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
       completionRate: session.completionRate ? Number(session.completionRate) : null,
       exercises: session.exercises,
       notes: session.notes,
+      workoutPlan: session.plan ? {
+        id: Number(session.plan.id),
+        name: session.plan.name,
+        color: session.plan.color,
+        planDetails: session.plan.planDetails
+      } : null,
       createdAt: session.createdAt.toISOString()
     }));
 
@@ -40,20 +57,24 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
 // POST /api/sessions - Create a new workout session
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { userId, planId, dayNumber, sessionDate, durationMinutes, completionRate, notes } = req.body;
+    const { userId, planId, workoutPlanId, dayNumber, sessionDate, durationMinutes, completionRate, exercises, notes } = req.body;
 
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
     }
 
+    // Use workoutPlanId if provided (takes precedence over planId)
+    const actualPlanId = workoutPlanId || planId;
+
     const session = await prisma.workoutSession.create({
       data: {
         userId: BigInt(userId),
-        planId: planId ? BigInt(planId) : null,
+        planId: actualPlanId ? BigInt(actualPlanId) : null,
         dayNumber: dayNumber || null,
         sessionDate: sessionDate || new Date().toISOString(),
         durationMinutes: durationMinutes || null,
         completionRate: completionRate || null,
+        exercises: exercises || null,
         notes: notes || null
       }
     });

@@ -4,6 +4,7 @@ import { IonReactRouter } from '@ionic/react-router';
 import { chatbubbles, barChart, fitness, today, home, person, listCircle, checkmarkDoneCircle } from 'ionicons/icons';
 import { App as CapacitorApp } from '@capacitor/app';
 import { useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ChatInterface from './components/Chat/ChatInterface';
 import Progress from './components/Progress/Progress';
 import WorkoutLog from './components/Workout/WorkoutLog';
@@ -16,6 +17,8 @@ import Migration from './pages/Migration';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import PrivateRoute from './components/Auth/PrivateRoute';
+import DebugCaptureButton from './components/Debug/DebugCaptureButton';
+import './utils/debugCapture';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -48,6 +51,18 @@ import '@ionic/react/css/palettes/dark.system.css';
 import './theme/variables.css';
 
 setupIonicReact();
+
+// Create a client for React Query with sensible defaults
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const AppContent: React.FC = () => {
   const history = useHistory();
@@ -83,10 +98,11 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => (
-  <IonApp>
-    <IonReactRouter>
-      <AppContent />
-      <IonTabs>
+  <QueryClientProvider client={queryClient}>
+    <IonApp>
+      <IonReactRouter>
+        <AppContent />
+        <IonTabs>
         <IonRouterOutlet>
           <Route exact path="/login">
             <Login />
@@ -134,9 +150,11 @@ const App: React.FC = () => (
             <IonLabel>Profile</IonLabel>
           </IonTabButton>
         </IonTabBar>
+        <DebugCaptureButton />
       </IonTabs>
     </IonReactRouter>
   </IonApp>
+  </QueryClientProvider>
 );
 
 export default App;

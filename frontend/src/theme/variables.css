@@ -1,2 +1,324 @@
-/* For information on how to create your own theme, please see:
-http://ionicframework.com/docs/theming/ */
+/* Workout Tracker - Consistent Theme Variables */
+
+:root {
+  /* Primary Brand Colors - Enhanced Contrast */
+  --ion-color-primary: #5a4fcf;
+  --ion-color-primary-rgb: 90, 79, 207;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #4d43b4;
+  --ion-color-primary-tint: #6b60d4;
+
+  /* Custom Brand Colors - Higher Contrast */
+  --brand-primary: #5a4fcf;          /* Darker for better contrast (4.5:1) */
+  --brand-primary-dark: #4d43b4;     /* Even darker variant */
+  --brand-primary-light: #6b60d4;    /* Lighter but still contrasted */
+  --brand-secondary: #6b3fa0;        /* Darker purple for contrast */
+  --brand-gradient: linear-gradient(135deg, #5a4fcf 0%, #6b3fa0 100%);
+  --brand-gradient-light: linear-gradient(135deg, #6b60d4 0%, #7a4db5 100%);
+
+  /* Success Colors - Higher Contrast */
+  --success-color: #1a7f37;          /* Dark green with 4.5:1 contrast */
+  --success-gradient: linear-gradient(135deg, #1a7f37 0%, #0f5132 100%);
+
+  /* Text Colors - WCAG AA Compliant */
+  --text-primary: #0d1117;  /* Nearly black for maximum contrast */
+  --text-secondary: #24292f; /* Dark gray for secondary text */
+  --text-muted: #57606a;     /* Medium gray, still good contrast */
+  --text-light: #6e7781;     /* Lighter gray for subtle text */
+  --text-white: #ffffff;
+  --text-inverse: #ffffff;
+  --text-on-brand: #ffffff;  /* White text on brand colors */
+  --text-success: #1a7f37;   /* Dark green for success text */
+  --text-error: #cf222e;     /* Dark red for error text */
+  --text-warning: #9a6700;   /* Dark amber for warning text */
+
+  /* Background Colors - High Contrast */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f8fa;   /* Slightly higher contrast */
+  --bg-tertiary: #eaeef2;    /* More distinct from secondary */
+  --bg-muted: #f1f3f4;
+  --bg-gradient: linear-gradient(to bottom, #f6f8fa 0%, #ffffff 100%);
+  --bg-gradient-card: linear-gradient(135deg, #f6f8fa 0%, #eaeef2 100%);
+  --bg-surface: #ffffff;
+  --bg-surface-variant: #eaeef2;
+  --bg-surface-subtle: #f6f8fa;
+  --bg-overlay: rgba(0, 0, 0, 0.8);  /* Dark overlay for modals */
+  --bg-success-subtle: #dafbe1;      /* Light green background */
+  --bg-error-subtle: #ffebe9;        /* Light red background */
+  --bg-warning-subtle: #fff8c5;      /* Light yellow background */
+
+  /* Border Colors - Enhanced Contrast */
+  --border-light: #d1d9e0;     /* More visible light border */
+  --border-medium: #c6cbd1;    /* Medium contrast border */
+  --border-strong: #8c959f;    /* High contrast border */
+  --border-primary: #667eea;
+  --border-success: #1a7f37;
+  --border-error: #cf222e;
+  --border-warning: #9a6700;
+  --border-focus: #0969da;     /* Blue focus border */
+
+  /* Card Styles */
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --card-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --card-shadow-strong: 0 6px 24px rgba(0, 0, 0, 0.12);
+  --card-shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --card-border-radius: 16px;
+  --card-border-radius-small: 12px;
+  --card-border-radius-large: 20px;
+  --card-padding: 20px;
+  --card-padding-small: 16px;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 40px;
+
+  /* Typography */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Font Sizes */
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-xxl: 20px;
+  --font-size-title: 24px;
+  --font-size-heading: 28px;
+
+  /* Component Specific */
+  --section-title-color: var(--text-primary);
+  --section-title-size: var(--font-size-title);
+  --section-title-weight: var(--font-weight-bold);
+
+  /* Workout Specific Colors */
+  --workout-completed: var(--success-color);
+  --workout-in-progress: var(--brand-primary);
+  --workout-pending: var(--text-muted);
+
+  /* Status Colors - WCAG Compliant */
+  --status-success: #1a7f37;     /* Dark green with high contrast */
+  --status-success-bg: #dafbe1;  /* Light green background */
+  --status-warning: #9a6700;     /* Dark amber with high contrast */
+  --status-warning-bg: #fff8c5;  /* Light yellow background */
+  --status-error: #cf222e;       /* Dark red with high contrast */
+  --status-error-bg: #ffebe9;    /* Light red background */
+  --status-info: #0969da;        /* Dark blue with high contrast */
+  --status-info-bg: #ddf4ff;     /* Light blue background */
+
+  /* Interactive Elements - Enhanced for Accessibility */
+  --button-height: 44px;
+  --button-border-radius: var(--card-border-radius-small);
+  --button-bg-primary: var(--brand-primary);
+  --button-bg-primary-hover: var(--brand-primary-dark);
+  --button-bg-secondary: #6c757d;
+  --button-bg-secondary-hover: #5a6268;
+  --button-text-primary: #ffffff;
+  --button-text-secondary: #ffffff;
+  --input-border-radius: var(--card-border-radius-small);
+  --input-border-default: var(--border-medium);
+  --input-border-focus: var(--brand-primary);
+  --chip-border-radius: 8px;
+  --chip-bg-default: var(--bg-surface-variant);
+  --chip-text-default: var(--text-primary);
+
+  /* Container Widths */
+  --container-max-width: 1200px;
+  --container-padding: var(--spacing-md);
+  --container-padding-mobile: var(--spacing-md);
+
+  /* Z-index scale */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+}
+
+/* Dark mode overrides (if needed in the future) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #f8f9fa;
+    --text-secondary: #e9ecef;
+    --text-muted: #adb5bd;
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #404040;
+    --border-light: #404040;
+    --border-medium: #565656;
+  }
+}
+
+/* Utility classes for common theme usage */
+.bg-gradient {
+  background: var(--bg-gradient);
+}
+
+.bg-brand-gradient {
+  background: var(--brand-gradient);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-brand {
+  color: var(--brand-primary);
+}
+
+/* High Contrast Button Styles */
+.btn-primary {
+  background: var(--button-bg-primary);
+  color: var(--button-text-primary);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--button-border-radius);
+  font-weight: var(--font-weight-semibold);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: var(--button-bg-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--card-shadow);
+}
+
+.btn-secondary {
+  background: var(--button-bg-secondary);
+  color: var(--button-text-secondary);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--button-border-radius);
+  font-weight: var(--font-weight-semibold);
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--button-bg-secondary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--card-shadow);
+}
+
+.section-title {
+  font-size: var(--section-title-size);
+  font-weight: var(--section-title-weight);
+  color: var(--section-title-color);
+  margin: var(--spacing-xl) 0 var(--spacing-lg) 0;
+  letter-spacing: -0.5px;
+}
+
+.card-shadow {
+  box-shadow: var(--card-shadow);
+}
+
+.card-shadow-hover {
+  box-shadow: var(--card-shadow-hover);
+}
+
+.border-radius {
+  border-radius: var(--card-border-radius);
+}
+
+.border-radius-small {
+  border-radius: var(--card-border-radius-small);
+}
+
+/* Enhanced visual effects */
+.glass-effect {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.subtle-animation {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.focus-ring:focus {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* Improved accessibility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Container utilities */
+.container {
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: var(--container-padding);
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  :root {
+    /* Adjust spacing for mobile */
+    --card-padding: 16px;
+    --card-padding-small: 12px;
+    --spacing-xl: 24px;
+    --spacing-xxl: 32px;
+    
+    /* Adjust typography for mobile */
+    --font-size-heading: 24px;
+    --font-size-title: 20px;
+    --section-title-size: 20px;
+    
+    /* Adjust shadows for mobile */
+    --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  .container {
+    padding: var(--container-padding-mobile);
+  }
+  
+  /* Better touch targets for mobile */
+  .action-card {
+    min-height: 120px;
+  }
+  
+  /* Improved button sizing for mobile */
+  ion-button {
+    --min-height: 44px;
+  }
+  
+  /* Better spacing for mobile cards */
+  .plan-card,
+  .session-card,
+  .workout-day-card {
+    margin-bottom: var(--spacing-lg);
+  }
+}

@@ -47,6 +47,32 @@ export const saveWorkoutSession = async (sessionData: WorkoutSessionData) => {
 export const getUserSessions = async (userId: number) => {
   console.log('getUserSessions called for userId:', userId);
 
+  // Check for mock data first
+  const mockSessionsData = localStorage.getItem('mock_workout_sessions');
+  if (mockSessionsData) {
+    try {
+      const mockSessions = JSON.parse(mockSessionsData);
+      console.log('🎭 Using mock workout sessions:', mockSessions.length);
+      
+      // Convert mock data to match expected format
+      const formattedSessions = mockSessions.map((session: any) => ({
+        id: session.id,
+        userId: parseInt(session.userId),
+        workoutPlanId: parseInt(session.planId),
+        sessionDate: session.completedAt,
+        durationMinutes: Math.round(session.duration),
+        exercises: JSON.stringify(session.exercises),
+        completionRate: 1.0, // Mock sessions are completed
+        difficultyRating: 7 + Math.floor(Math.random() * 3), // Random 7-9
+        notes: session.notes
+      }));
+      
+      return formattedSessions;
+    } catch (error) {
+      console.error('Failed to parse mock workout sessions:', error);
+    }
+  }
+
   // Try to load from backend first
   try {
     const backendSessions = await workoutSessionApi.getUserSessions(userId);

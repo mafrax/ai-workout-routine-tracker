@@ -14,6 +14,7 @@ import workoutPlanRoutes from './routes/workout-plans';
 import workoutSessionRoutes from './routes/workout-sessions';
 import telegramConfigRoutes from './routes/telegram-config';
 import userRoutes from './routes/users';
+import chatRoutes from './routes/chat';
 
 // Load environment variables
 dotenv.config();
@@ -43,6 +44,7 @@ app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 
 // API routes
+app.use('/api/chat', chatRoutes);
 app.use('/api/daily-tasks', dailyTaskRoutes);
 app.use('/api/migration', migrationRoutes);
 app.use('/api/plans', workoutPlanRoutes);

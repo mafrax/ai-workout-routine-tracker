@@ -1,8 +1,8 @@
 .profile-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
-  background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+  padding: var(--container-padding);
+  background: var(--bg-gradient);
   min-height: 100vh;
 }
 
@@ -12,32 +12,32 @@
   align-items: center;
   min-height: 60vh;
   text-align: center;
-  color: #6c757d;
-  font-size: 18px;
+  color: var(--text-muted);
+  font-size: var(--font-size-xl);
 }
 
 .profile-card,
 .equipment-card,
 .goals-card {
-  margin-bottom: 20px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: var(--spacing-lg);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow-strong);
   overflow: hidden;
 }
 
 .section-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 20px;
-  font-weight: 700;
-  color: #212529;
-  margin-bottom: 20px;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-xxl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
   letter-spacing: -0.3px;
 }
 
 .section-title ion-icon {
-  color: #667eea;
+  color: var(--brand-primary);
   font-size: 24px;
 }
 
@@ -45,7 +45,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .equipment-chips,

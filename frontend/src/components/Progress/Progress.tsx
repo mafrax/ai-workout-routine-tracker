@@ -36,8 +36,7 @@ import {
   statsChartOutline,
 } from 'ionicons/icons';
 import { useStore } from '../../store/useStore';
-import { getUserSessions, deleteWorkoutSession } from '../../services/workoutSessionService';
-import { workoutPlanStorage } from '../../services/localStorage';
+import { useWorkoutSessions, useDeleteWorkoutSession } from '../../hooks/useWorkoutQueries';
 import type { WorkoutPlan } from '../../types';
 import './Progress.css';
 
@@ -77,9 +76,10 @@ interface ExerciseProgress {
 
 const Progress: React.FC = () => {
   const user = useStore((state) => state.user);
-  const [sessions, setSessions] = useState<WorkoutSession[]>([]);
+  const { data: sessions = [], isLoading, error } = useWorkoutSessions(user?.id);
+  const deleteMutation = useDeleteWorkoutSession();
+
   const [filteredSessions, setFilteredSessions] = useState<WorkoutSession[]>([]);
-  const [loading, setLoading] = useState(true);
   const [sessionToDelete, setSessionToDelete] = useState<number | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
@@ -90,58 +90,20 @@ const Progress: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const sessionRefs = React.useRef<Map<number, HTMLElement>>(new Map());
 
+  // Update filtered sessions and exercises when sessions change
   useEffect(() => {
-    if (user?.id) {
-      loadSessions();
-    }
-  }, [user]);
-
-  const loadSessions = async () => {
-    console.log("LOAD SESSION")
-    if (!user?.id) return;
-
-    try {
-      const data = await getUserSessions(user.id);
-
-      // Load workout plan details for each session
-      const workoutPlans = await workoutPlanStorage.getAll();
-      console.log(JSON.stringify(workoutPlans))
-
-      const sessionsWithPlans = data.map(session => {
-        console.log(JSON.stringify(session))
-        if (session.workoutPlanId) {
-          const plan = workoutPlans.find(p => p.id == session.workoutPlanId);
-          if (plan) {
-            return {
-              ...session,
-              workoutPlan: {
-                name: plan.name,
-                planDetails: plan.planDetails
-              }
-            };
-          }
-        }
-        return session;
-      });
-
-      setSessions(sessionsWithPlans);
-      setFilteredSessions(sessionsWithPlans);
+    if (sessions.length > 0) {
+      setFilteredSessions(sessions);
 
       // Extract unique exercises
       const exercises = new Set<string>();
-      sessionsWithPlans.forEach(session => {
-        console.log(session)
-
+      sessions.forEach(session => {
         const sessionExercises = parseExercises(session.exercises);
         sessionExercises.forEach(ex => exercises.add(ex.name));
       });
       setAllExercises(Array.from(exercises).sort());
-    } catch (error) {
-      console.error('Error loading sessions:', error);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [sessions]);
 
   const handleExerciseFilterChange = (exerciseName: string) => {
     setExerciseFilter(exerciseName);
@@ -256,8 +218,7 @@ const Progress: React.FC = () => {
   const confirmDelete = async () => {
     if (sessionToDelete !== null) {
       try {
-        await deleteWorkoutSession(sessionToDelete);
-        await loadSessions(); // Reload sessions after deletion
+        await deleteMutation.mutateAsync(sessionToDelete);
         console.log('Workout session deleted successfully');
       } catch (error) {
         console.error('Error deleting session:', error);
@@ -399,7 +360,7 @@ const Progress: React.FC = () => {
     return 'danger';
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <IonPage>
         <IonHeader>

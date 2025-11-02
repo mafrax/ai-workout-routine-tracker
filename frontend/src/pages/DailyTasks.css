@@ -1,5 +1,5 @@
 .daily-tasks-container {
-  padding: 16px;
+  padding: var(--container-padding);
 }
 
 .empty-state {
@@ -9,30 +9,45 @@
   justify-content: center;
   min-height: 60vh;
   text-align: center;
-  padding: 20px;
+  padding: var(--spacing-xxl);
+  background: var(--bg-surface);
+  border-radius: var(--card-border-radius);
+  margin: var(--spacing-lg);
+  box-shadow: var(--card-shadow-subtle);
+  border: 1px solid var(--border-light);
 }
 
 .empty-state h2 {
-  color: #667eea;
-  margin-bottom: 8px;
+  color: var(--brand-primary);
+  margin-bottom: var(--spacing-sm);
 }
 
 .empty-state p {
-  color: #666;
-  font-size: 14px;
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
 }
 
 .task-section-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  color: #333;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--text-primary);
 }
 
 .completed-task {
-  opacity: 0.7;
+  opacity: 0.65;
+  transition: opacity 0.2s ease;
 }
 
 ion-card {
-  margin: 16px 0;
+  margin: var(--spacing-md) 0;
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-light);
+  transition: all 0.2s ease;
+}
+
+ion-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-1px);
 }

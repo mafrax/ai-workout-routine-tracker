@@ -36,10 +36,11 @@ function parseWorkoutPlan(planDetails) {
       let cleanWeight = weight.trim().replace(/\s*\([^)]*\).*$/, '').replace(/\s*\|.*$/, '').trim();
       cleanWeight = cleanWeight.replace(/body\s+weight/gi, 'bodyweight');
 
+      const totalSets = parseInt(sets);
       currentExercises.push({
         name: name.trim(),
-        sets: parseInt(sets),
-        completedSets: 0,
+        sets: totalSets,
+        completedSets: totalSets, // Mark all sets as completed
         reps: reps.trim(),
         weight: cleanWeight
       });

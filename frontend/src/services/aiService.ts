@@ -1,4 +1,5 @@
 import { CapacitorHttp, HttpResponse } from '@capacitor/core';
+import { Capacitor } from '@capacitor/core';
 import { WorkoutPlan } from '../types';
 
 // API keys are loaded from environment variables
@@ -14,6 +15,31 @@ const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 interface ClaudeMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+// Helper function to make HTTP requests (works in both web and native)
+async function makeHttpRequest(url: string, headers: Record<string, string>, data: any): Promise<any> {
+  const isNative = Capacitor.isNativePlatform();
+
+  if (isNative) {
+    // Use CapacitorHttp for native platforms
+    const response: HttpResponse = await CapacitorHttp.post({
+      url,
+      headers,
+      data,
+    });
+    return { status: response.status, data: response.data };
+  } else {
+    // Use fetch for web
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    const responseData = await response.json();
+    return { status: response.status, data: responseData };
+  }
 }
 
 export const aiService = {
@@ -43,16 +69,17 @@ Provide 3 complete plans separated by "---PLAN---"`;
     try {
       console.log('Making API call to:', ANTHROPIC_API_URL);
       console.log('API key exists:', !!ANTHROPIC_API_KEY);
+      console.log('Platform:', Capacitor.getPlatform());
 
-      const response: HttpResponse = await CapacitorHttp.post({
-        url: ANTHROPIC_API_URL,
-        headers: {
+      const response = await makeHttpRequest(
+        ANTHROPIC_API_URL,
+        {
           'Content-Type': 'application/json',
           'x-api-key': ANTHROPIC_API_KEY,
           'anthropic-version': '2023-06-01',
         },
-        data: {
-          model: 'claude-3-5-sonnet-20241022',
+        {
+          model: 'claude-3-5-sonnet-20240620',
           max_tokens: 8000,
           messages: [
             {
@@ -60,8 +87,8 @@ Provide 3 complete plans separated by "---PLAN---"`;
               content: prompt,
             },
           ],
-        },
-      });
+        }
+      );
 
       console.log('API Response status:', response.status);
       console.log('API Response data:', JSON.stringify(response.data).substring(0, 500));
@@ -115,34 +142,63 @@ CRITICAL RULES FOR WORKOUT MODIFICATIONS:
     ];
 
     try {
-      const response: HttpResponse = await CapacitorHttp.post({
-        url: ANTHROPIC_API_URL,
-        headers: {
+      console.log('🤖 Sending chat request to Claude API...');
+      console.log('📝 Message history length:', messages.length);
+      console.log('🔑 API key configured:', !!ANTHROPIC_API_KEY);
+
+      if (!ANTHROPIC_API_KEY) {
+        throw new Error('VITE_ANTHROPIC_API_KEY not configured in .env file');
+      }
+
+      const response = await makeHttpRequest(
+        ANTHROPIC_API_URL,
+        {
           'Content-Type': 'application/json',
           'x-api-key': ANTHROPIC_API_KEY,
           'anthropic-version': '2023-06-01',
         },
-        data: {
-          model: 'claude-3-5-sonnet-20241022',
+        {
+          model: 'claude-3-5-sonnet-20240620',
           max_tokens: 8000,
           system: systemPrompt,
           messages: messages,
-        },
-      });
+        }
+      );
 
-      console.log('Chat API Response status:', response.status);
-      console.log('Chat API Response data:', JSON.stringify(response.data).substring(0, 500));
+      console.log('✅ Chat API Response status:', response.status);
+      console.log('📦 Response data preview:', JSON.stringify(response.data).substring(0, 500));
 
       if (response.status !== 200) {
-        console.error('Chat API Error:', response.data);
-        throw new Error(`API Error: ${response.data.error?.message || 'Unknown error'}`);
+        console.error('❌ Chat API Error:', response.data);
+        const errorMsg = response.data?.error?.message || response.data?.error?.type || 'Unknown API error';
+        throw new Error(`Claude API returned ${response.status}: ${errorMsg}`);
+      }
+
+      if (!response.data?.content?.[0]?.text) {
+        console.error('❌ Invalid response structure:', response.data);
+        throw new Error('Invalid response from Claude API - no content returned');
       }
 
       return response.data.content[0].text;
     } catch (error: any) {
-      console.error('Error in AI chat:', error.message || error);
-      console.error('Full chat error:', JSON.stringify(error));
-      throw new Error('Failed to get response from AI coach: ' + (error.message || 'Unknown error'));
+      console.error('❌ Error in AI chat:', error.message || error);
+      console.error('📋 Full chat error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        response: error.response
+      });
+
+      // Provide more specific error messages
+      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        throw new Error('Network error: Unable to reach Claude API. Check your internet connection.');
+      } else if (error.message?.includes('401') || error.message?.includes('authentication')) {
+        throw new Error('Authentication error: Invalid API key. Please check your VITE_ANTHROPIC_API_KEY.');
+      } else if (error.message?.includes('429')) {
+        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+      } else {
+        throw new Error(error.message || 'Failed to get response from AI coach');
+      }
     }
   },
 
@@ -159,13 +215,13 @@ Keep it brief and practical for someone currently working out.`;
     try {
       console.log('Calling Perplexity API for exercise:', exerciseName);
 
-      const response: HttpResponse = await CapacitorHttp.post({
-        url: PERPLEXITY_API_URL,
-        headers: {
+      const response = await makeHttpRequest(
+        PERPLEXITY_API_URL,
+        {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
         },
-        data: {
+        {
           model: 'sonar',
           messages: [
             {
@@ -180,8 +236,8 @@ Keep it brief and practical for someone currently working out.`;
           temperature: 0.2,
           max_tokens: 1000,
           return_citations: true,
-        },
-      });
+        }
+      );
 
       console.log('Perplexity API Response status:', response.status);
 

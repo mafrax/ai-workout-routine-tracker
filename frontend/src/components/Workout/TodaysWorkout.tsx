@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   IonContent,
   IonHeader,
@@ -19,7 +19,13 @@ import {
   IonSegmentButton,
   IonChip,
 } from '@ionic/react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Pagination } from 'swiper/modules';
+import type { Swiper as SwiperType } from 'swiper';
+import 'swiper/css';
+import 'swiper/css/pagination';
 import { calendar, barbell, time, checkmarkCircleOutline, fitness, eyeOff, eye } from 'ionicons/icons';
+import { Preferences } from '@capacitor/preferences';
 import { useStore } from '../../store/useStore';
 import { workoutPlanApi as localWorkoutPlanApi } from '../../services/api';
 import { workoutPlanApi as backendWorkoutPlanApi } from '../../services/api_backend';
@@ -36,7 +42,34 @@ const TodaysWorkout: React.FC = () => {
   const [hasCheckedGeneration, setHasCheckedGeneration] = useState(false);
   const [activeWorkoutPlans, setActiveWorkoutPlans] = useState<any[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
-  const [hideCompleted, setHideCompleted] = useState(false);
+  const [hideCompleted, setHideCompleted] = useState(true);
+  const swiperRef = useRef<SwiperType | null>(null);
+
+  const toggleHideCompleted = async () => {
+    const newValue = !hideCompleted;
+    setHideCompleted(newValue);
+    await Preferences.set({
+      key: 'hideCompletedWorkouts',
+      value: JSON.stringify(newValue)
+    });
+  };
+
+  // Load hideCompleted preference on mount
+  useEffect(() => {
+    const loadHideCompletedPreference = async () => {
+      try {
+        const { value } = await Preferences.get({ key: 'hideCompletedWorkouts' });
+        if (value !== null) {
+          setHideCompleted(JSON.parse(value));
+        }
+        // If no preference stored, default stays as true (hide completed)
+      } catch (error) {
+        console.log('Error loading hideCompleted preference:', error);
+        // Keep default value of true
+      }
+    };
+    loadHideCompletedPreference();
+  }, []);
 
   useEffect(() => {
     const initializeData = async () => {
@@ -328,71 +361,100 @@ NOW GENERATE:`;
 
       <IonContent>
         <div className="todays-workout-container">
-          {activeWorkoutPlans.length > 1 && (
-            <div style={{ padding: '16px 16px 0 16px' }}>
-              <IonSegment
-                value={selectedPlanId?.toString()}
-                onIonChange={(e) => handlePlanSelect(parseInt(e.detail.value as string))}
-                scrollable
+          {activeWorkoutPlans.length > 1 ? (
+            <div className="plan-carousel-container">
+              <Swiper
+                modules={[Pagination]}
+                spaceBetween={16}
+                slidesPerView={1}
+                pagination={{ clickable: true }}
+                onSwiper={(swiper) => {
+                  swiperRef.current = swiper;
+                }}
+                onSlideChange={(swiper) => {
+                  const plan = activeWorkoutPlans[swiper.activeIndex];
+                  if (plan) {
+                    handlePlanSelect(plan.id);
+                  }
+                }}
+                initialSlide={activeWorkoutPlans.findIndex(p => p.id === selectedPlanId)}
+                className="plan-swiper"
               >
                 {activeWorkoutPlans.map((plan) => (
-                  <IonSegmentButton key={plan.id} value={plan.id.toString()}>
-                    <IonLabel>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <div
-                          style={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '50%',
-                            backgroundColor: plan.color || '#667eea',
-                          }}
-                        />
-                        {plan.name}
-                      </div>
-                    </IonLabel>
-                  </IonSegmentButton>
+                  <SwiperSlide key={plan.id}>
+                    <IonCard className="plan-info-card">
+                      <IonCardHeader>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <IonCardTitle>{plan.name}</IonCardTitle>
+                          {plan.color && (
+                            <div
+                              style={{
+                                width: '12px',
+                                height: '12px',
+                                borderRadius: '50%',
+                                backgroundColor: plan.color,
+                              }}
+                            />
+                          )}
+                        </div>
+                      </IonCardHeader>
+                      <IonCardContent>
+                        <p>{plan.description}</p>
+                        <div className="plan-stats-row">
+                          <div className="stat">
+                            <IonIcon icon={calendar} />
+                            <span>{plan.durationWeeks} weeks</span>
+                          </div>
+                          <div className="stat">
+                            <IonIcon icon={barbell} />
+                            <span>{plan.daysPerWeek} days/week</span>
+                          </div>
+                        </div>
+                      </IonCardContent>
+                    </IonCard>
+                  </SwiperSlide>
                 ))}
-              </IonSegment>
+              </Swiper>
             </div>
+          ) : (
+            <IonCard className="plan-info-card">
+              <IonCardHeader>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <IonCardTitle>{currentPlan.name}</IonCardTitle>
+                  {currentPlan.color && (
+                    <div
+                      style={{
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '50%',
+                        backgroundColor: currentPlan.color,
+                      }}
+                    />
+                  )}
+                </div>
+              </IonCardHeader>
+              <IonCardContent>
+                <p>{currentPlan.description}</p>
+                <div className="plan-stats-row">
+                  <div className="stat">
+                    <IonIcon icon={calendar} />
+                    <span>{currentPlan.durationWeeks} weeks</span>
+                  </div>
+                  <div className="stat">
+                    <IonIcon icon={barbell} />
+                    <span>{currentPlan.daysPerWeek} days/week</span>
+                  </div>
+                </div>
+              </IonCardContent>
+            </IonCard>
           )}
-
-          <IonCard className="plan-info-card">
-            <IonCardHeader>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <IonCardTitle>{currentPlan.name}</IonCardTitle>
-                {activeWorkoutPlans.length === 1 && currentPlan.color && (
-                  <div
-                    style={{
-                      width: '12px',
-                      height: '12px',
-                      borderRadius: '50%',
-                      backgroundColor: currentPlan.color,
-                    }}
-                  />
-                )}
-              </div>
-            </IonCardHeader>
-            <IonCardContent>
-              <p>{currentPlan.description}</p>
-              <div className="plan-stats-row">
-                <div className="stat">
-                  <IonIcon icon={calendar} />
-                  <span>{currentPlan.durationWeeks} weeks</span>
-                </div>
-                <div className="stat">
-                  <IonIcon icon={barbell} />
-                  <span>{currentPlan.daysPerWeek} days/week</span>
-                </div>
-              </div>
-            </IonCardContent>
-          </IonCard>
 
           <div style={{ padding: '0 16px', marginBottom: '16px' }}>
             <h2 className="section-title" style={{ display: 'inline-block', marginRight: '12px' }}>Select Your Workout</h2>
             <IonButton
               fill="clear"
               size="small"
-              onClick={() => setHideCompleted(!hideCompleted)}
+              onClick={toggleHideCompleted}
             >
               <IonIcon icon={hideCompleted ? eye : eyeOff} slot="start" />
               {hideCompleted ? 'Show Completed' : 'Hide Completed'}
@@ -402,6 +464,7 @@ NOW GENERATE:`;
           <div className="workouts-grid">
             {parsedPlan.weeklyWorkouts.filter(workout => {
               const isCompleted = currentPlan?.completedWorkouts?.includes(workout.dayNumber) || false;
+              // Default behavior: hide completed workouts unless explicitly showing them
               return hideCompleted ? !isCompleted : true;
             }).map((workout) => {
               const isCompleted = currentPlan?.completedWorkouts?.includes(workout.dayNumber) || false;

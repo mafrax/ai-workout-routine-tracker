@@ -1,8 +1,8 @@
 .progress-container {
-  padding: 20px;
-  max-width: 1200px;
+  padding: var(--container-padding);
+  max-width: var(--container-max-width);
   margin: 0 auto;
-  background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+  background: var(--bg-gradient);
   min-height: 100vh;
 }
 
@@ -12,30 +12,32 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 60vh;
+  min-height: 50vh;
   text-align: center;
-  padding: 40px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 16px;
-  margin: 20px;
+  padding: var(--spacing-xxl);
+  background: var(--bg-surface);
+  border-radius: var(--card-border-radius);
+  margin: var(--spacing-lg);
+  box-shadow: var(--card-shadow-subtle);
+  border: 1px solid var(--border-light);
 }
 
 .no-sessions-container .empty-icon {
   font-size: 80px;
-  color: #667eea;
-  margin-bottom: 24px;
+  color: var(--brand-primary);
+  margin-bottom: var(--spacing-lg);
 }
 
 .no-sessions-container h2 {
-  margin-top: 16px;
-  color: #212529;
-  font-weight: 700;
-  font-size: 28px;
+  margin-top: var(--spacing-md);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-heading);
 }
 
 .no-sessions-container p {
-  color: #6c757d;
-  font-size: 16px;
+  color: var(--text-muted);
+  font-size: var(--font-size-lg);
   line-height: 1.6;
 }
 
@@ -46,18 +48,19 @@
 
 .summary-card {
   margin: 0;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow-strong);
   overflow: hidden;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--brand-gradient);
+  color: var(--text-white);
 }
 
 .summary-stats {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 24px 0;
+  padding: var(--spacing-lg) var(--spacing-md);
+  gap: var(--spacing-md);
 }
 
 .stat-box {
@@ -75,75 +78,75 @@
 }
 
 .stat-value {
-  font-size: 36px;
-  font-weight: 800;
-  color: white;
-  line-height: 1;
-  margin-bottom: 8px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 32px;
+  font-weight: var(--font-weight-extrabold);
+  color: var(--text-inverse);
+  line-height: 1.1;
+  margin-bottom: var(--spacing-sm);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .stat-label {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.95);
   text-transform: uppercase;
   letter-spacing: 1px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* Section Title */
 .section-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 32px 0 20px 0;
-  color: #212529;
+  font-size: var(--section-title-size);
+  font-weight: var(--section-title-weight);
+  margin: var(--spacing-xl) 0 var(--spacing-lg) 0;
+  color: var(--section-title-color);
   letter-spacing: -0.5px;
 }
 
 /* Workout Title and Date */
 .workout-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #212529;
-  margin-bottom: 6px;
+  font-size: var(--font-size-xxl);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
 }
 
 .session-date-full {
-  font-size: 14px;
-  color: #667eea;
-  margin: 4px 0 8px 0;
-  font-weight: 600;
+  font-size: var(--font-size-md);
+  color: var(--brand-primary);
+  margin: var(--spacing-xs) 0 var(--spacing-sm) 0;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* Sessions List */
 .sessions-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  margin-bottom: 32px;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .session-card {
   margin: 0;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
-  background: white;
+  background: var(--bg-primary);
   transition: all 0.3s ease;
 }
 
 .session-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--card-shadow-hover);
 }
 
 .session-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
-  padding-bottom: 16px;
-  border-bottom: 2px solid #f8f9fa;
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 2px solid var(--border-light);
 }
 
 .session-info {
@@ -151,18 +154,19 @@
 }
 
 .session-date {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: var(--font-size-xxl);
+  font-weight: var(--font-weight-bold);
   margin: 0;
-  color: #212529;
+  color: var(--text-primary);
   letter-spacing: -0.3px;
+  line-height: 1.2;
 }
 
 .workout-plan-name {
-  font-size: 15px;
-  color: #667eea;
-  margin: 8px 0 0 0;
-  font-weight: 600;
+  font-size: var(--font-size-md);
+  color: var(--brand-primary);
+  margin: var(--spacing-sm) 0 0 0;
+  font-weight: var(--font-weight-semibold);
 }
 
 .session-badges {
@@ -175,25 +179,28 @@
 /* Session Meta */
 .session-meta {
   display: flex;
-  gap: 24px;
-  margin-bottom: 20px;
-  padding: 16px 0;
-  border-bottom: 2px solid #f8f9fa;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--border-light);
   flex-wrap: wrap;
 }
 
 .meta-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  color: #495057;
-  font-weight: 600;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+  background: var(--bg-surface-variant);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--chip-border-radius);
 }
 
 .meta-item ion-icon {
-  font-size: 22px;
-  color: #667eea;
+  font-size: 20px;
+  color: var(--brand-primary);
 }
 
 /* Exercises Detail */
@@ -202,10 +209,10 @@
 }
 
 .exercises-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  color: #212529;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
   letter-spacing: -0.3px;
 }
 
@@ -223,16 +230,18 @@
 
 .exercise-content {
   width: 100%;
-  padding: 16px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 12px;
-  border: 2px solid #dee2e6;
+  padding: var(--card-padding-small);
+  background: var(--bg-surface);
+  border-radius: var(--card-border-radius-small);
+  border: 1px solid var(--border-light);
   transition: all 0.2s ease;
+  box-shadow: var(--card-shadow-subtle);
 }
 
 .exercise-content:hover {
-  border-color: #667eea;
-  transform: translateX(4px);
+  border-color: var(--brand-primary);
+  transform: translateX(2px);
+  box-shadow: var(--card-shadow);
 }
 
 .exercise-header-row {
@@ -243,16 +252,17 @@
 }
 
 .exercise-name {
-  font-weight: 700;
-  font-size: 17px;
-  color: #212529;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xl);
+  color: var(--text-primary);
   margin: 0;
   letter-spacing: -0.2px;
+  line-height: 1.3;
 }
 
 .completed-icon {
   font-size: 24px;
-  color: #2dd36f;
+  color: var(--status-success);  /* High contrast success color */
 }
 
 .exercise-details-row {
@@ -264,52 +274,54 @@
 .detail-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: white;
-  border-radius: 8px;
-  font-size: 14px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-surface-variant);
+  border-radius: var(--chip-border-radius);
+  font-size: var(--font-size-sm);
+  box-shadow: var(--card-shadow-subtle);
+  border: 1px solid var(--border-light);
 }
 
 .detail-label {
-  color: #6c757d;
-  font-weight: 600;
+  color: var(--text-muted);
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
-  font-size: 11px;
-  letter-spacing: 0.5px;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.8px;
 }
 
 .detail-value {
-  color: #212529;
-  font-weight: 700;
-  font-size: 16px;
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-md);
 }
 
 .weight-chip .detail-value {
-  color: #667eea;
+  color: var(--brand-primary);  /* Using updated brand primary */
 }
 
 /* Session Notes */
 .session-notes {
-  margin-top: 20px;
-  padding: 16px;
-  background: linear-gradient(135deg, #fff9e6 0%, #fff3cc 100%);
-  border-radius: 12px;
-  border-left: 4px solid #ffc107;
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--status-warning-bg);
+  border-radius: var(--card-border-radius-small);
+  border-left: 4px solid var(--status-warning);
+  border: 1px solid var(--border-light);
 }
 
 .session-notes h4 {
-  font-size: 15px;
-  font-weight: 700;
-  margin: 0 0 10px 0;
-  color: #212529;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--text-primary);
   letter-spacing: -0.2px;
 }
 
 .session-notes p {
-  font-size: 15px;
-  color: #495057;
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
   margin: 0;
   font-style: italic;
   line-height: 1.5;
@@ -317,11 +329,12 @@
 
 /* Calendar Styles */
 .calendar-card {
-  margin: 0 0 24px 0;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  margin: 0 0 var(--spacing-lg) 0;
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
-  background: white;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
 }
 
 .calendar-header {
@@ -334,9 +347,9 @@
 .calendar-header ion-card-title {
   flex: 1;
   text-align: center;
-  font-size: 18px;
-  font-weight: 700;
-  color: #212529;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
 }
 
 .calendar-grid {
@@ -346,13 +359,14 @@
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
   text-align: center;
-  font-weight: 600;
-  font-size: 12px;
-  color: #6c757d;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .calendar-weekdays div {
@@ -370,13 +384,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  background: #f8f9fa;
-  color: #495057;
+  border-radius: var(--chip-border-radius);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  background: var(--bg-surface-variant);
+  color: var(--text-primary);
   transition: all 0.2s ease;
   position: relative;
+  border: 1px solid var(--border-light);
 }
 
 .calendar-day.empty {
@@ -384,11 +399,13 @@
 }
 
 .calendar-day.workout-day {
-  color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: var(--brand-gradient);
+  color: var(--text-white);
+  box-shadow: var(--card-shadow);
   transform: scale(1.05);
-  font-weight: 700;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  font-weight: var(--font-weight-bold);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  border-color: var(--brand-primary);
 }
 
 /* Filter Section */
@@ -398,40 +415,69 @@
 
 .filter-section ion-card {
   margin: 0;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: var(--card-border-radius-small);
+  box-shadow: var(--card-shadow-subtle);
+  border: 1px solid var(--border-light);
 }
 
 .filter-section ion-label {
-  font-weight: 600;
-  font-size: 14px;
-  color: #495057;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
+  .progress-container {
+    padding: var(--container-padding-mobile);
+  }
+  
   .summary-stats {
-    gap: 12px;
-    padding: 16px 0;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-sm);
+    flex-wrap: wrap;
+  }
+
+  .stat-box {
+    min-width: 120px;
+    flex: 1;
   }
 
   .stat-value {
-    font-size: 28px;
+    font-size: 24px;
   }
 
   .stat-icon {
-    font-size: 32px;
+    font-size: 28px;
   }
 
   .stat-label {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
+  }
+
+  .session-meta {
+    gap: var(--spacing-sm);
+  }
+  
+  .meta-item {
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .exercise-details-row {
+    gap: var(--spacing-xs);
+  }
+  
+  .detail-chip {
+    min-width: 80px;
+    justify-content: center;
   }
 
   .calendar-day {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
 
   .calendar-weekdays {
-    font-size: 10px;
+    font-size: var(--font-size-xs);
   }
 }

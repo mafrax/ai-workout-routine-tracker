@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   IonContent,
   IonHeader,
@@ -37,13 +37,13 @@ import {
   time,
 } from 'ionicons/icons';
 import { useStore } from '../store/useStore';
-import { workoutPlanApi as localWorkoutPlanApi, userApi } from '../services/api';
+import { userApi } from '../services/api';
 import { workoutPlanApi as backendWorkoutPlanApi } from '../services/api_backend';
 import type { WorkoutPlan } from '../types';
-import { generateWorkoutPlans, generateCustomWorkoutPlan, type GeneratedPlan } from '../services/workoutPlanService';
-import PlanSelection from '../components/Onboarding/PlanSelection';
+import { generateCustomWorkoutPlan } from '../services/workoutPlanService';
 import PlanCreationChat from '../components/Plans/PlanCreationChat';
 import { telegramService } from '../services/telegramService';
+import { useWorkoutPlans, useUpdateWorkoutPlan, useCreateWorkoutPlan } from '../hooks/useWorkoutQueries';
 import './Plans.css';
 
 const PLAN_COLORS = [
@@ -59,50 +59,60 @@ const PLAN_COLORS = [
 
 const Plans: React.FC = () => {
   const { user, activeWorkoutPlan, setActiveWorkoutPlan } = useStore();
-  const [plans, setPlans] = useState<WorkoutPlan[]>([]);
+  const { data: plans = [], isLoading } = useWorkoutPlans(user?.id);
+  const updatePlanMutation = useUpdateWorkoutPlan();
+  const createPlanMutation = useCreateWorkoutPlan();
+
   const [showColorModal, setShowColorModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<WorkoutPlan | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [generatedPlans, setGeneratedPlans] = useState<GeneratedPlan[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showChatMode, setShowChatMode] = useState(true);
   const [showPlanDetailsModal, setShowPlanDetailsModal] = useState(false);
   const [viewingPlan, setViewingPlan] = useState<WorkoutPlan | null>(null);
+  const [currentPlanIndex, setCurrentPlanIndex] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (user?.id) {
-      loadPlans();
+  // Touch handling for carousel
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentPlanIndex < activePlans.length - 1) {
+      setCurrentPlanIndex(currentPlanIndex + 1);
     }
-  }, [user]);
-
-  const loadPlans = async () => {
-    if (!user?.id) return;
-    try {
-      console.log('📦 Loading plans for user:', user.id);
-      const allPlans = await backendWorkoutPlanApi.getUserPlans(user.id);
-      console.log('✅ Loaded plans from backend:', allPlans);
-      setPlans(allPlans);
-    } catch (error) {
-      console.error('❌ Error loading plans from backend:', error);
-      // Fallback to local storage for compatibility
-      try {
-        const localPlans = await localWorkoutPlanApi.getUserPlans(user.id);
-        console.log('⚠️ Using local plans as fallback:', localPlans);
-        setPlans(localPlans);
-      } catch (localError) {
-        console.error('❌ Error loading local plans too:', localError);
-      }
+    if (isRightSwipe && currentPlanIndex > 0) {
+      setCurrentPlanIndex(currentPlanIndex - 1);
     }
   };
 
   const handleTogglePlanActive = async (plan: WorkoutPlan) => {
-    if (!user?.id) return;
+    if (!user?.id || !plan.id) return;
 
     try {
-      // Toggle the plan's active status
-      const updatedPlan = await backendWorkoutPlanApi.updatePlan(plan.id!, { ...plan, isActive: !plan.isActive });
+      const updatedPlan = await updatePlanMutation.mutateAsync({
+        planId: plan.id,
+        updates: { ...plan, isActive: !plan.isActive }
+      });
 
       // If we're activating the first plan, set it as the active workout plan
       if (updatedPlan.isActive) {
@@ -111,8 +121,6 @@ const Plans: React.FC = () => {
           setActiveWorkoutPlan(updatedPlan);
         }
       }
-
-      await loadPlans();
 
       setToastMessage(updatedPlan.isActive ? 'Plan activated!' : 'Plan paused!');
       setShowToast(true);
@@ -124,14 +132,18 @@ const Plans: React.FC = () => {
   };
 
   const handleArchivePlan = async (plan: WorkoutPlan) => {
+    if (!plan.id) return;
+
     try {
-      await backendWorkoutPlanApi.updatePlan(plan.id!, { ...plan, isArchived: !plan.isArchived, isActive: false });
+      await updatePlanMutation.mutateAsync({
+        planId: plan.id,
+        updates: { ...plan, isArchived: !plan.isArchived, isActive: false }
+      });
 
       if (plan.isActive) {
         setActiveWorkoutPlan(null);
       }
 
-      await loadPlans();
       setToastMessage(plan.isArchived ? 'Plan restored!' : 'Plan archived!');
       setShowToast(true);
     } catch (error) {
@@ -142,11 +154,13 @@ const Plans: React.FC = () => {
   };
 
   const handleColorSelect = async (color: string) => {
-    if (!selectedPlan) return;
+    if (!selectedPlan?.id) return;
 
     try {
-      await backendWorkoutPlanApi.updatePlan(selectedPlan.id!, { ...selectedPlan, color });
-      await loadPlans();
+      await updatePlanMutation.mutateAsync({
+        planId: selectedPlan.id,
+        updates: { ...selectedPlan, color }
+      });
       setShowColorModal(false);
       setSelectedPlan(null);
       setToastMessage('Color updated!');
@@ -231,12 +245,11 @@ const Plans: React.FC = () => {
     if (!plan.id) return;
 
     try {
-      await backendWorkoutPlanApi.updatePlan(plan.id, {
-        ...plan,
-        telegramPreviewHour: hour
+      await updatePlanMutation.mutateAsync({
+        planId: plan.id,
+        updates: { ...plan, telegramPreviewHour: hour }
       });
 
-      await loadPlans();
       setToastMessage(`Preview time set to ${hour}:00`);
       setShowToast(true);
     } catch (error) {
@@ -276,12 +289,11 @@ const Plans: React.FC = () => {
       console.log('Fixed plan details preview:', fixed.substring(0, 500));
 
       // Update the plan
-      await backendWorkoutPlanApi.updatePlan(plan.id, {
-        ...plan,
-        planDetails: fixed
+      await updatePlanMutation.mutateAsync({
+        planId: plan.id,
+        updates: { ...plan, planDetails: fixed }
       });
 
-      await loadPlans();
       setShowPlanDetailsModal(false);
       setViewingPlan(null);
       setToastMessage('Plan format updated! Check Today\'s Workout page.');
@@ -362,7 +374,7 @@ const Plans: React.FC = () => {
       );
 
       // Save the plan
-      const savedPlan = await backendWorkoutPlanApi.create({
+      await createPlanMutation.mutateAsync({
         userId: user.id,
         name: customPlan.name,
         description: customPlan.description,
@@ -374,7 +386,6 @@ const Plans: React.FC = () => {
         color: PLAN_COLORS[plans.length % PLAN_COLORS.length].value,
       });
 
-      await loadPlans();
       setShowCreateModal(false);
       setShowChatMode(true);
       setToastMessage(`${planData.name} created successfully!`);
@@ -420,80 +431,198 @@ const Plans: React.FC = () => {
               </IonCardContent>
             </IonCard>
           ) : (
-            activePlans.map(plan => (
-              <IonCard
-                key={plan.id}
-                className="plan-card"
-                style={{ borderLeft: `6px solid ${plan.color || '#667eea'}`, cursor: 'pointer' }}
-                onClick={() => handleViewPlanDetails(plan)}
-              >
-                <IonCardHeader>
-                  <div className="plan-header">
-                    <IonCardTitle>{plan.name}</IonCardTitle>
-                    {plan.isActive && (
-                      <IonChip color="success">
-                        <IonIcon icon={checkmarkCircle} />
-                        <IonLabel>Active</IonLabel>
-                      </IonChip>
-                    )}
+            <>
+              {/* Desktop view - show all cards */}
+              <div className="plans-desktop">
+                {activePlans.map(plan => (
+                  <IonCard
+                    key={plan.id}
+                    className="plan-card"
+                    style={{ borderLeft: `6px solid ${plan.color || '#667eea'}`, cursor: 'pointer' }}
+                    onClick={() => handleViewPlanDetails(plan)}
+                  >
+                    <IonCardHeader>
+                      <div className="plan-header">
+                        <IonCardTitle>{plan.name}</IonCardTitle>
+                        {plan.isActive && (
+                          <IonChip color="success">
+                            <IonIcon icon={checkmarkCircle} />
+                            <IonLabel>Active</IonLabel>
+                          </IonChip>
+                        )}
+                      </div>
+                    </IonCardHeader>
+
+                    <IonCardContent>
+                      <p className="plan-description">{plan.description}</p>
+
+                      <div className="plan-stats">
+                        <div className="stat-item">
+                          <IonIcon icon={calendar} />
+                          <span>{plan.daysPerWeek} days/week</span>
+                        </div>
+                        <div className="stat-item">
+                          <IonIcon icon={fitness} />
+                          <span>{plan.durationWeeks} weeks</span>
+                        </div>
+                      </div>
+
+                      <div className="plan-progress">
+                        <IonBadge color="primary">
+                          {plan.completedWorkouts?.length || 0} workouts completed
+                        </IonBadge>
+                      </div>
+
+                      <div className="plan-actions" onClick={(e) => e.stopPropagation()}>
+                        <IonButton
+                          size="small"
+                          fill="outline"
+                          onClick={() => {
+                            setSelectedPlan(plan);
+                            setShowColorModal(true);
+                          }}
+                        >
+                          Change Color
+                        </IonButton>
+
+                        <IonButton
+                          size="small"
+                          fill={plan.isActive ? "outline" : "solid"}
+                          color={plan.isActive ? "medium" : "primary"}
+                          onClick={() => handleTogglePlanActive(plan)}
+                        >
+                          <IonIcon icon={plan.isActive ? pause : play} slot="start" />
+                          {plan.isActive ? 'Pause' : 'Activate'}
+                        </IonButton>
+
+                        <IonButton
+                          size="small"
+                          fill="outline"
+                          color="warning"
+                          onClick={() => handleArchivePlan(plan)}
+                        >
+                          <IonIcon icon={archive} slot="start" />
+                          Archive
+                        </IonButton>
+                      </div>
+                    </IonCardContent>
+                  </IonCard>
+                ))}
+              </div>
+
+              {/* Mobile carousel view */}
+              <div className="plans-mobile-carousel">
+                <div 
+                  className="carousel-container" 
+                  ref={carouselRef}
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                >
+                  <div 
+                    className="carousel-track"
+                    style={{
+                      transform: `translateX(-${currentPlanIndex * 100}%)`,
+                      width: `${activePlans.length * 100}%`
+                    }}
+                  >
+                    {activePlans.map((plan) => (
+                      <div key={plan.id} className="carousel-slide">
+                        <IonCard
+                          className="plan-card"
+                          style={{ borderLeft: `6px solid ${plan.color || '#667eea'}`, cursor: 'pointer', margin: '0 8px' }}
+                          onClick={() => handleViewPlanDetails(plan)}
+                        >
+                          <IonCardHeader>
+                            <div className="plan-header">
+                              <IonCardTitle>{plan.name}</IonCardTitle>
+                              {plan.isActive && (
+                                <IonChip color="success">
+                                  <IonIcon icon={checkmarkCircle} />
+                                  <IonLabel>Active</IonLabel>
+                                </IonChip>
+                              )}
+                            </div>
+                          </IonCardHeader>
+
+                          <IonCardContent>
+                            <p className="plan-description">{plan.description}</p>
+
+                            <div className="plan-stats">
+                              <div className="stat-item">
+                                <IonIcon icon={calendar} />
+                                <span>{plan.daysPerWeek} days/week</span>
+                              </div>
+                              <div className="stat-item">
+                                <IonIcon icon={fitness} />
+                                <span>{plan.durationWeeks} weeks</span>
+                              </div>
+                            </div>
+
+                            <div className="plan-progress">
+                              <IonBadge color="primary">
+                                {plan.completedWorkouts?.length || 0} workouts completed
+                              </IonBadge>
+                            </div>
+
+                            <div className="plan-actions" onClick={(e) => e.stopPropagation()}>
+                              <IonButton
+                                size="small"
+                                fill="outline"
+                                onClick={() => {
+                                  setSelectedPlan(plan);
+                                  setShowColorModal(true);
+                                }}
+                              >
+                                Change Color
+                              </IonButton>
+
+                              <IonButton
+                                size="small"
+                                fill={plan.isActive ? "outline" : "solid"}
+                                color={plan.isActive ? "medium" : "primary"}
+                                onClick={() => handleTogglePlanActive(plan)}
+                              >
+                                <IonIcon icon={plan.isActive ? pause : play} slot="start" />
+                                {plan.isActive ? 'Pause' : 'Activate'}
+                              </IonButton>
+
+                              <IonButton
+                                size="small"
+                                fill="outline"
+                                color="warning"
+                                onClick={() => handleArchivePlan(plan)}
+                              >
+                                <IonIcon icon={archive} slot="start" />
+                                Archive
+                              </IonButton>
+                            </div>
+                          </IonCardContent>
+                        </IonCard>
+                      </div>
+                    ))}
                   </div>
-                </IonCardHeader>
+                </div>
 
-                <IonCardContent>
-                  <p className="plan-description">{plan.description}</p>
-
-                  <div className="plan-stats">
-                    <div className="stat-item">
-                      <IonIcon icon={calendar} />
-                      <span>{plan.daysPerWeek} days/week</span>
+                {/* Carousel indicators and navigation */}
+                {activePlans.length > 1 && (
+                  <>
+                    <div className="carousel-indicators">
+                      {activePlans.map((_, index) => (
+                        <div
+                          key={index}
+                          className={`indicator ${index === currentPlanIndex ? 'active' : ''}`}
+                          onClick={() => setCurrentPlanIndex(index)}
+                        />
+                      ))}
                     </div>
-                    <div className="stat-item">
-                      <IonIcon icon={fitness} />
-                      <span>{plan.durationWeeks} weeks</span>
+                    <div className="carousel-counter">
+                      {currentPlanIndex + 1} of {activePlans.length}
                     </div>
-                  </div>
-
-                  <div className="plan-progress">
-                    <IonBadge color="primary">
-                      {plan.completedWorkouts?.length || 0} workouts completed
-                    </IonBadge>
-                  </div>
-
-                  <div className="plan-actions" onClick={(e) => e.stopPropagation()}>
-                    <IonButton
-                      size="small"
-                      fill="outline"
-                      onClick={() => {
-                        setSelectedPlan(plan);
-                        setShowColorModal(true);
-                      }}
-                    >
-                      Change Color
-                    </IonButton>
-
-                    <IonButton
-                      size="small"
-                      fill={plan.isActive ? "outline" : "solid"}
-                      color={plan.isActive ? "medium" : "primary"}
-                      onClick={() => handleTogglePlanActive(plan)}
-                    >
-                      <IonIcon icon={plan.isActive ? pause : play} slot="start" />
-                      {plan.isActive ? 'Pause' : 'Activate'}
-                    </IonButton>
-
-                    <IonButton
-                      size="small"
-                      fill="outline"
-                      color="warning"
-                      onClick={() => handleArchivePlan(plan)}
-                    >
-                      <IonIcon icon={archive} slot="start" />
-                      Archive
-                    </IonButton>
-                  </div>
-                </IonCardContent>
-              </IonCard>
-            ))
+                  </>
+                )}
+              </div>
+            </>
           )}
 
           {archivedPlans.length > 0 && (
@@ -578,7 +707,6 @@ const Plans: React.FC = () => {
           isOpen={showCreateModal}
           onDidDismiss={() => {
             setShowCreateModal(false);
-            loadPlans();
           }}
         >
           <IonHeader>
