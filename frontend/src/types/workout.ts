@@ -24,9 +24,6 @@ export function parseWorkoutPlan(planDetails: string): ParsedWorkoutPlan {
 
   let currentDay: DailyWorkout | null = null;
 
-  console.log('=== PARSING WORKOUT PLAN ===');
-  console.log('Plan details:', planDetails.substring(0, 500));
-
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
@@ -42,7 +39,6 @@ export function parseWorkoutPlan(planDetails: string): ParsedWorkoutPlan {
         focus: dayMatch[2].replace(/[\*]/g, '').trim(),
         exercises: [],
       };
-      console.log(`Found day: ${currentDay.dayNumber} - ${currentDay.focus}`);
       continue;
     }
 
@@ -99,19 +95,12 @@ export function parseWorkoutPlan(planDetails: string): ParsedWorkoutPlan {
         restBetweenSets: restSets ? parseInt(restSets) : 60,
         restBeforeNext: restNext ? parseInt(restNext) : (restSets ? parseInt(restSets) : 90),
       });
-      console.log(`  Added exercise: ${name.trim()} @ ${cleanWeight}`);
     }
   }
 
   if (currentDay) {
     workouts.push(currentDay);
   }
-
-  console.log(`Total workouts parsed: ${workouts.length}`);
-  workouts.forEach((workout, idx) => {
-    console.log(`  Day ${workout.dayNumber}: ${workout.exercises.length} exercises`);
-  });
-  console.log('=== END PARSING ===');
 
   return {
     name: 'Workout Plan',
