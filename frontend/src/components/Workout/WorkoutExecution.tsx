@@ -26,8 +26,7 @@ import { KeepAwake } from '@capacitor-community/keep-awake';
 import type { DailyWorkout, Exercise } from '../../types/workout';
 import { useStore } from '../../store/useStore';
 import { saveWorkoutSession } from '../../services/workoutSessionService';
-import { workoutPlanApi as localWorkoutPlanApi } from '../../services/api';
-import { workoutPlanApi as backendWorkoutPlanApi } from '../../services/api_backend';
+import { workoutPlanApi } from '../../services/api_backend';
 import { getExerciseInstruction } from '../../data/exerciseInstructions';
 import { aiService } from '../../services/aiService';
 import { telegramService } from '../../services/telegramService';
@@ -272,33 +271,39 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
       console.log('Workout session saved successfully');
 
       // Mark this workout as complete in the workout plan
+      console.log('✅ ===== MARKING WORKOUT AS COMPLETE =====');
+      console.log('Active Workout Plan ID:', activeWorkoutPlan?.id);
+      console.log('Workout Day Number:', workout.dayNumber);
+
       if (activeWorkoutPlan?.id) {
         const currentCompletedWorkouts = activeWorkoutPlan.completedWorkouts || [];
+        console.log('📋 Current completed workouts:', currentCompletedWorkouts);
+
         const updatedCompletedWorkouts = [...currentCompletedWorkouts, workout.dayNumber];
+        console.log('📋 Updated completed workouts:', updatedCompletedWorkouts);
 
-        console.log('Marking workout day', workout.dayNumber, 'as complete');
+        // Update backend with completed workout
+        console.log('🌐 Updating backend with completed workout...');
+        const planIdNumber = typeof activeWorkoutPlan.id === 'string' ? parseInt(activeWorkoutPlan.id) : activeWorkoutPlan.id;
+        console.log('📝 Plan ID type:', typeof activeWorkoutPlan.id, 'Value:', activeWorkoutPlan.id);
+        console.log('📝 Converted Plan ID:', planIdNumber);
+        console.log('📝 Updating with completedWorkouts:', updatedCompletedWorkouts);
 
-        // Update local storage first (immediate UI update)
-        const updatedPlanLocal = await localWorkoutPlanApi.update(activeWorkoutPlan.id, {
-          ...activeWorkoutPlan,
+        const updatedPlan = await workoutPlanApi.updatePlan(planIdNumber, {
           completedWorkouts: updatedCompletedWorkouts
         });
+        console.log('✅ Backend updated successfully:', {
+          planId: updatedPlan.id,
+          completedWorkouts: updatedPlan.completedWorkouts
+        });
 
-        // Update store immediately for instant UI feedback
-        setActiveWorkoutPlan(updatedPlanLocal);
-        console.log('Workout plan updated locally with completed workout');
-
-        // Sync to backend
-        try {
-          await backendWorkoutPlanApi.updatePlan(activeWorkoutPlan.id, {
-            completedWorkouts: updatedCompletedWorkouts
-          });
-          console.log('Workout plan synced to backend');
-        } catch (error) {
-          console.warn('Failed to sync workout completion to backend:', error);
-          // Continue - local storage is already updated
-        }
+        // Update store for instant UI feedback
+        setActiveWorkoutPlan(updatedPlan);
+        console.log('✅ Zustand store updated with completed workout');
+      } else {
+        console.warn('⚠️ No active workout plan ID found - cannot mark as complete');
       }
+      console.log('✅ ===== WORKOUT COMPLETION MARKING DONE =====');
 
       setToastMessage('Workout saved successfully! 🎉');
       setShowToast(true);
@@ -361,7 +366,13 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
   };
 
   const updateExerciseWeight = async (newWeight: number) => {
+    console.log('🏋️ ===== UPDATE EXERCISE WEIGHT STARTED =====');
+    console.log('Plan ID:', activeWorkoutPlan?.id);
+    console.log('Exercise Name:', currentExercise?.name);
+    console.log('New Weight:', newWeight);
+
     if (!activeWorkoutPlan?.id) {
+      console.error('❌ No active workout plan found');
       setToastMessage('No active workout plan found');
       setShowToast(true);
       return;
@@ -370,6 +381,9 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
     try {
       const exerciseName = currentExercise.name;
       const newWeightStr = `${newWeight}kg`;
+      const planIdNumber = typeof activeWorkoutPlan.id === 'string' ? parseInt(activeWorkoutPlan.id) : activeWorkoutPlan.id;
+      console.log('📝 Formatted weight string:', newWeightStr);
+      console.log('📝 Plan ID (converted to number):', planIdNumber);
 
       // Update ALL exercises with the same name in current workout
       setReorderedExercises(prev =>
@@ -379,35 +393,32 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
             : exercise
         )
       );
+      console.log('✅ Updated exercises in UI');
 
-      // Update local storage first
-      const updatedPlanLocal = await localWorkoutPlanApi.updateExerciseWeight(
-        activeWorkoutPlan.id,
+      // Update backend
+      console.log('🌐 Updating backend...');
+      const updatedPlan = await workoutPlanApi.updateExerciseWeight(
+        planIdNumber,
         exerciseName,
         newWeightStr
       );
+      console.log('✅ Backend updated successfully:', updatedPlan);
 
       // Update the store immediately
-      setActiveWorkoutPlan(updatedPlanLocal);
-
-      // Sync to backend
-      try {
-        await backendWorkoutPlanApi.updateExerciseWeight(
-          activeWorkoutPlan.id,
-          exerciseName,
-          newWeightStr
-        );
-        console.log('Exercise weight synced to backend');
-      } catch (error) {
-        console.warn('Failed to sync exercise weight to backend:', error);
-      }
+      setActiveWorkoutPlan(updatedPlan);
+      console.log('✅ Store updated');
 
       setShowWeightModal(false);
       setCustomWeight('');
       setToastMessage(`Weight updated to ${newWeight}kg for ${exerciseName} across all workouts`);
       setShowToast(true);
+      console.log('🏋️ ===== UPDATE EXERCISE WEIGHT COMPLETED =====');
     } catch (error) {
-      console.error('Failed to update exercise weight:', error);
+      console.error('❌ Failed to update exercise weight:', error);
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
       setToastMessage('Failed to update weight');
       setShowToast(true);
     }

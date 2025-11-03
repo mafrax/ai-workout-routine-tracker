@@ -111,8 +111,6 @@ const Progress: React.FC = () => {
       setFilteredSessions(sessions);
     } else {
       const filtered = sessions.filter(session => {
-        console.log(session)
-
         const exercises = parseExercises(session.exercises);
         return exercises.some(ex => ex.name === exerciseName);
       });
@@ -211,17 +209,20 @@ const Progress: React.FC = () => {
   };
 
   const handleDeleteClick = (sessionId: number) => {
+    console.log('🗑️ Delete button clicked for session ID:', sessionId);
     setSessionToDelete(sessionId);
     setShowDeleteAlert(true);
   };
 
   const confirmDelete = async () => {
     if (sessionToDelete !== null) {
+      console.log('✅ User confirmed deletion for session ID:', sessionToDelete);
       try {
+        console.log('📤 Sending delete request to backend...');
         await deleteMutation.mutateAsync(sessionToDelete);
-        console.log('Workout session deleted successfully');
+        console.log('✅ Workout session deleted successfully');
       } catch (error) {
-        console.error('Error deleting session:', error);
+        console.error('❌ Error deleting session:', error);
       }
     }
     setShowDeleteAlert(false);
@@ -275,8 +276,6 @@ const Progress: React.FC = () => {
   const getWorkoutTitle = (session: WorkoutSession): string => {
     if (session.workoutPlan?.planDetails) {
       // Parse the plan details to find the workout day that matches this session's exercises
-      console.log(session)
-
       const exercises = parseExercises(session.exercises);
       if (exercises.length > 0) {
         const planDetails = session.workoutPlan.planDetails;
@@ -327,8 +326,6 @@ const Progress: React.FC = () => {
     };
 
     sessions.forEach(session => {
-      console.log(session)
-
       const exercises = parseExercises(session.exercises);
       const exercise = exercises.find(ex => ex.name === exerciseName);
       if (exercise) {
@@ -503,7 +500,6 @@ const Progress: React.FC = () => {
 
           <div className="sessions-list">
             {filteredSessions.map((session) => {
-              console.log(JSON.stringify(session))
               const exercises = parseExercises(session.exercises);
               const displayExercises = exerciseFilter === 'all'
                 ? exercises
@@ -737,7 +733,7 @@ const Progress: React.FC = () => {
             {exerciseProgression && exerciseProgression.history.length === 0 && (
               <IonCard>
                 <IonCardContent>
-                  <p style={{ textAlign: 'center', color: '#666' }}>
+                  <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                     No history found for this exercise.
                   </p>
                 </IonCardContent>

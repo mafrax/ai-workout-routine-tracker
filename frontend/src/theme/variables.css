@@ -145,17 +145,106 @@
   --z-tooltip: 1070;
 }
 
-/* Dark mode overrides (if needed in the future) */
+/* Dark mode overrides */
 @media (prefers-color-scheme: dark) {
   :root {
+    /* Text Colors - High Contrast for Dark Mode */
     --text-primary: #f8f9fa;
     --text-secondary: #e9ecef;
-    --text-muted: #adb5bd;
-    --bg-primary: #1a1a1a;
-    --bg-secondary: #2d2d2d;
-    --bg-tertiary: #404040;
-    --border-light: #404040;
-    --border-medium: #565656;
+    --text-muted: #c9d1d9;
+    --text-light: #adb5bd;
+    --text-white: #ffffff;
+    --text-inverse: #0d1117;
+    --text-on-brand: #ffffff;
+    --text-success: #3fb950;
+    --text-error: #f85149;
+    --text-warning: #d29922;
+
+    /* Background Colors - Dark Theme */
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #21262d;
+    --bg-muted: #161b22;
+    --bg-gradient: linear-gradient(to bottom, #0d1117 0%, #161b22 100%);
+    --bg-gradient-card: linear-gradient(135deg, #161b22 0%, #21262d 100%);
+    --bg-surface: #161b22;
+    --bg-surface-variant: #21262d;
+    --bg-surface-subtle: #0d1117;
+    --bg-overlay: rgba(0, 0, 0, 0.9);
+    --bg-success-subtle: #0d3a1d;
+    --bg-error-subtle: #4c1f1f;
+    --bg-warning-subtle: #3d2e00;
+
+    /* Border Colors - Dark Mode */
+    --border-light: #30363d;
+    --border-medium: #484f58;
+    --border-strong: #6e7681;
+    --border-primary: #8b5cf6;
+    --border-success: #3fb950;
+    --border-error: #f85149;
+    --border-warning: #d29922;
+    --border-focus: #1f6feb;
+
+    /* Card Shadows - Adjusted for Dark Mode */
+    --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --card-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.5);
+    --card-shadow-strong: 0 6px 24px rgba(0, 0, 0, 0.6);
+    --card-shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.3);
+
+    /* Brand Colors - Brighter for Dark Mode */
+    --brand-primary: #8b5cf6;
+    --brand-primary-dark: #7c3aed;
+    --brand-primary-light: #a78bfa;
+    --brand-secondary: #9333ea;
+    --brand-gradient: linear-gradient(135deg, #8b5cf6 0%, #9333ea 100%);
+    --brand-gradient-light: linear-gradient(135deg, #a78bfa 0%, #a855f7 100%);
+
+    /* Success Colors - Brighter for Dark Mode */
+    --success-color: #3fb950;
+    --success-gradient: linear-gradient(135deg, #3fb950 0%, #2ea043 100%);
+
+    /* Status Colors - Dark Mode */
+    --status-success: #3fb950;
+    --status-success-bg: #0d3a1d;
+    --status-warning: #d29922;
+    --status-warning-bg: #3d2e00;
+    --status-error: #f85149;
+    --status-error-bg: #4c1f1f;
+    --status-info: #1f6feb;
+    --status-info-bg: #0c2d6b;
+
+    /* Component Specific */
+    --section-title-color: var(--text-primary);
+    --workout-completed: var(--success-color);
+    --workout-in-progress: var(--brand-primary);
+    --workout-pending: var(--text-muted);
+
+    /* Interactive Elements */
+    --button-bg-primary: var(--brand-primary);
+    --button-bg-primary-hover: var(--brand-primary-light);
+    --button-bg-secondary: #484f58;
+    --button-bg-secondary-hover: #6e7681;
+    --button-text-primary: #ffffff;
+    --button-text-secondary: #ffffff;
+    --input-border-default: var(--border-medium);
+    --input-border-focus: var(--brand-primary);
+    --chip-bg-default: var(--bg-surface-variant);
+    --chip-text-default: var(--text-primary);
+
+    /* Ionic color overrides for dark mode */
+    --ion-color-primary: #8b5cf6;
+    --ion-color-primary-rgb: 139, 92, 246;
+    --ion-color-primary-contrast: #ffffff;
+    --ion-color-primary-contrast-rgb: 255, 255, 255;
+    --ion-color-primary-shade: #7c3aed;
+    --ion-color-primary-tint: #a78bfa;
+
+    --ion-background-color: #0d1117;
+    --ion-background-color-rgb: 13, 17, 23;
+    --ion-text-color: #f8f9fa;
+    --ion-text-color-rgb: 248, 249, 250;
+    --ion-border-color: #30363d;
+    --ion-card-background: #161b22;
   }
 }
 

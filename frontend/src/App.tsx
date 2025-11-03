@@ -17,8 +17,6 @@ import Migration from './pages/Migration';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import PrivateRoute from './components/Auth/PrivateRoute';
-import DebugCaptureButton from './components/Debug/DebugCaptureButton';
-import './utils/debugCapture';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -150,7 +148,6 @@ const App: React.FC = () => (
             <IonLabel>Profile</IonLabel>
           </IonTabButton>
         </IonTabBar>
-        <DebugCaptureButton />
       </IonTabs>
     </IonReactRouter>
   </IonApp>

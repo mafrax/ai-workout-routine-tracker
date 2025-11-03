@@ -70,6 +70,10 @@ export const workoutSessionApi = {
     const response = await api.post<WorkoutSession>('/sessions', session);
     return response.data;
   },
+  delete: async (sessionId: number) => {
+    const response = await api.delete(`/sessions/${sessionId}`);
+    return response.data;
+  },
   getProgress: async (userId: number) => {
     const response = await api.get<ProgressSummary>(`/sessions/user/${userId}/progress`);
     return response.data;

@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserSessions, deleteWorkoutSession } from '../services/workoutSessionService';
 import { workoutPlanApi as backendWorkoutPlanApi } from '../services/api_backend';
-import { workoutPlanStorage } from '../services/localStorage';
 import type { WorkoutPlan } from '../types';
 
 interface WorkoutSession {
@@ -35,28 +34,9 @@ export const useWorkoutSessions = (userId: number | undefined) => {
     queryFn: async () => {
       if (!userId) throw new Error('User ID is required');
 
+      // Backend API already returns workout plan details with each session
       const data = await getUserSessions(userId);
-
-      // Load workout plan details for each session
-      const workoutPlans = await workoutPlanStorage.getAll();
-
-      const sessionsWithPlans = data.map(session => {
-        if (session.workoutPlanId) {
-          const plan = workoutPlans.find(p => p.id == session.workoutPlanId);
-          if (plan) {
-            return {
-              ...session,
-              workoutPlan: {
-                name: plan.name,
-                planDetails: plan.planDetails
-              }
-            };
-          }
-        }
-        return session;
-      });
-
-      return sessionsWithPlans as WorkoutSession[];
+      return data as WorkoutSession[];
     },
     enabled: !!userId,
     staleTime: 2 * 60 * 1000, // 2 minutes - sessions change less frequently
@@ -104,14 +84,7 @@ export const useWorkoutPlans = (userId: number | undefined) => {
         return allPlans;
       } catch (error) {
         console.error('❌ Error loading plans from backend:', error);
-        // Fallback to local storage for compatibility
-        try {
-          const localPlans = await workoutPlanStorage.getAll();
-          return localPlans.filter(p => p.userId === userId);
-        } catch (localError) {
-          console.error('❌ Error loading local plans too:', localError);
-          throw localError;
-        }
+        throw error;
       }
     },
     enabled: !!userId,

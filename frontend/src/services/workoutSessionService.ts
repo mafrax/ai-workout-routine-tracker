@@ -109,6 +109,13 @@ export const getUserProgress = async (userId: number) => {
 
 export const deleteWorkoutSession = async (sessionId: number) => {
   console.log('deleteWorkoutSession called for sessionId:', sessionId);
-  await workoutSessionStorage.delete(sessionId);
-  console.log('Workout session deleted from local storage');
+
+  // Delete from backend
+  try {
+    await workoutSessionApi.delete(sessionId);
+    console.log('Workout session deleted from backend');
+  } catch (error) {
+    console.error('Failed to delete workout session from backend:', error);
+    throw error;
+  }
 };

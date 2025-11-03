@@ -425,7 +425,7 @@ const Plans: React.FC = () => {
           {activePlans.length === 0 ? (
             <IonCard>
               <IonCardContent>
-                <p style={{ textAlign: 'center', color: '#6c757d' }}>
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                   No active workout plans. Create one from the Profile page!
                 </p>
               </IonCardContent>
@@ -443,7 +443,7 @@ const Plans: React.FC = () => {
                   >
                     <IonCardHeader>
                       <div className="plan-header">
-                        <IonCardTitle>{plan.name}</IonCardTitle>
+                        <IonCardTitle style={{ color: 'var(--text-primary)' }}>{plan.name}</IonCardTitle>
                         {plan.isActive && (
                           <IonChip color="success">
                             <IonIcon icon={checkmarkCircle} />
@@ -454,7 +454,7 @@ const Plans: React.FC = () => {
                     </IonCardHeader>
 
                     <IonCardContent>
-                      <p className="plan-description">{plan.description}</p>
+                      <p className="plan-description" style={{ color: 'var(--text-secondary)' }}>{plan.description}</p>
 
                       <div className="plan-stats">
                         <div className="stat-item">
@@ -535,7 +535,7 @@ const Plans: React.FC = () => {
                         >
                           <IonCardHeader>
                             <div className="plan-header">
-                              <IonCardTitle>{plan.name}</IonCardTitle>
+                              <IonCardTitle style={{ color: 'var(--text-primary)' }}>{plan.name}</IonCardTitle>
                               {plan.isActive && (
                                 <IonChip color="success">
                                   <IonIcon icon={checkmarkCircle} />
@@ -546,7 +546,7 @@ const Plans: React.FC = () => {
                           </IonCardHeader>
 
                           <IonCardContent>
-                            <p className="plan-description">{plan.description}</p>
+                            <p className="plan-description" style={{ color: 'var(--text-secondary)' }}>{plan.description}</p>
 
                             <div className="plan-stats">
                               <div className="stat-item">
@@ -635,11 +635,11 @@ const Plans: React.FC = () => {
                   style={{ borderLeft: `6px solid ${plan.color || '#667eea'}`, opacity: 0.7 }}
                 >
                   <IonCardHeader>
-                    <IonCardTitle>{plan.name}</IonCardTitle>
+                    <IonCardTitle style={{ color: 'var(--text-primary)' }}>{plan.name}</IonCardTitle>
                   </IonCardHeader>
 
                   <IonCardContent>
-                    <p className="plan-description">{plan.description}</p>
+                    <p className="plan-description" style={{ color: 'var(--text-secondary)' }}>{plan.description}</p>
 
                     <div className="plan-actions">
                       <IonButton
@@ -678,7 +678,7 @@ const Plans: React.FC = () => {
 
           <IonContent>
             <div style={{ padding: '20px' }}>
-              <p style={{ marginBottom: '20px', color: '#6c757d' }}>
+              <p style={{ marginBottom: '20px', color: 'var(--text-muted)' }}>
                 Select a color for "{selectedPlan?.name}"
               </p>
 
@@ -723,20 +723,22 @@ const Plans: React.FC = () => {
             <IonContent>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', height: '100%' }}>
                 <IonSpinner name="crescent" style={{ width: '50px', height: '50px', marginBottom: '20px' }} />
-                <p style={{ color: '#667eea', fontSize: '16px', textAlign: 'center' }}>
+                <p style={{ color: 'var(--brand-primary)', fontSize: '16px', textAlign: 'center' }}>
                   Creating your personalized workout plan...
                 </p>
               </div>
             </IonContent>
           ) : showChatMode && user ? (
-            <PlanCreationChat
-              user={user}
-              onPlanGenerated={handlePlanGenerated}
-              onCancel={() => {
-                setShowCreateModal(false);
-                setShowChatMode(true);
-              }}
-            />
+            <IonContent>
+              <PlanCreationChat
+                user={user}
+                onPlanGenerated={handlePlanGenerated}
+                onCancel={() => {
+                  setShowCreateModal(false);
+                  setShowChatMode(true);
+                }}
+              />
+            </IonContent>
           ) : null}
         </IonModal>
 
@@ -766,8 +768,8 @@ const Plans: React.FC = () => {
             {viewingPlan && (
               <div style={{ padding: '20px' }}>
                 <div style={{ marginBottom: '20px' }}>
-                  <h3 style={{ marginBottom: '8px', color: '#667eea' }}>Description</h3>
-                  <p style={{ color: '#6c757d', lineHeight: '1.6' }}>{viewingPlan.description}</p>
+                  <h3 style={{ marginBottom: '8px', color: 'var(--brand-primary)' }}>Description</h3>
+                  <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>{viewingPlan.description}</p>
                 </div>
 
                 <div style={{ marginBottom: '20px', display: 'flex', gap: '12px' }}>
@@ -833,7 +835,7 @@ const Plans: React.FC = () => {
 
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h3 style={{ margin: 0, color: '#667eea' }}>Next 4 Workouts</h3>
+                    <h3 style={{ margin: 0, color: 'var(--brand-primary)' }}>Next 4 Workouts</h3>
                     {(() => {
                       const workouts = parseNextWorkouts(viewingPlan.planDetails || '');
                       const hasNoExercises = workouts.length === 0 || workouts.every(w => w.exercises.length === 0);
@@ -854,7 +856,7 @@ const Plans: React.FC = () => {
                     return hasNoExercises ? (
                       <IonCard>
                         <IonCardContent>
-                          <p style={{ color: '#6c757d', textAlign: 'center' }}>
+                          <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
                             No exercises found. This plan may be in an old format.
                             Click "Fix Format" above to update it.
                           </p>
@@ -869,12 +871,12 @@ const Plans: React.FC = () => {
                           <IonCardContent>
                             <div style={{ fontSize: '14px', lineHeight: '1.8' }}>
                               {workout.exercises.slice(0, 5).map((exercise, exIdx) => (
-                                <div key={exIdx} style={{ marginBottom: '4px', color: '#495057' }}>
+                                <div key={exIdx} style={{ marginBottom: '4px', color: 'var(--text-secondary)' }}>
                                   {exercise}
                                 </div>
                               ))}
                               {workout.exercises.length > 5 && (
-                                <div style={{ marginTop: '8px', color: '#6c757d', fontStyle: 'italic' }}>
+                                <div style={{ marginTop: '8px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                                   +{workout.exercises.length - 5} more exercises...
                                 </div>
                               )}

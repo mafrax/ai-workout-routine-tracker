@@ -68,7 +68,11 @@ export const workoutPlanStorage = {
 
   async getById(id: number): Promise<WorkoutPlan | null> {
     const plans = await this.getAll();
-    return plans.find(p => p.id === id) || null;
+    // Handle both string and number IDs
+    return plans.find(p => {
+      const pId = typeof p.id === 'string' ? parseInt(p.id as string) : p.id;
+      return pId === id;
+    }) || null;
   },
 
   async getActive(): Promise<WorkoutPlan | null> {
@@ -101,7 +105,11 @@ export const workoutPlanStorage = {
 
   async update(planId: number, updates: Partial<WorkoutPlan>): Promise<WorkoutPlan | null> {
     const plans = await this.getAll();
-    const plan = plans.find(p => p.id === planId);
+    // Handle both string and number IDs
+    const plan = plans.find(p => {
+      const pId = typeof p.id === 'string' ? parseInt(p.id as string) : p.id;
+      return pId === planId;
+    });
 
     if (plan) {
       Object.assign(plan, updates);
@@ -112,6 +120,7 @@ export const workoutPlanStorage = {
       return plan;
     }
 
+    console.error('Plan not found in localStorage. PlanId:', planId, 'Available plans:', plans.map(p => ({ id: p.id, type: typeof p.id })));
     return null;
   },
 

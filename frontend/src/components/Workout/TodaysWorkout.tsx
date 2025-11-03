@@ -129,7 +129,7 @@ const TodaysWorkout: React.FC = () => {
     if (!user?.id) return;
 
     try {
-      // Load all plans
+      // Load all plans from backend
       const allPlans = await backendWorkoutPlanApi.getUserPlans(user.id);
       const activePlans = allPlans.filter(p => p.isActive && !p.isArchived);
 
@@ -385,7 +385,7 @@ NOW GENERATE:`;
                     <IonCard className="plan-info-card">
                       <IonCardHeader>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <IonCardTitle>{plan.name}</IonCardTitle>
+                          <IonCardTitle style={{ color: 'var(--text-primary)' }}>{plan.name}</IonCardTitle>
                           {plan.color && (
                             <div
                               style={{
@@ -398,8 +398,8 @@ NOW GENERATE:`;
                           )}
                         </div>
                       </IonCardHeader>
-                      <IonCardContent>
-                        <p>{plan.description}</p>
+                      <IonCardContent style={{ color: 'var(--text-secondary)' }}>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '12px' }}>{plan.description}</p>
                         <div className="plan-stats-row">
                           <div className="stat">
                             <IonIcon icon={calendar} />
@@ -420,7 +420,7 @@ NOW GENERATE:`;
             <IonCard className="plan-info-card">
               <IonCardHeader>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <IonCardTitle>{currentPlan.name}</IonCardTitle>
+                  <IonCardTitle style={{ color: 'var(--text-primary)' }}>{currentPlan.name}</IonCardTitle>
                   {currentPlan.color && (
                     <div
                       style={{
@@ -433,8 +433,8 @@ NOW GENERATE:`;
                   )}
                 </div>
               </IonCardHeader>
-              <IonCardContent>
-                <p>{currentPlan.description}</p>
+              <IonCardContent style={{ color: 'var(--text-secondary)' }}>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '12px' }}>{currentPlan.description}</p>
                 <div className="plan-stats-row">
                   <div className="stat">
                     <IonIcon icon={calendar} />
