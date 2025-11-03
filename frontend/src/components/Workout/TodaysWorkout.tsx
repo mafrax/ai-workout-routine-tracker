@@ -140,11 +140,37 @@ const TodaysWorkout: React.FC = () => {
         const firstPlan = activePlans[0];
         setActiveWorkoutPlan(firstPlan);
         setSelectedPlanId(firstPlan.id!);
+
+        // Sync completion status with actual sessions
+        await syncPlanCompletion(firstPlan.id);
       }
     } catch (error) {
       console.error('Error loading active plan:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncPlanCompletion = async (planId: any) => {
+    try {
+      console.log(`🔄 Syncing completion status for plan ${planId}`);
+      const response = await fetch(
+        `https://workout-marcs-projects-3a713b55.vercel.app/api/plans/${planId}/sync-completion`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+      );
+
+      if (response.ok) {
+        const syncedPlan = await response.json();
+        console.log(`✅ Synced plan completion:`, syncedPlan.completedWorkouts);
+
+        // Update local state with synced plan
+        setActiveWorkoutPlan(syncedPlan);
+        setActiveWorkoutPlans(plans =>
+          plans.map(p => p.id === syncedPlan.id ? syncedPlan : p)
+        );
+      }
+    } catch (error) {
+      console.error('❌ Error syncing plan completion:', error);
     }
   };
 
@@ -162,6 +188,31 @@ const TodaysWorkout: React.FC = () => {
   const startWorkout = (dayNumber: number) => {
     setSelectedDay(dayNumber);
     setWorkoutInProgress(true);
+  };
+
+  const markWorkoutIncomplete = async (dayNumber: number) => {
+    if (!currentPlan) return;
+
+    try {
+      console.log(`🔄 Marking day ${dayNumber} as incomplete for plan ${currentPlan.id}`);
+
+      // Get current completed workouts
+      const completedWorkouts = currentPlan.completedWorkouts || [];
+
+      // Remove this day from completed workouts
+      const updatedCompletedWorkouts = completedWorkouts.filter(day => day !== dayNumber);
+
+      // Update the plan on backend
+      const planIdNumber = typeof currentPlan.id === 'string' ? parseInt(currentPlan.id) : currentPlan.id;
+      const updatedPlan = await backendWorkoutPlanApi.updatePlan(planIdNumber, {
+        completedWorkouts: JSON.stringify(updatedCompletedWorkouts)
+      });
+
+      setActiveWorkoutPlan(updatedPlan);
+      console.log(`✅ Day ${dayNumber} marked as incomplete`);
+    } catch (error) {
+      console.error('❌ Error marking workout as incomplete:', error);
+    }
   };
 
   const handleWorkoutComplete = async () => {
@@ -472,8 +523,6 @@ NOW GENERATE:`;
                 <IonCard
                   key={workout.dayNumber}
                   className={`workout-day-card ${isCompleted ? 'completed' : ''}`}
-                  button
-                  onClick={() => startWorkout(workout.dayNumber)}
                 >
                   <IonCardContent>
                     <div className="day-header">
@@ -491,9 +540,25 @@ NOW GENERATE:`;
                         {workout.exercises.reduce((sum, ex) => sum + ex.sets, 0)} sets
                       </span>
                     </div>
-                    <IonButton expand="block" className={isCompleted ? "start-btn completed-btn" : "start-btn"}>
-                      {isCompleted ? 'Completed ✓' : 'Start Workout'}
-                    </IonButton>
+                    {isCompleted ? (
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                        <IonButton expand="block" className="start-btn completed-btn" onClick={() => startWorkout(workout.dayNumber)}>
+                          Do Again
+                        </IonButton>
+                        <IonButton
+                          expand="block"
+                          fill="outline"
+                          color="medium"
+                          onClick={() => markWorkoutIncomplete(workout.dayNumber)}
+                        >
+                          Mark Incomplete
+                        </IonButton>
+                      </div>
+                    ) : (
+                      <IonButton expand="block" className="start-btn" onClick={() => startWorkout(workout.dayNumber)}>
+                        Start Workout
+                      </IonButton>
+                    )}
                   </IonCardContent>
                 </IonCard>
               );

@@ -216,4 +216,48 @@ router.post('/:planId/update-exercise-weight', async (req: Request, res: Respons
   }
 });
 
+// POST /api/plans/:planId/sync-completion - Sync completedWorkouts with actual sessions
+router.post('/:planId/sync-completion', async (req: Request, res: Response) => {
+  try {
+    if (!req.params.planId) {
+      return res.status(400).json({ error: 'Plan ID is required' });
+    }
+    const planId = BigInt(req.params.planId);
+
+    // Get all workout sessions for this plan
+    const sessions = await prisma.workoutSession.findMany({
+      where: { planId },
+      select: { dayNumber: true }
+    });
+
+    // Extract unique day numbers from sessions
+    const completedDays = [...new Set(
+      sessions
+        .map(s => s.dayNumber)
+        .filter((day): day is number => day !== null)
+    )];
+
+    // Update the plan with the actual completed days
+    const updatedPlan = await prisma.workoutPlan.update({
+      where: { id: planId },
+      data: {
+        completedWorkouts: JSON.stringify(completedDays.sort((a, b) => a - b))
+      }
+    });
+
+    const serializedPlan = {
+      ...updatedPlan,
+      id: updatedPlan.id.toString(),
+      userId: updatedPlan.userId.toString(),
+      completedWorkouts: completedDays.sort((a, b) => a - b)
+    };
+
+    console.log(`✅ Synced completedWorkouts for plan ${planId}: [${completedDays.join(', ')}]`);
+    return res.json(serializedPlan);
+  } catch (error) {
+    console.error('Error syncing completion status:', error);
+    return res.status(500).json({ error: 'Failed to sync completion status' });
+  }
+});
+
 export default router;
