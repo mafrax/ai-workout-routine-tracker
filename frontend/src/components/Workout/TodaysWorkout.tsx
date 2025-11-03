@@ -200,12 +200,12 @@ const TodaysWorkout: React.FC = () => {
       const completedWorkouts = currentPlan.completedWorkouts || [];
 
       // Remove this day from completed workouts
-      const updatedCompletedWorkouts = completedWorkouts.filter(day => day !== dayNumber);
+      const updatedCompletedWorkouts = completedWorkouts.filter((day: number) => day !== dayNumber);
 
-      // Update the plan on backend
+      // Update the plan on backend (backend will handle JSON.stringify)
       const planIdNumber = typeof currentPlan.id === 'string' ? parseInt(currentPlan.id) : currentPlan.id;
       const updatedPlan = await backendWorkoutPlanApi.updatePlan(planIdNumber, {
-        completedWorkouts: JSON.stringify(updatedCompletedWorkouts)
+        completedWorkouts: updatedCompletedWorkouts
       });
 
       setActiveWorkoutPlan(updatedPlan);

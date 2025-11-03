@@ -25,11 +25,11 @@ import { play, pause, checkmarkCircle, time, barbell, fitness, create, close, ar
 import { KeepAwake } from '@capacitor-community/keep-awake';
 import type { DailyWorkout, Exercise } from '../../types/workout';
 import { useStore } from '../../store/useStore';
-import { saveWorkoutSession } from '../../services/workoutSessionService';
 import { workoutPlanApi } from '../../services/api_backend';
 import { getExerciseInstruction } from '../../data/exerciseInstructions';
 import { aiService } from '../../services/aiService';
 import { telegramService } from '../../services/telegramService';
+import { useCreateWorkoutSession } from '../../hooks/useWorkoutQueries';
 import './WorkoutExecution.css';
 
 interface WorkoutExecutionProps {
@@ -41,6 +41,7 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
   const user = useStore((state) => state.user);
   const activeWorkoutPlan = useStore((state) => state.activeWorkoutPlan);
   const setActiveWorkoutPlan = useStore((state) => state.setActiveWorkoutPlan);
+  const createWorkoutSession = useCreateWorkoutSession();
 
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
@@ -254,14 +255,16 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
       console.log('Saving workout session:', {
         userId: user.id,
         workoutPlanId: activeWorkoutPlan?.id,
+        dayNumber: workout.dayNumber,
         durationMinutes,
         exercisesCount: exercisesData.length,
         completionRate
       });
 
-      await saveWorkoutSession({
+      await createWorkoutSession.mutateAsync({
         userId: user.id!,
         workoutPlanId: activeWorkoutPlan?.id,
+        dayNumber: workout.dayNumber,
         sessionDate: startTime.toISOString(),
         durationMinutes,
         exercises: JSON.stringify(exercisesData),

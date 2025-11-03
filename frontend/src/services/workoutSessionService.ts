@@ -4,6 +4,7 @@ import { workoutSessionApi } from './api_backend';
 export interface WorkoutSessionData {
   userId: number;
   workoutPlanId?: number;
+  dayNumber?: number;
   sessionDate: string;
   durationMinutes: number;
   exercises: string; // JSON string
@@ -29,6 +30,7 @@ export const saveWorkoutSession = async (sessionData: WorkoutSessionData) => {
     const backendSession = await workoutSessionApi.create({
       userId: sessionData.userId,
       workoutPlanId: sessionData.workoutPlanId,
+      dayNumber: sessionData.dayNumber,
       sessionDate: sessionData.sessionDate,
       durationMinutes: sessionData.durationMinutes,
       exercises: sessionData.exercises,

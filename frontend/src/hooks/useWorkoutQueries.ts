@@ -5,6 +5,7 @@ import type { WorkoutPlan } from '../types';
 
 interface WorkoutSession {
   id?: number;
+  userId: number;
   sessionDate: string;
   durationMinutes?: number;
   exercises: string;
@@ -12,6 +13,7 @@ interface WorkoutSession {
   difficultyRating?: number;
   notes?: string;
   workoutPlanId?: number;
+  dayNumber?: number;
   workoutPlan?: {
     name: string;
     planDetails?: string;
@@ -65,15 +67,17 @@ export const useDeleteWorkoutSession = () => {
         )?.find(p => p.id === planId);
 
         if (plan?.completedWorkouts) {
-          const completedWorkouts = JSON.parse(plan.completedWorkouts as any);
+          const completedWorkouts = Array.isArray(plan.completedWorkouts)
+            ? plan.completedWorkouts
+            : JSON.parse(plan.completedWorkouts as any);
           const updatedCompletedWorkouts = completedWorkouts.filter(
             (day: number) => day !== dayNumber
           );
 
-          // Update the plan on backend
+          // Update the plan on backend (backend will handle JSON.stringify)
           await backendWorkoutPlanApi.updatePlan(planId, {
             ...plan,
-            completedWorkouts: JSON.stringify(updatedCompletedWorkouts)
+            completedWorkouts: updatedCompletedWorkouts
           });
         }
       }
@@ -174,6 +178,7 @@ export const useCreateWorkoutSession = () => {
     mutationFn: async (sessionData: {
       userId: number;
       workoutPlanId?: number;
+      dayNumber?: number;
       sessionDate: string;
       durationMinutes: number;
       exercises: string;

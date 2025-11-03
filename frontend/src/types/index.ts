@@ -37,6 +37,7 @@ export interface WorkoutSession {
   id?: number;
   userId: number;
   workoutPlanId?: number;
+  dayNumber?: number;
   sessionDate: string;
   durationMinutes?: number;
   exercises: string;
