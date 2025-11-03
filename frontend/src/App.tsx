@@ -5,6 +5,8 @@ import { chatbubbles, barChart, fitness, today, home, person, listCircle, checkm
 import { App as CapacitorApp } from '@capacitor/app';
 import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useStore } from './store/useStore';
+import { authService } from './services/authService';
 import ChatInterface from './components/Chat/ChatInterface';
 import Progress from './components/Progress/Progress';
 import WorkoutLog from './components/Workout/WorkoutLog';
@@ -64,6 +66,22 @@ const queryClient = new QueryClient({
 
 const AppContent: React.FC = () => {
   const history = useHistory();
+  const { setUser } = useStore();
+
+  // Load user on app startup
+  useEffect(() => {
+    if (authService.isAuthenticated()) {
+      const oauthUser = authService.getCurrentUser();
+      if (oauthUser) {
+        console.log('🔄 App: Loading user from auth service:', oauthUser.email);
+        setUser({
+          id: parseInt(oauthUser.id),
+          email: oauthUser.email,
+          name: oauthUser.name
+        });
+      }
+    }
+  }, [setUser]);
 
   useEffect(() => {
     let listenerHandle: any;

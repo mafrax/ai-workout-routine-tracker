@@ -50,10 +50,40 @@ export const useDeleteWorkoutSession = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (sessionId: number) => deleteWorkoutSession(sessionId),
-    onSuccess: (_, sessionId) => {
-      // Invalidate all session queries to trigger a refetch
-      queryClient.invalidateQueries({ queryKey: workoutKeys.all });
+    mutationFn: async ({ sessionId, userId, planId, dayNumber }: {
+      sessionId: number;
+      userId: number;
+      planId?: number;
+      dayNumber?: number;
+    }) => {
+      await deleteWorkoutSession(sessionId);
+
+      // If we have planId and dayNumber, update the plan's completedWorkouts
+      if (planId && dayNumber) {
+        const plan = queryClient.getQueryData<WorkoutPlan[]>(
+          workoutKeys.plans(userId)
+        )?.find(p => p.id === planId);
+
+        if (plan?.completedWorkouts) {
+          const completedWorkouts = JSON.parse(plan.completedWorkouts as any);
+          const updatedCompletedWorkouts = completedWorkouts.filter(
+            (day: number) => day !== dayNumber
+          );
+
+          // Update the plan on backend
+          await backendWorkoutPlanApi.updatePlan(planId, {
+            ...plan,
+            completedWorkouts: JSON.stringify(updatedCompletedWorkouts)
+          });
+        }
+      }
+
+      return sessionId;
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate queries to trigger refetch
+      queryClient.invalidateQueries({ queryKey: workoutKeys.sessions(variables.userId) });
+      queryClient.invalidateQueries({ queryKey: workoutKeys.plans(variables.userId) });
     },
   });
 };
@@ -129,6 +159,38 @@ export const useCreateWorkoutPlan = () => {
       // Invalidate plans query to refetch with new plan
       queryClient.invalidateQueries({
         queryKey: workoutKeys.plans(newPlan.userId)
+      });
+    },
+  });
+};
+
+/**
+ * Hook to create a workout session with automatic cache invalidation
+ */
+export const useCreateWorkoutSession = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (sessionData: {
+      userId: number;
+      workoutPlanId?: number;
+      sessionDate: string;
+      durationMinutes: number;
+      exercises: string;
+      completionRate: number;
+      notes?: string;
+    }) => {
+      const { saveWorkoutSession } = await import('../services/workoutSessionService');
+      return saveWorkoutSession(sessionData);
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate sessions query to refetch with new session
+      queryClient.invalidateQueries({
+        queryKey: workoutKeys.sessions(variables.userId)
+      });
+      // Also invalidate plans to update completion status
+      queryClient.invalidateQueries({
+        queryKey: workoutKeys.plans(variables.userId)
       });
     },
   });

@@ -215,11 +215,20 @@ const Progress: React.FC = () => {
   };
 
   const confirmDelete = async () => {
-    if (sessionToDelete !== null) {
+    if (sessionToDelete !== null && user) {
       console.log('✅ User confirmed deletion for session ID:', sessionToDelete);
+
+      // Find the session to get planId and dayNumber
+      const session = sessions.find(s => s.id === sessionToDelete);
+
       try {
         console.log('📤 Sending delete request to backend...');
-        await deleteMutation.mutateAsync(sessionToDelete);
+        await deleteMutation.mutateAsync({
+          sessionId: sessionToDelete,
+          userId: user.id,
+          planId: session?.workoutPlanId,
+          dayNumber: session?.dayNumber
+        });
         console.log('✅ Workout session deleted successfully');
       } catch (error) {
         console.error('❌ Error deleting session:', error);
