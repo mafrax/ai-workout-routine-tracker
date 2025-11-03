@@ -260,4 +260,57 @@ router.post('/:planId/sync-completion', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/plans/fix-completed-workouts - Fix double-encoded completedWorkouts
+router.post('/fix-completed-workouts', async (req: Request, res: Response) => {
+  try {
+    console.log('🔧 Starting to fix double-encoded completedWorkouts...');
+
+    // Get all plans
+    const plans = await prisma.workoutPlan.findMany();
+    let fixedCount = 0;
+
+    for (const plan of plans) {
+      if (!plan.completedWorkouts) continue;
+
+      try {
+        // Try to parse the completedWorkouts
+        const parsed = JSON.parse(plan.completedWorkouts as string);
+
+        // Check if it's double-encoded (array of strings instead of numbers)
+        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+          // It's corrupted - try to parse again
+          try {
+            const doubleParsed = JSON.parse(parsed as any);
+            if (Array.isArray(doubleParsed)) {
+              // Successfully recovered the data
+              await prisma.workoutPlan.update({
+                where: { id: plan.id },
+                data: { completedWorkouts: JSON.stringify(doubleParsed) }
+              });
+              fixedCount++;
+              console.log(`✅ Fixed plan ${plan.id}: ${plan.name}`);
+            }
+          } catch {
+            // Can't recover - reset to empty
+            await prisma.workoutPlan.update({
+              where: { id: plan.id },
+              data: { completedWorkouts: JSON.stringify([]) }
+            });
+            fixedCount++;
+            console.log(`⚠️ Reset plan ${plan.id}: ${plan.name} (couldn't recover)`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Error processing plan ${plan.id}:`, error);
+      }
+    }
+
+    console.log(`✅ Fixed ${fixedCount} plans`);
+    return res.json({ fixed: fixedCount, message: `Fixed ${fixedCount} plans` });
+  } catch (error) {
+    console.error('Error fixing completed workouts:', error);
+    return res.status(500).json({ error: 'Failed to fix completed workouts' });
+  }
+});
+
 export default router;

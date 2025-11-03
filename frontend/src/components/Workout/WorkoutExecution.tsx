@@ -279,7 +279,17 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
       console.log('Workout Day Number:', workout.dayNumber);
 
       if (activeWorkoutPlan?.id) {
-        const currentCompletedWorkouts = activeWorkoutPlan.completedWorkouts || [];
+        // Handle both array and corrupted string completedWorkouts
+        let currentCompletedWorkouts: number[] = [];
+        if (Array.isArray(activeWorkoutPlan.completedWorkouts)) {
+          currentCompletedWorkouts = activeWorkoutPlan.completedWorkouts;
+        } else if (typeof activeWorkoutPlan.completedWorkouts === 'string') {
+          try {
+            currentCompletedWorkouts = JSON.parse(activeWorkoutPlan.completedWorkouts);
+          } catch {
+            currentCompletedWorkouts = [];
+          }
+        }
         console.log('📋 Current completed workouts:', currentCompletedWorkouts);
 
         const updatedCompletedWorkouts = [...currentCompletedWorkouts, workout.dayNumber];

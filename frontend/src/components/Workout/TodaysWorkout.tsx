@@ -196,8 +196,17 @@ const TodaysWorkout: React.FC = () => {
     try {
       console.log(`🔄 Marking day ${dayNumber} as incomplete for plan ${currentPlan.id}`);
 
-      // Get current completed workouts
-      const completedWorkouts = currentPlan.completedWorkouts || [];
+      // Handle both array and corrupted string completedWorkouts
+      let completedWorkouts: number[] = [];
+      if (Array.isArray(currentPlan.completedWorkouts)) {
+        completedWorkouts = currentPlan.completedWorkouts;
+      } else if (typeof currentPlan.completedWorkouts === 'string') {
+        try {
+          completedWorkouts = JSON.parse(currentPlan.completedWorkouts);
+        } catch {
+          completedWorkouts = [];
+        }
+      }
 
       // Remove this day from completed workouts
       const updatedCompletedWorkouts = completedWorkouts.filter((day: number) => day !== dayNumber);
