@@ -102,6 +102,10 @@ router.post('/', async (req: Request, res: Response) => {
 // DELETE /api/sessions/:id - Delete a workout session
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
+    if (!req.params.id) {
+      return res.status(400).json({ error: 'Session ID is required' });
+    }
+
     const sessionId = BigInt(req.params.id);
 
     const session = await prisma.workoutSession.delete({
