@@ -197,4 +197,18 @@ export class MigrationService {
       }
     };
   }
+
+  async runSchemaMigration(): Promise<void> {
+    // Run raw SQL to add missing columns
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE workout_plans ADD COLUMN IF NOT EXISTS description TEXT;
+      ALTER TABLE workout_plans ADD COLUMN IF NOT EXISTS days_per_week INTEGER;
+      ALTER TABLE workout_plans ADD COLUMN IF NOT EXISTS duration_weeks INTEGER;
+      ALTER TABLE workout_plans ADD COLUMN IF NOT EXISTS difficulty_level TEXT;
+      ALTER TABLE workout_plans ADD COLUMN IF NOT EXISTS color TEXT;
+      ALTER TABLE workout_sessions ADD COLUMN IF NOT EXISTS exercises TEXT;
+    `);
+
+    console.log('✅ Schema migration completed successfully');
+  }
 }

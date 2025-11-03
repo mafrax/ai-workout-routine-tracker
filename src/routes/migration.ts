@@ -96,4 +96,22 @@ router.post('/merge-users', async (req: Request, res: Response<ApiResponse>) => 
   }
 });
 
+// POST /api/migration/run-schema-migration
+router.post('/run-schema-migration', async (req: Request, res: Response<ApiResponse>) => {
+  try {
+    await migrationService.runSchemaMigration();
+    res.json({
+      success: true,
+      message: 'Schema migration completed successfully'
+    });
+  } catch (error) {
+    console.error('Error running schema migration:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;
