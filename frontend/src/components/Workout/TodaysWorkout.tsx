@@ -234,6 +234,11 @@ const TodaysWorkout: React.FC = () => {
         const updatedPlan = await backendWorkoutPlanApi.getActivePlan(user.id);
         setActiveWorkoutPlan(updatedPlan);
 
+        // Also update the activeWorkoutPlans array so UI reflects completion immediately
+        setActiveWorkoutPlans(plans =>
+          plans.map(p => p.id === updatedPlan.id ? updatedPlan : p)
+        );
+
         // Check if we need to generate new workouts
         await checkAndGenerateNewWorkouts(updatedPlan);
       } catch (error) {
