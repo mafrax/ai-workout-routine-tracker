@@ -106,7 +106,21 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Session ID is required' });
     }
 
-    const sessionId = BigInt(req.params.id);
+    // Handle both numeric and string IDs (for mock data compatibility)
+    const idParam = req.params.id;
+
+    // If it's a string ID like "session-1", return a mock success response
+    // In production, only numeric IDs should be used
+    if (isNaN(Number(idParam))) {
+      console.log(`⚠️  Skipping deletion of mock session: ${idParam}`);
+      return res.json({
+        success: true,
+        message: 'Mock session deletion acknowledged',
+        id: idParam
+      });
+    }
+
+    const sessionId = BigInt(idParam);
 
     const session = await prisma.workoutSession.delete({
       where: { id: sessionId }

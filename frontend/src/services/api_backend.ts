@@ -1,10 +1,10 @@
 import axios from 'axios';
 import { User, WorkoutPlan, WorkoutSession, ProgressSummary } from '../types';
 
-// Local backend for testing (switch back to Vercel after rate limit expires)
-const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
+// Local backend for testing
+// const API_BASE_URL = 'http://localhost:8080/api';
 // Vercel backend deployment - PostgreSQL + Migration fix (stable production URL)
-// const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
+const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

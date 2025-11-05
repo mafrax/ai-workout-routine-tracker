@@ -61,14 +61,17 @@ export const getUserSessions = async (userId: number) => {
         id: session.id,
         userId: parseInt(session.userId),
         workoutPlanId: parseInt(session.planId),
+        dayNumber: session.workoutDay, // Include dayNumber from workoutDay
         sessionDate: session.completedAt,
         durationMinutes: Math.round(session.duration),
         exercises: JSON.stringify(session.exercises),
         completionRate: 1.0, // Mock sessions are completed
         difficultyRating: 7 + Math.floor(Math.random() * 3), // Random 7-9
-        notes: session.notes
+        notes: session.notes,
+        workoutName: session.workoutName // Include workoutName for title display
       }));
-      
+
+      console.log('✅ First formatted session:', formattedSessions[0]);
       return formattedSessions;
     } catch (error) {
       console.error('Failed to parse mock workout sessions:', error);
@@ -109,13 +112,29 @@ export const getUserProgress = async (userId: number) => {
   };
 };
 
-export const deleteWorkoutSession = async (sessionId: number) => {
+export const deleteWorkoutSession = async (sessionId: number | string) => {
   console.log('deleteWorkoutSession called for sessionId:', sessionId);
 
-  // Delete from backend
+  // If it's a mock session (string ID), delete from localStorage mock data
+  if (typeof sessionId === 'string') {
+    try {
+      const mockSessionsData = localStorage.getItem('mock_workout_sessions');
+      if (mockSessionsData) {
+        const mockSessions = JSON.parse(mockSessionsData);
+        const updatedSessions = mockSessions.filter((s: any) => s.id !== sessionId);
+        localStorage.setItem('mock_workout_sessions', JSON.stringify(updatedSessions));
+        console.log('✅ Mock session deleted from localStorage:', sessionId);
+      }
+    } catch (error) {
+      console.error('Failed to delete mock session from localStorage:', error);
+      throw error;
+    }
+  }
+
+  // Delete from backend (will handle mock IDs gracefully)
   try {
     await workoutSessionApi.delete(sessionId);
-    console.log('Workout session deleted from backend');
+    console.log('✅ Workout session deleted from backend');
   } catch (error) {
     console.error('Failed to delete workout session from backend:', error);
     throw error;

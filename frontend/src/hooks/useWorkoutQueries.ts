@@ -53,7 +53,7 @@ export const useDeleteWorkoutSession = () => {
 
   return useMutation({
     mutationFn: async ({ sessionId, userId, planId, dayNumber }: {
-      sessionId: number;
+      sessionId: number | string;
       userId: number;
       planId?: number;
       dayNumber?: number;

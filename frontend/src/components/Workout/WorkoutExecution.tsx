@@ -110,6 +110,69 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
     oscillator.stop(context.currentTime + 0.2);
   };
 
+  const handleMarkAsComplete = async () => {
+    if (!user || !activeWorkoutPlan?.id) {
+      setToastMessage('Unable to mark as complete');
+      setShowToast(true);
+      return;
+    }
+
+    try {
+      // Create a workout session with 0% completion for all exercises
+      const sessionDate = new Date().toISOString();
+      const exercisesData = reorderedExercises.map(exercise => ({
+        name: exercise.name,
+        sets: exercise.sets,
+        completedSets: 0, // Mark as incomplete
+        reps: exercise.reps,
+        weight: exercise.weight,
+        skipped: false,
+      }));
+
+      await createWorkoutSession.mutateAsync({
+        userId: user.id!,
+        workoutPlanId: activeWorkoutPlan.id,
+        dayNumber: workout.dayNumber,
+        sessionDate,
+        durationMinutes: 0,
+        exercises: JSON.stringify(exercisesData),
+        completionRate: 0, // 0% completion
+      });
+
+      // Mark workout day as complete in the plan
+      let currentCompletedWorkouts: number[] = [];
+      if (Array.isArray(activeWorkoutPlan.completedWorkouts)) {
+        currentCompletedWorkouts = activeWorkoutPlan.completedWorkouts;
+      } else if (typeof activeWorkoutPlan.completedWorkouts === 'string') {
+        try {
+          currentCompletedWorkouts = JSON.parse(activeWorkoutPlan.completedWorkouts);
+        } catch {
+          currentCompletedWorkouts = [];
+        }
+      }
+
+      const updatedCompletedWorkouts = [...currentCompletedWorkouts, workout.dayNumber];
+      const planIdNumber = typeof activeWorkoutPlan.id === 'string' ? parseInt(activeWorkoutPlan.id) : activeWorkoutPlan.id;
+
+      const updatedPlan = await workoutPlanApi.updatePlan(planIdNumber, {
+        completedWorkouts: updatedCompletedWorkouts
+      });
+
+      setActiveWorkoutPlan(updatedPlan);
+
+      setToastMessage('Workout marked as complete! ✓');
+      setShowToast(true);
+
+      setTimeout(() => {
+        onComplete();
+      }, 1500);
+    } catch (error) {
+      console.error('Failed to mark workout as complete:', error);
+      setToastMessage('Failed to mark as complete');
+      setShowToast(true);
+    }
+  };
+
   const startWorkout = async () => {
     setWorkoutStarted(true);
     setWorkoutStartTime(new Date());
@@ -518,6 +581,18 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
                 <IonButton expand="block" size="large" onClick={startWorkout} className="start-workout-btn">
                   <IonIcon icon={play} slot="start" />
                   Start Workout
+                </IonButton>
+                <IonButton
+                  expand="block"
+                  size="large"
+                  onClick={handleMarkAsComplete}
+                  fill="outline"
+                  color="success"
+                  className="mark-complete-btn"
+                  style={{ marginTop: '12px' }}
+                >
+                  <IonIcon icon={checkmarkCircle} slot="start" />
+                  Mark as Complete
                 </IonButton>
               </IonCardContent>
             </IonCard>

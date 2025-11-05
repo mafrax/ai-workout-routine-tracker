@@ -57,6 +57,7 @@ interface WorkoutSession {
   difficultyRating?: number;
   notes?: string;
   workoutPlanId?: number;
+  dayNumber?: number;
   workoutPlan?: {
     name: string;
     planDetails?: string;
@@ -243,7 +244,15 @@ const Progress: React.FC = () => {
       return [];
     }
     try {
-      return JSON.parse(exercisesJson);
+      const rawExercises = JSON.parse(exercisesJson);
+      // Transform exercises to add completedSets field
+      return rawExercises.map((ex: any) => ({
+        name: ex.name,
+        sets: ex.sets || 0,
+        completedSets: ex.completed ? (ex.sets || 0) : (ex.completedSets || 0),
+        reps: String(ex.reps || ''),
+        weight: ex.weight ? String(ex.weight) : ''
+      }));
     } catch (error) {
       console.error('Error parsing exercises:', error);
       return [];
@@ -283,6 +292,18 @@ const Progress: React.FC = () => {
   };
 
   const getWorkoutTitle = (session: WorkoutSession): string => {
+    // Check if session has workoutName directly (from mock data or new sessions)
+    const sessionWithName = session as any;
+    if (sessionWithName.workoutName) {
+      return sessionWithName.workoutName;
+    }
+
+    // Try to construct from dayNumber and plan name
+    if (session.dayNumber && session.workoutPlan?.name) {
+      return `Day ${session.dayNumber} - ${session.workoutPlan.name}`;
+    }
+
+    // Fallback: Try to extract from plan details
     if (session.workoutPlan?.planDetails) {
       // Parse the plan details to find the workout day that matches this session's exercises
       const exercises = parseExercises(session.exercises);
