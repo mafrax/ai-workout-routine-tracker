@@ -800,10 +800,15 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
                   alignItems: 'center'
                 }}>
                   {exerciseVideos.map((video) => (
-                    <div key={video.id} style={{
-                      width: '100%',
-                      maxWidth: '280px'
-                    }}>
+                    <div
+                      key={video.id}
+                      style={{
+                        width: '100%',
+                        maxWidth: '280px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => window.open(`https://www.youtube.com/watch?v=${video.id}`, '_blank')}
+                    >
                       <div style={{
                         position: 'relative',
                         paddingBottom: '177.78%', // 9:16 aspect ratio for vertical video
@@ -812,23 +817,34 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
                         borderRadius: '16px',
                         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
                         marginBottom: '12px',
-                        backgroundColor: '#000'
+                        backgroundColor: '#000',
+                        backgroundImage: `url(${video.thumbnailUrl})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
                       }}>
-                        <iframe
-                          src={video.embedUrl}
-                          title={video.title}
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            border: 'none',
-                            borderRadius: '16px'
-                          }}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
+                        <div style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          width: '60px',
+                          height: '60px',
+                          backgroundColor: 'rgba(255, 0, 0, 0.9)',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 1
+                        }}>
+                          <div style={{
+                            width: 0,
+                            height: 0,
+                            borderLeft: '20px solid white',
+                            borderTop: '12px solid transparent',
+                            borderBottom: '12px solid transparent',
+                            marginLeft: '4px'
+                          }} />
+                        </div>
                       </div>
                       <p style={{
                         fontSize: '14px',

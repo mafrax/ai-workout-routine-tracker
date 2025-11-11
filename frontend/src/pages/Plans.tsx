@@ -259,6 +259,24 @@ const Plans: React.FC = () => {
     }
   };
 
+  const handleUpdateReminderTime = async (plan: WorkoutPlan, time: string) => {
+    if (!plan.id) return;
+
+    try {
+      await updatePlanMutation.mutateAsync({
+        planId: plan.id,
+        updates: { ...plan, reminderTime: time }
+      });
+
+      setToastMessage(`Reminder time set to ${time}`);
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error updating reminder time:', error);
+      setToastMessage('Failed to update reminder time');
+      setShowToast(true);
+    }
+  };
+
   const fixPlanFormat = async (plan: WorkoutPlan) => {
     if (!plan.id || !plan.planDetails) return;
 
@@ -829,6 +847,35 @@ const Plans: React.FC = () => {
                     </div>
                     <p style={{ fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>
                       Note: Scheduled messages require a backend service. Use "Send Now" for manual previews.
+                    </p>
+                  </IonCardContent>
+                </IonCard>
+
+                <IonCard color="secondary" style={{ marginBottom: '20px' }}>
+                  <IonCardContent>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                      <IonIcon icon={time} style={{ fontSize: '20px' }} />
+                      <strong>Workout Reminder Time</strong>
+                    </div>
+                    <p style={{ fontSize: '14px', marginBottom: '12px', opacity: 0.9 }}>
+                      Set a daily reminder time for this workout plan
+                    </p>
+                    <IonItem>
+                      <IonInput
+                        type="time"
+                        value={viewingPlan.reminderTime || ''}
+                        placeholder="Select time"
+                        onIonChange={(e) => {
+                          if (e.detail.value) {
+                            handleUpdateReminderTime(viewingPlan, e.detail.value);
+                          }
+                        }}
+                      />
+                    </IonItem>
+                    <p style={{ fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>
+                      {viewingPlan.reminderTime
+                        ? `Daily reminder set for ${viewingPlan.reminderTime}`
+                        : 'No reminder time set'}
                     </p>
                   </IonCardContent>
                 </IonCard>

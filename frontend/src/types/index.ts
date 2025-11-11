@@ -31,6 +31,7 @@ export interface WorkoutPlan {
   color?: string; // Hex color code for this plan (e.g., '#667eea')
   isArchived?: boolean; // Whether plan is archived
   telegramPreviewHour?: number; // Hour (0-23) to send Telegram preview of next workout
+  reminderTime?: string; // Time in HH:MM format for daily workout reminders (e.g., '09:00')
 }
 
 export interface WorkoutSession {

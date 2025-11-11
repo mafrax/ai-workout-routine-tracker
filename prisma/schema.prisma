@@ -64,6 +64,7 @@ model WorkoutPlan {
   isActive            Boolean          @default(false) @map("is_active")
   isArchived          Boolean          @default(false) @map("is_archived")
   telegramPreviewHour Int?             @map("telegram_preview_hour")
+  reminderTime        String?          @map("reminder_time")
   createdAt           DateTime         @default(now()) @map("created_at")
   description         String?
   daysPerWeek         Int?             @map("days_per_week")
