@@ -247,7 +247,7 @@ const Plans: React.FC = () => {
     try {
       await updatePlanMutation.mutateAsync({
         planId: plan.id,
-        updates: { ...plan, telegramPreviewHour: hour }
+        updates: { telegramPreviewHour: hour }
       });
 
       setToastMessage(`Preview time set to ${hour}:00`);
@@ -265,7 +265,7 @@ const Plans: React.FC = () => {
     try {
       await updatePlanMutation.mutateAsync({
         planId: plan.id,
-        updates: { ...plan, reminderTime: time }
+        updates: { reminderTime: time }
       });
 
       setToastMessage(`Reminder time set to ${time}`);
