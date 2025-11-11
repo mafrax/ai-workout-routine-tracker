@@ -21,7 +21,7 @@ import 'swiper/css/pagination';
 import { Pagination } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { aiService } from '../../services/aiService';
-import { workoutPlanApi as backendWorkoutPlanApi } from '../../services/api_backend';
+import { workoutPlanApi as backendWorkoutPlanApi, workoutSessionApi } from '../../services/api_backend';
 import { useStore } from '../../store/useStore';
 import { parseWorkoutPlan, type DailyWorkout } from '../../types/workout';
 import './TodaysWorkout.css';
@@ -168,33 +168,21 @@ const TodaysWorkout: React.FC = () => {
   };
 
   const markWorkoutIncomplete = async (dayNumber: number) => {
-    if (!currentPlan) return;
+    if (!currentPlan || !user) return;
 
     try {
       console.log(`🔄 Marking day ${dayNumber} as incomplete for plan ${currentPlan.id}`);
 
-      // Handle both array and corrupted string completedWorkouts
-      let completedWorkouts: number[] = [];
-      if (Array.isArray(currentPlan.completedWorkouts)) {
-        completedWorkouts = currentPlan.completedWorkouts;
-      } else if (typeof currentPlan.completedWorkouts === 'string') {
-        try {
-          completedWorkouts = JSON.parse(currentPlan.completedWorkouts);
-        } catch {
-          completedWorkouts = [];
-        }
+      // Delete workout session(s) for this plan and day
+      const planIdNumber = typeof currentPlan.id === 'string' ? parseInt(currentPlan.id) : currentPlan.id;
+      await workoutSessionApi.deleteByPlanAndDay(planIdNumber, dayNumber);
+
+      // Refresh the plan to get updated completedWorkouts
+      if (user.id) {
+        const updatedPlan = await backendWorkoutPlanApi.getActivePlan(user.id);
+        setActiveWorkoutPlan(updatedPlan);
       }
 
-      // Remove this day from completed workouts
-      const updatedCompletedWorkouts = completedWorkouts.filter((day: number) => day !== dayNumber);
-
-      // Update the plan on backend (backend will handle JSON.stringify)
-      const planIdNumber = typeof currentPlan.id === 'string' ? parseInt(currentPlan.id) : currentPlan.id;
-      const updatedPlan = await backendWorkoutPlanApi.updatePlan(planIdNumber, {
-        completedWorkouts: updatedCompletedWorkouts
-      });
-
-      setActiveWorkoutPlan(updatedPlan);
       console.log(`✅ Day ${dayNumber} marked as incomplete`);
     } catch (error) {
       console.error('❌ Error marking workout as incomplete:', error);

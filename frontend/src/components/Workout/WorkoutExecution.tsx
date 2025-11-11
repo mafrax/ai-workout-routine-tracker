@@ -58,9 +58,8 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
   const [customWeight, setCustomWeight] = useState('');
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [reorderedExercises, setReorderedExercises] = useState<Exercise[]>([]);
-  const [exerciseInfo, setExerciseInfo] = useState<string>('');
-  const [exerciseSources, setExerciseSources] = useState<Array<{ title: string; url: string }>>([]);
-  const [loadingExerciseInfo, setLoadingExerciseInfo] = useState(false);
+  const [exerciseVideos, setExerciseVideos] = useState<Array<{ id: string; title: string; description: string; thumbnailUrl: string; embedUrl: string }>>([]);
+  const [loadingExerciseVideos, setLoadingExerciseVideos] = useState(false);
 
   // Initialize reordered exercises from workout
   useEffect(() => {
@@ -514,20 +513,18 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
     setReorderedExercises(newExercises);
   };
 
-  const searchExerciseOnPerplexity = async (exerciseName: string) => {
-    setLoadingExerciseInfo(true);
-    setExerciseInfo('');
-    setExerciseSources([]);
+  const searchExerciseVideos = async (exerciseName: string) => {
+    setLoadingExerciseVideos(true);
+    setExerciseVideos([]);
 
     try {
-      const result = await aiService.searchExerciseInfo(exerciseName);
-      setExerciseInfo(result.content);
-      setExerciseSources(result.sources);
+      const videos = await aiService.searchExerciseVideos(exerciseName);
+      setExerciseVideos(videos);
     } catch (error: any) {
-      console.error('Failed to get exercise info:', error);
-      setExerciseInfo('Failed to load exercise information. Please try again.\n\nError: ' + error.message);
+      console.error('Failed to get exercise videos:', error);
+      setExerciseVideos([]);
     } finally {
-      setLoadingExerciseInfo(false);
+      setLoadingExerciseVideos(false);
     }
   };
 
@@ -777,84 +774,94 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
           <IonCard className="exercise-info-card">
             <IonCardContent>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ margin: 0 }}>Exercise Guide</h3>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>Exercise Videos</h3>
                 <IonButton
                   size="small"
-                  onClick={() => searchExerciseOnPerplexity(currentExercise.name)}
-                  disabled={loadingExerciseInfo}
+                  onClick={() => searchExerciseVideos(currentExercise.name)}
+                  disabled={loadingExerciseVideos}
+                  fill="solid"
+                  color="primary"
                 >
                   <IonIcon icon={searchOutline} slot="start" />
-                  {exerciseInfo ? 'Refresh' : 'Load Guide'}
+                  {exerciseVideos.length > 0 ? 'Refresh' : 'Load Videos'}
                 </IonButton>
               </div>
 
-              {loadingExerciseInfo ? (
-                <div style={{ textAlign: 'center', padding: '20px' }}>
-                  <IonSpinner name="crescent" />
-                  <p style={{ marginTop: '12px', color: '#667eea', fontSize: '14px' }}>Loading exercise information...</p>
+              {loadingExerciseVideos ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <IonSpinner name="crescent" color="primary" />
+                  <p style={{ marginTop: '16px', color: '#667eea', fontSize: '15px', fontWeight: '500' }}>Searching for exercise videos...</p>
                 </div>
-              ) : exerciseInfo ? (
-                <>
-                  <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '14px', color: '#495057' }}>
-                    {exerciseInfo}
-                  </div>
-
-                  {(() => {
-                    const youtubeShorts = exerciseSources.filter(source => {
-                      const url = source.url.toLowerCase();
-                      return (url.includes('youtube.com/shorts') || url.includes('youtu.be/')) &&
-                             (url.includes('/shorts/') || url.length - url.lastIndexOf('/') < 20);
-                    });
-
-                    return youtubeShorts.length > 0 && (
-                      <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>Video Guides:</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {youtubeShorts.map((source, index) => {
-                            let videoId = '';
-                            if (source.url.includes('youtube.com/shorts/')) {
-                              videoId = source.url.split('/shorts/')[1]?.split('?')[0];
-                            } else if (source.url.includes('youtu.be/')) {
-                              videoId = source.url.split('youtu.be/')[1]?.split('?')[0];
-                            }
-
-                            if (!videoId) return null;
-
-                            const embedUrl = `https://www.youtube.com/embed/${videoId}`;
-
-                            return (
-                              <div key={index} style={{ width: '100%' }}>
-                                <p style={{ fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#495057' }}>
-                                  {source.title}
-                                </p>
-                                <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '8px' }}>
-                                  <iframe
-                                    src={embedUrl}
-                                    style={{
-                                      position: 'absolute',
-                                      top: 0,
-                                      left: 0,
-                                      width: '100%',
-                                      height: '100%',
-                                      border: 'none',
-                                      borderRadius: '8px'
-                                    }}
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+              ) : exerciseVideos.length > 0 ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px',
+                  alignItems: 'center'
+                }}>
+                  {exerciseVideos.map((video) => (
+                    <div key={video.id} style={{
+                      width: '100%',
+                      maxWidth: '280px'
+                    }}>
+                      <div style={{
+                        position: 'relative',
+                        paddingBottom: '177.78%', // 9:16 aspect ratio for vertical video
+                        height: 0,
+                        overflow: 'hidden',
+                        borderRadius: '16px',
+                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
+                        marginBottom: '12px',
+                        backgroundColor: '#000'
+                      }}>
+                        <iframe
+                          src={video.embedUrl}
+                          title={video.title}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            border: 'none',
+                            borderRadius: '16px'
+                          }}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
                       </div>
-                    );
-                  })()}
-                </>
+                      <p style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1a1a1a',
+                        lineHeight: '1.3',
+                        textAlign: 'center',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}>
+                        {video.title}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <p style={{ color: '#6c757d', fontSize: '14px', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
-                  Tap "Load Guide" to get detailed form instructions, common mistakes, safety tips, and video links from Perplexity AI.
-                </p>
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <IonIcon
+                    icon={searchOutline}
+                    style={{ fontSize: '48px', color: '#dee2e6', marginBottom: '16px' }}
+                  />
+                  <p style={{
+                    color: '#6c757d',
+                    fontSize: '15px',
+                    lineHeight: '1.6',
+                    maxWidth: '300px',
+                    margin: '0 auto'
+                  }}>
+                    Tap "Load Videos" to watch exercise demonstration videos showing proper form and technique.
+                  </p>
+                </div>
               )}
             </IonCardContent>
           </IonCard>

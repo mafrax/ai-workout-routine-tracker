@@ -49,15 +49,29 @@ interface WorkoutSession {
   id?: number;
   sessionDate: string;
   durationMinutes?: number;
-  exercises: string;
   completionRate?: number;
   difficultyRating?: number;
   notes?: string;
   workoutPlanId?: number;
-  dayNumber?: number;
+  workoutId?: number;
   workoutPlan?: {
     name: string;
     planDetails?: string;
+  };
+  workout?: {
+    id: number;
+    day: number;
+    muscleGroup: string;
+    exercises: Array<{
+      id: number;
+      orderIndex: number;
+      exerciseTitle: string;
+      numberOfReps: number[];
+      weight: number | null;
+      isBodyweight: boolean;
+      restTime: number | null;
+      notes: string | null;
+    }>;
   };
 }
 
@@ -96,7 +110,7 @@ const Progress: React.FC = () => {
       // Extract unique exercises
       const exercises = new Set<string>();
       sessions.forEach(session => {
-        const sessionExercises = parseExercises(session.exercises);
+        const sessionExercises = parseExercises(session);
         sessionExercises.forEach(ex => exercises.add(ex.name));
       });
       setAllExercises(Array.from(exercises).sort());
@@ -109,7 +123,7 @@ const Progress: React.FC = () => {
       setFilteredSessions(sessions);
     } else {
       const filtered = sessions.filter(session => {
-        const exercises = parseExercises(session.exercises);
+        const exercises = parseExercises(session);
         return exercises.some(ex => ex.name === exerciseName);
       });
       setFilteredSessions(filtered);
@@ -216,7 +230,7 @@ const Progress: React.FC = () => {
     if (sessionToDelete !== null && user) {
       console.log('✅ User confirmed deletion for session ID:', sessionToDelete);
 
-      // Find the session to get planId and dayNumber
+      // Find the session to get planId
       const session = sessions.find(s => s.id === sessionToDelete);
 
       try {
@@ -224,8 +238,7 @@ const Progress: React.FC = () => {
         await deleteMutation.mutateAsync({
           sessionId: sessionToDelete,
           userId: user?.id ?? 0,
-          planId: session?.workoutPlanId,
-          dayNumber: session?.dayNumber
+          planId: session?.workoutPlanId
         });
         console.log('✅ Workout session deleted successfully');
       } catch (error) {
@@ -236,24 +249,21 @@ const Progress: React.FC = () => {
     setSessionToDelete(null);
   };
 
-  const parseExercises = (exercisesJson: string | null): Exercise[] => {
-    if (!exercisesJson) {
-      return [];
-    }
-    try {
-      const rawExercises = JSON.parse(exercisesJson);
-      // Transform exercises to add completedSets field
-      return rawExercises.map((ex: any) => ({
-        name: ex.name,
-        sets: ex.sets || 0,
-        completedSets: ex.completed ? (ex.sets || 0) : (ex.completedSets || 0),
-        reps: String(ex.reps || ''),
-        weight: ex.weight ? String(ex.weight) : ''
+  const parseExercises = (session: WorkoutSession): Exercise[] => {
+    // Use new workout structure if available
+    if (session.workout?.exercises) {
+      return session.workout.exercises.map(ex => ({
+        name: ex.exerciseTitle,
+        sets: ex.numberOfReps.length,
+        completedSets: ex.numberOfReps.length, // Assume all sets completed for historical data
+        reps: ex.numberOfReps.join(', '),
+        weight: ex.isBodyweight ? 'bodyweight' : (ex.weight ? `${ex.weight}kg` : '')
       }));
-    } catch (error) {
-      console.error('Error parsing exercises:', error);
-      return [];
     }
+
+    // Fallback to old exercises JSON format for backward compatibility
+    // This case should not occur after migration but kept for safety
+    return [];
   };
 
   const formatDate = (dateString: string) => {
@@ -295,15 +305,15 @@ const Progress: React.FC = () => {
       return sessionWithName.workoutName;
     }
 
-    // Try to construct from dayNumber and plan name
-    if (session.dayNumber && session.workoutPlan?.name) {
-      return `Day ${session.dayNumber} - ${session.workoutPlan.name}`;
+    // Use new workout structure if available
+    if (session.workout) {
+      return `Day ${session.workout.day} - ${session.workout.muscleGroup}`;
     }
 
     // Fallback: Try to extract from plan details
     if (session.workoutPlan?.planDetails) {
       // Parse the plan details to find the workout day that matches this session's exercises
-      const exercises = parseExercises(session.exercises);
+      const exercises = parseExercises(session);
       if (exercises.length > 0) {
         const planDetails = session.workoutPlan.planDetails;
 
@@ -353,7 +363,7 @@ const Progress: React.FC = () => {
     };
 
     sessions.forEach(session => {
-      const exercises = parseExercises(session.exercises);
+      const exercises = parseExercises(session);
       const exercise = exercises.find(ex => ex.name === exerciseName);
       if (exercise) {
         progression.history.push({
@@ -527,7 +537,7 @@ const Progress: React.FC = () => {
 
           <div className="sessions-list">
             {filteredSessions.map((session) => {
-              const exercises = parseExercises(session.exercises);
+              const exercises = parseExercises(session);
               const displayExercises = exerciseFilter === 'all'
                 ? exercises
                 : exercises.filter(ex => ex.name === exerciseFilter);

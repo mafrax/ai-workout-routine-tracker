@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Use the same backend URL as other services (stable production URL)
-const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
+// Use environment variable for API URL (defaults to production if not set)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://workout-marcs-projects-3a713b55.vercel.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

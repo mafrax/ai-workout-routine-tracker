@@ -1,7 +1,6 @@
 import * as cron from 'node-cron';
 import { DailyTaskService } from './DailyTaskService';
 import { TelegramService } from './TelegramService';
-import { Workout } from '../types';
 import prisma from '../lib/database';
 
 export class TelegramSchedulerService {
@@ -139,36 +138,74 @@ export class TelegramSchedulerService {
   }
 
   private async sendWorkoutPreviewForPlan(plan: any): Promise<void> {
-    const planDetails = plan.planDetails;
+    try {
+      // Get all workouts for this plan from the database with exercises
+      const workouts = await prisma.workout.findMany({
+        where: {
+          planId: plan.id
+        },
+        include: {
+          exercises: {
+            orderBy: {
+              orderIndex: 'asc'
+            }
+          }
+        },
+        orderBy: {
+          day: 'asc'
+        }
+      });
 
-    if (!planDetails?.trim()) {
-      console.warn(`No plan details for plan ${plan.id}`);
-      return;
-    }
+      if (workouts.length === 0) {
+        console.warn(`No workouts found for plan ${plan.id}`);
+        return;
+      }
 
-    // Parse next workout
-    const workouts = this.parseNextWorkouts(planDetails, 1);
+      // Get completed workout days
+      let completedDays: number[] = [];
+      try {
+        if (Array.isArray(plan.completedWorkouts)) {
+          completedDays = plan.completedWorkouts;
+        } else if (typeof plan.completedWorkouts === 'string') {
+          completedDays = JSON.parse(plan.completedWorkouts);
+        }
+      } catch {
+        completedDays = [];
+      }
 
-    if (workouts.length === 0) {
-      console.warn(`No workouts found in plan ${plan.id}`);
-      return;
-    }
+      console.log(`Plan ${plan.id}: ${completedDays.length} completed days:`, completedDays);
 
-    const nextWorkout = workouts[0];
-    if (!nextWorkout) {
-      console.warn(`No next workout found for plan ${plan.id}`);
-      return;
-    }
+      // Find the first uncompleted workout
+      const nextWorkout = workouts.find(workout => !completedDays.includes(workout.day));
 
-    const sent = await this.telegramService.sendWorkoutPreview(
-      plan.userId,
-      plan.name,
-      nextWorkout.day,
-      nextWorkout.exercises
-    );
+      if (!nextWorkout) {
+        console.log(`All workouts completed for plan ${plan.id}`);
+        return;
+      }
 
-    if (sent) {
-      console.log(`Sent workout preview for plan ${plan.id} to user ${plan.userId}`);
+      console.log(`Next uncompleted workout for plan ${plan.id}: Day ${nextWorkout.day}`);
+
+      // Format exercises from the database
+      const exercises = nextWorkout.exercises.map(ex =>
+        `${ex.exerciseTitle} - ${ex.numberOfReps} @ ${ex.isBodyweight ? 'bodyweight' : ex.weight + 'kg'}`
+      );
+
+      if (exercises.length === 0) {
+        exercises.push('No exercises found');
+      }
+
+      const sent = await this.telegramService.sendWorkoutPreview(
+        plan.userId,
+        plan.name,
+        `Day ${nextWorkout.day}: ${nextWorkout.muscleGroup}`,
+        exercises
+      );
+
+      if (sent) {
+        console.log(`Sent workout preview for plan ${plan.id}, Day ${nextWorkout.day} to user ${plan.userId}`);
+      }
+    } catch (error) {
+      console.error(`Error in sendWorkoutPreviewForPlan for plan ${plan.id}:`, error);
     }
   }
 
@@ -191,64 +228,5 @@ export class TelegramSchedulerService {
     }
 
     return schedule;
-  }
-
-  private parseNextWorkouts(planDetails: string, count: number): Workout[] {
-    const workouts: Workout[] = [];
-    const lines = planDetails.split('\n');
-
-    let currentDay: string | null = null;
-    let currentExercises: string[] = [];
-
-    const dayPattern = /^(Day \d+|\w+day)\s*:?\s*(.*)$/i;
-    const exercisePattern = /^\s*-\s*(.+)$/;
-
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-
-      if (trimmedLine === '') {
-        if (currentDay && currentExercises.length > 0) {
-          workouts.push({ day: currentDay, exercises: [...currentExercises] });
-          currentDay = null;
-          currentExercises = [];
-
-          if (workouts.length >= count) {
-            break;
-          }
-        }
-        continue;
-      }
-
-      const dayMatch = dayPattern.exec(trimmedLine);
-      if (dayMatch) {
-        if (currentDay && currentExercises.length > 0) {
-          workouts.push({ day: currentDay, exercises: [...currentExercises] });
-
-          if (workouts.length >= count) {
-            break;
-          }
-        }
-
-        currentDay = dayMatch[1]!;
-        const restOfLine = dayMatch[2];
-        currentExercises = [];
-
-        if (restOfLine && restOfLine.trim()) {
-          currentExercises.push(restOfLine.trim());
-        }
-        continue;
-      }
-
-      const exerciseMatch = exercisePattern.exec(trimmedLine);
-      if (exerciseMatch && currentDay) {
-        currentExercises.push(exerciseMatch[1]!.trim());
-      }
-    }
-
-    if (currentDay && currentExercises.length > 0 && workouts.length < count) {
-      workouts.push({ day: currentDay, exercises: [...currentExercises] });
-    }
-
-    return workouts;
   }
 }

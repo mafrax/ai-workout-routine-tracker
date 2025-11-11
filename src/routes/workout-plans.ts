@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/database';
+import { WorkoutGenerationService } from '../services/WorkoutGenerationService';
 
 const router = Router();
 
@@ -13,16 +14,33 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
 
     const plans = await prisma.workoutPlan.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: {
+        workouts: {
+          include: {
+            workoutSessions: {
+              select: { id: true }
+            }
+          }
+        }
+      }
     });
 
-    // Convert BigInt to string for JSON serialization
-    const serializedPlans = plans.map(plan => ({
-      ...plan,
-      id: plan.id.toString(),
-      userId: plan.userId.toString(),
-      completedWorkouts: plan.completedWorkouts ? JSON.parse(plan.completedWorkouts as string) : []
-    }));
+    // Convert BigInt to string and calculate completed workouts
+    const serializedPlans = plans.map(plan => {
+      // Get day numbers of workouts that have sessions (completed workouts)
+      const completedDays = plan.workouts
+        .filter(workout => workout.workoutSessions.length > 0)
+        .map(workout => workout.day);
+
+      return {
+        ...plan,
+        id: plan.id.toString(),
+        userId: plan.userId.toString(),
+        completedWorkouts: completedDays, // Array of completed day numbers
+        workouts: undefined // Don't send full workout data to reduce payload size
+      };
+    });
 
     return res.json(serializedPlans);
   } catch (error) {
@@ -43,6 +61,15 @@ router.get('/user/:userId/active', async (req: Request, res: Response) => {
       where: {
         userId,
         isActive: true
+      },
+      include: {
+        workouts: {
+          include: {
+            workoutSessions: {
+              select: { id: true }
+            }
+          }
+        }
       }
     });
 
@@ -50,11 +77,17 @@ router.get('/user/:userId/active', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'No active plan found' });
     }
 
+    // Get day numbers of workouts that have sessions (completed workouts)
+    const completedDays = plan.workouts
+      .filter(workout => workout.workoutSessions.length > 0)
+      .map(workout => workout.day);
+
     const serializedPlan = {
       ...plan,
       id: plan.id.toString(),
       userId: plan.userId.toString(),
-      completedWorkouts: plan.completedWorkouts ? JSON.parse(plan.completedWorkouts as string) : []
+      completedWorkouts: completedDays, // Array of completed day numbers
+      workouts: undefined
     };
 
     return res.json(serializedPlan);
@@ -76,16 +109,28 @@ router.post('/', async (req: Request, res: Response) => {
         planDetails,
         isActive: isActive || false,
         isArchived: false,
-        completedWorkouts: JSON.stringify([]),
         telegramPreviewHour: null
       }
     });
+
+    // Auto-generate workouts from plan_details
+    let workoutsGenerated = { created: 0, updated: 0 };
+    if (planDetails) {
+      try {
+        workoutsGenerated = await WorkoutGenerationService.generateWorkoutsFromPlanDetails(
+          plan.id,
+          planDetails
+        );
+      } catch (error) {
+        console.error('Error auto-generating workouts:', error);
+      }
+    }
 
     const serializedPlan = {
       ...plan,
       id: plan.id.toString(),
       userId: plan.userId.toString(),
-      completedWorkouts: []
+      workoutsGenerated
     };
 
     return res.json(serializedPlan);
@@ -104,21 +149,44 @@ router.put('/:planId', async (req: Request, res: Response) => {
     const planId = BigInt(req.params.planId);
     const updates = req.body;
 
-    // Handle completedWorkouts if present
-    if (updates.completedWorkouts) {
-      updates.completedWorkouts = JSON.stringify(updates.completedWorkouts);
+    // Filter out computed fields that don't exist in the schema
+    const { completedWorkouts, workouts, id, userId, ...validUpdates } = updates;
+
+    // Convert userId to BigInt if it exists in the updates
+    if (validUpdates.userId) {
+      validUpdates.userId = BigInt(validUpdates.userId);
     }
 
     const plan = await prisma.workoutPlan.update({
       where: { id: planId },
-      data: updates
+      data: validUpdates
     });
+
+    // Auto-generate/update workouts if plan_details were updated
+    let workoutsGenerated = { created: 0, updated: 0 };
+    if (updates.planDetails) {
+      try {
+        workoutsGenerated = await WorkoutGenerationService.generateWorkoutsFromPlanDetails(
+          plan.id,
+          updates.planDetails
+        );
+
+        // Clean up workouts that were removed from plan_details
+        const removed = await WorkoutGenerationService.cleanupRemovedWorkouts(
+          plan.id,
+          updates.planDetails
+        );
+        console.log(`🗑️  Removed ${removed} workouts no longer in plan_details`);
+      } catch (error) {
+        console.error('Error auto-generating workouts:', error);
+      }
+    }
 
     const serializedPlan = {
       ...plan,
       id: plan.id.toString(),
       userId: plan.userId.toString(),
-      completedWorkouts: plan.completedWorkouts ? JSON.parse(plan.completedWorkouts as string) : []
+      workoutsGenerated
     };
 
     return res.json(serializedPlan);
@@ -160,8 +228,7 @@ router.put('/:planId/activate', async (req: Request, res: Response) => {
     const serializedPlan = {
       ...activatedPlan,
       id: activatedPlan.id.toString(),
-      userId: activatedPlan.userId.toString(),
-      completedWorkouts: activatedPlan.completedWorkouts ? JSON.parse(activatedPlan.completedWorkouts as string) : []
+      userId: activatedPlan.userId.toString()
     };
 
     return res.json(serializedPlan);
@@ -205,111 +272,13 @@ router.post('/:planId/update-exercise-weight', async (req: Request, res: Respons
     const serializedPlan = {
       ...updatedPlan,
       id: updatedPlan.id.toString(),
-      userId: updatedPlan.userId.toString(),
-      completedWorkouts: updatedPlan.completedWorkouts ? JSON.parse(updatedPlan.completedWorkouts as string) : []
+      userId: updatedPlan.userId.toString()
     };
 
     return res.json(serializedPlan);
   } catch (error) {
     console.error('Error updating exercise weight:', error);
     return res.status(500).json({ error: 'Failed to update exercise weight' });
-  }
-});
-
-// POST /api/plans/:planId/sync-completion - Sync completedWorkouts with actual sessions
-router.post('/:planId/sync-completion', async (req: Request, res: Response) => {
-  try {
-    if (!req.params.planId) {
-      return res.status(400).json({ error: 'Plan ID is required' });
-    }
-    const planId = BigInt(req.params.planId);
-
-    // Get all workout sessions for this plan
-    const sessions = await prisma.workoutSession.findMany({
-      where: { planId },
-      select: { dayNumber: true }
-    });
-
-    // Extract unique day numbers from sessions
-    const completedDays = [...new Set(
-      sessions
-        .map(s => s.dayNumber)
-        .filter((day): day is number => day !== null)
-    )];
-
-    // Update the plan with the actual completed days
-    const updatedPlan = await prisma.workoutPlan.update({
-      where: { id: planId },
-      data: {
-        completedWorkouts: JSON.stringify(completedDays.sort((a, b) => a - b))
-      }
-    });
-
-    const serializedPlan = {
-      ...updatedPlan,
-      id: updatedPlan.id.toString(),
-      userId: updatedPlan.userId.toString(),
-      completedWorkouts: completedDays.sort((a, b) => a - b)
-    };
-
-    console.log(`✅ Synced completedWorkouts for plan ${planId}: [${completedDays.join(', ')}]`);
-    return res.json(serializedPlan);
-  } catch (error) {
-    console.error('Error syncing completion status:', error);
-    return res.status(500).json({ error: 'Failed to sync completion status' });
-  }
-});
-
-// POST /api/plans/fix-completed-workouts - Fix double-encoded completedWorkouts
-router.post('/fix-completed-workouts', async (req: Request, res: Response) => {
-  try {
-    console.log('🔧 Starting to fix double-encoded completedWorkouts...');
-
-    // Get all plans
-    const plans = await prisma.workoutPlan.findMany();
-    let fixedCount = 0;
-
-    for (const plan of plans) {
-      if (!plan.completedWorkouts) continue;
-
-      try {
-        // Try to parse the completedWorkouts
-        const parsed = JSON.parse(plan.completedWorkouts as string);
-
-        // Check if it's double-encoded (array of strings instead of numbers)
-        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
-          // It's corrupted - try to parse again
-          try {
-            const doubleParsed = JSON.parse(parsed as any);
-            if (Array.isArray(doubleParsed)) {
-              // Successfully recovered the data
-              await prisma.workoutPlan.update({
-                where: { id: plan.id },
-                data: { completedWorkouts: JSON.stringify(doubleParsed) }
-              });
-              fixedCount++;
-              console.log(`✅ Fixed plan ${plan.id}: ${plan.name}`);
-            }
-          } catch {
-            // Can't recover - reset to empty
-            await prisma.workoutPlan.update({
-              where: { id: plan.id },
-              data: { completedWorkouts: JSON.stringify([]) }
-            });
-            fixedCount++;
-            console.log(`⚠️ Reset plan ${plan.id}: ${plan.name} (couldn't recover)`);
-          }
-        }
-      } catch (error) {
-        console.error(`❌ Error processing plan ${plan.id}:`, error);
-      }
-    }
-
-    console.log(`✅ Fixed ${fixedCount} plans`);
-    return res.json({ fixed: fixedCount, message: `Fixed ${fixedCount} plans` });
-  } catch (error) {
-    console.error('Error fixing completed workouts:', error);
-    return res.status(500).json({ error: 'Failed to fix completed workouts' });
   }
 });
 

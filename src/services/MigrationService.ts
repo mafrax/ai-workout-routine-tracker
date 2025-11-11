@@ -63,7 +63,6 @@ export class MigrationService {
               planDetails: plan.planDetails,
               isActive: plan.isActive,
               isArchived: plan.isArchived,
-              completedWorkouts: JSON.stringify(plan.completedWorkouts),
               telegramPreviewHour: plan.telegramPreviewHour ?? null,
               createdAt: new Date()
             }

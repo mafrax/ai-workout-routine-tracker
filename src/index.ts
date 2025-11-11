@@ -12,9 +12,11 @@ import migrationRoutes from './routes/migration';
 import authRoutes from './routes/auth';
 import workoutPlanRoutes from './routes/workout-plans';
 import workoutSessionRoutes from './routes/workout-sessions';
+import workoutRoutes from './routes/workouts';
 import telegramConfigRoutes from './routes/telegram-config';
 import userRoutes from './routes/users';
 import chatRoutes from './routes/chat';
+import youtubeRoutes from './routes/youtube';
 
 // Load environment variables
 dotenv.config();
@@ -49,8 +51,10 @@ app.use('/api/daily-tasks', dailyTaskRoutes);
 app.use('/api/migration', migrationRoutes);
 app.use('/api/plans', workoutPlanRoutes);
 app.use('/api/sessions', workoutSessionRoutes);
+app.use('/api/workouts', workoutRoutes);
 app.use('/api/telegram-config', telegramConfigRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/youtube', youtubeRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

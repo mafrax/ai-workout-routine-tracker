@@ -1,10 +1,8 @@
 import axios from 'axios';
 import { User, WorkoutPlan, WorkoutSession, ProgressSummary } from '../types';
 
-// Local backend for testing
-// const API_BASE_URL = 'http://localhost:8080/api';
-// Vercel backend deployment - PostgreSQL + Migration fix (stable production URL)
-const API_BASE_URL = 'https://workout-marcs-projects-3a713b55.vercel.app/api';
+// Use environment variable for API URL (defaults to production if not set)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://workout-marcs-projects-3a713b55.vercel.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -72,6 +70,10 @@ export const workoutSessionApi = {
   },
   delete: async (sessionId: number) => {
     const response = await api.delete(`/sessions/${sessionId}`);
+    return response.data;
+  },
+  deleteByPlanAndDay: async (planId: number, day: number) => {
+    const response = await api.delete(`/sessions/plan/${planId}/day/${day}`);
     return response.data;
   },
   getProgress: async (userId: number) => {

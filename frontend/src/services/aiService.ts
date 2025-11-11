@@ -7,10 +7,8 @@ import { WorkoutPlan } from '../types';
 const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
-// Perplexity API configuration
-// Get your API key from: https://www.perplexity.ai/settings/api
-const PERPLEXITY_API_KEY = import.meta.env.VITE_PERPLEXITY_API_KEY;
-const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
+// API Base URL for backend services
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://workout-marcs-projects-3a713b55.vercel.app/api';
 
 interface ClaudeMessage {
   role: 'user' | 'assistant';
@@ -115,71 +113,38 @@ Provide 3 complete plans separated by "---PLAN---"`;
     recentSessions?: any[];
     chatHistory?: ClaudeMessage[];
   }): Promise<string> {
-    const systemPrompt = `You are an expert AI fitness coach. Help users adjust their workout plans.
-
-${context.activePlan ? `Current Active Plan: ${context.activePlan.name}\n${context.activePlan.planDetails}` : ''}
-
-${context.recentSessions && context.recentSessions.length > 0 ? `Recent workout sessions:\n${JSON.stringify(context.recentSessions.slice(0, 3))}` : ''}
-
-CRITICAL RULES FOR WORKOUT MODIFICATIONS:
-1. ALWAYS ask clarifying questions BEFORE making changes if the request is vague
-2. When providing a modified workout plan:
-   - Start with a brief explanation
-   - Provide the COMPLETE workout plan starting with 'Day 1'
-   - ALWAYS include ALL days (Day 1, Day 2, Day 3, Day 4) with EVERY exercise
-   - NEVER use placeholders like '(same as before)'
-   - End with: 'The updated plan is ready. Click "Apply Changes" to save it.'
-3. Safety guardrails:
-   - NEVER increase weights by more than 20% in a single change
-   - NEVER recommend exercises not in available equipment`;
-
-    const messages: ClaudeMessage[] = [
-      ...(context.chatHistory || []),
-      {
-        role: 'user',
-        content: message,
-      },
-    ];
-
     try {
-      console.log('🤖 Sending chat request to Claude API...');
-      console.log('📝 Message history length:', messages.length);
-      console.log('🔑 API key configured:', !!ANTHROPIC_API_KEY);
+      console.log('🤖 Sending chat request to backend...');
+      console.log('📝 Message history length:', context.chatHistory?.length || 0);
 
-      if (!ANTHROPIC_API_KEY) {
-        throw new Error('VITE_ANTHROPIC_API_KEY not configured in .env file');
-      }
-
-      const response = await makeHttpRequest(
-        ANTHROPIC_API_URL,
-        {
+      const response = await fetch(`${API_BASE_URL}/chat`, {
+        method: 'POST',
+        headers: {
           'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
         },
-        {
-          model: 'claude-3-5-sonnet-20240620',
-          max_tokens: 8000,
-          system: systemPrompt,
-          messages: messages,
-        }
-      );
+        body: JSON.stringify({
+          userId: 1, // TODO: Get from auth context
+          message: message,
+          sessionId: 'session-' + Date.now(),
+        }),
+      });
 
       console.log('✅ Chat API Response status:', response.status);
-      console.log('📦 Response data preview:', JSON.stringify(response.data).substring(0, 500));
 
-      if (response.status !== 200) {
-        console.error('❌ Chat API Error:', response.data);
-        const errorMsg = response.data?.error?.message || response.data?.error?.type || 'Unknown API error';
-        throw new Error(`Claude API returned ${response.status}: ${errorMsg}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Chat API Error:', errorData);
+        throw new Error(errorData.error || `Backend returned ${response.status}`);
       }
 
-      if (!response.data?.content?.[0]?.text) {
-        console.error('❌ Invalid response structure:', response.data);
-        throw new Error('Invalid response from Claude API - no content returned');
+      const data = await response.json();
+
+      if (!data.success || !data.message) {
+        console.error('❌ Invalid response structure:', data);
+        throw new Error('Invalid response from backend - no message returned');
       }
 
-      return response.data.content[0].text;
+      return data.message;
     } catch (error: any) {
       console.error('❌ Error in AI chat:', error.message || error);
       console.error('📋 Full chat error details:', {
@@ -202,64 +167,42 @@ CRITICAL RULES FOR WORKOUT MODIFICATIONS:
     }
   },
 
-  async searchExerciseInfo(exerciseName: string): Promise<{ content: string; sources: Array<{ title: string; url: string }> }> {
-    const prompt = `Provide a concise guide for the exercise "${exerciseName}" including:
-1. Proper form and technique (3-4 key points)
-2. Common mistakes to avoid (2-3 points)
-3. Muscles worked
-4. Safety tips
-5. Include links to helpful YouTube videos demonstrating proper form
-
-Keep it brief and practical for someone currently working out.`;
-
+  async searchExerciseVideos(exerciseName: string): Promise<Array<{ id: string; title: string; description: string; thumbnailUrl: string; embedUrl: string }>> {
     try {
-      console.log('Calling Perplexity API for exercise:', exerciseName);
+      console.log('🎥 Searching YouTube for exercise videos:', exerciseName);
 
-      const response = await makeHttpRequest(
-        PERPLEXITY_API_URL,
-        {
+      const response = await fetch(`${API_BASE_URL}/youtube/search-exercise`, {
+        method: 'POST',
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
         },
-        {
-          model: 'sonar',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a knowledgeable fitness coach providing clear, concise exercise guidance with video references.'
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-          temperature: 0.2,
-          max_tokens: 1000,
-          return_citations: true,
-        }
-      );
+        body: JSON.stringify({
+          exerciseName,
+          maxResults: 3,
+        }),
+      });
 
-      console.log('Perplexity API Response status:', response.status);
+      console.log('✅ YouTube API Response status:', response.status);
 
-      if (response.status !== 200) {
-        console.error('Perplexity API Error:', response.data);
-        throw new Error(`API Error: ${response.data.error?.message || 'Unknown error'}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ YouTube API Error:', errorData);
+        throw new Error(errorData.error || `Backend returned ${response.status}`);
       }
 
-      const content = response.data.choices[0].message.content;
-      const searchResults = response.data.search_results || [];
+      const data = await response.json();
 
-      const sources = searchResults.map((result: any) => ({
-        title: result.title || 'Source',
-        url: result.url || ''
-      }));
+      if (!data.success || !data.videos) {
+        console.error('❌ Invalid response structure:', data);
+        throw new Error('Invalid response from backend - no videos returned');
+      }
 
-      console.log('Retrieved sources:', sources);
+      console.log(`📹 Retrieved ${data.videos.length} videos for ${exerciseName}`);
 
-      return { content, sources };
+      return data.videos;
     } catch (error: any) {
-      console.error('Error searching exercise info:', error);
-      throw new Error('Failed to get exercise information: ' + (error.message || 'Unknown error'));
+      console.error('❌ Error searching YouTube videos:', error);
+      throw new Error('Failed to load exercise videos: ' + (error.message || 'Unknown error'));
     }
   },
 };

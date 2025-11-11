@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,32 +8,25 @@ datasource db {
 }
 
 model User {
-  id        BigInt   @id @default(autoincrement())
-  email     String?  @unique
-  name      String?
-  picture   String?  // Profile picture URL from OAuth
-
-  // OAuth fields
-  googleId  String?  @unique @map("google_id")
-  provider  String?  // 'google', 'facebook', etc.
-
-  // Profile fields
-  age                  Int?
-  weight               Float?
-  height               Float?
-  fitnessLevel         String?   @map("fitness_level")
-  goals                String?   // JSON array of strings
-  availableEquipment   String?   @map("available_equipment") // JSON array of strings
-  bodyweightExercises  String?   @map("bodyweight_exercises") // JSON array of {name: string, maxReps: number}
-
-  createdAt DateTime @default(now()) @map("created_at")
-  lastLogin DateTime? @map("last_login")
-
-  // Relations
-  dailyTasks     DailyTask[]
-  telegramConfig TelegramConfig?
-  workoutPlans   WorkoutPlan[]
-  workoutSessions WorkoutSession[]
+  id                  BigInt           @id @default(autoincrement())
+  createdAt           DateTime         @default(now()) @map("created_at")
+  email               String?          @unique
+  googleId            String?          @unique @map("google_id")
+  lastLogin           DateTime?        @map("last_login")
+  name                String?
+  picture             String?
+  provider            String?
+  age                 Int?
+  weight              Float?
+  height              Float?
+  fitnessLevel        String?          @map("fitness_level")
+  goals               String?
+  availableEquipment  String?          @map("available_equipment")
+  bodyweightExercises String?          @map("bodyweight_exercises")
+  dailyTasks          DailyTask[]
+  telegramConfig      TelegramConfig?
+  workoutPlans        WorkoutPlan[]
+  workoutSessions     WorkoutSession[]
 
   @@map("users")
 }
@@ -48,66 +38,89 @@ model DailyTask {
   completed   Boolean   @default(false)
   createdAt   DateTime  @default(now()) @map("created_at")
   lastResetAt DateTime? @map("last_reset_at")
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("daily_tasks")
 }
 
 model TelegramConfig {
-  id                    BigInt    @id @default(autoincrement())
-  userId                BigInt    @unique @map("user_id")
-  botToken              String?   @map("bot_token")
-  chatId                String?   @map("chat_id")
-  dailyTasksStartHour   Int       @default(9) @map("daily_tasks_start_hour")
-  lastTaskReminderSent  DateTime? @map("last_task_reminder_sent")
-  createdAt             DateTime  @default(now()) @map("created_at")
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   BigInt    @id @default(autoincrement())
+  userId               BigInt    @unique @map("user_id")
+  botToken             String?   @map("bot_token")
+  chatId               String?   @map("chat_id")
+  dailyTasksStartHour  Int       @default(9) @map("daily_tasks_start_hour")
+  lastTaskReminderSent DateTime? @map("last_task_reminder_sent")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("telegram_config")
 }
 
 model WorkoutPlan {
-  id                   BigInt           @id @default(autoincrement())
-  userId               BigInt           @map("user_id")
-  name                 String
-  description          String?
-  planDetails          String?          @map("plan_details")
-  daysPerWeek          Int?             @map("days_per_week")
-  durationWeeks        Int?             @map("duration_weeks")
-  difficultyLevel      String?          @map("difficulty_level")
-  color                String?
-  isActive             Boolean          @default(false) @map("is_active")
-  isArchived           Boolean          @default(false) @map("is_archived")
-  completedWorkouts    String?          @map("completed_workouts") // JSON array
-  telegramPreviewHour  Int?             @map("telegram_preview_hour")
-  createdAt            DateTime         @default(now()) @map("created_at")
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workoutSessions WorkoutSession[]
+  id                  BigInt           @id @default(autoincrement())
+  userId              BigInt           @map("user_id")
+  name                String
+  planDetails         String?          @map("plan_details")
+  isActive            Boolean          @default(false) @map("is_active")
+  isArchived          Boolean          @default(false) @map("is_archived")
+  telegramPreviewHour Int?             @map("telegram_preview_hour")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  description         String?
+  daysPerWeek         Int?             @map("days_per_week")
+  durationWeeks       Int?             @map("duration_weeks")
+  difficultyLevel     String?          @map("difficulty_level")
+  color               String?
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutSessions     WorkoutSession[]
+  workouts            Workout[]
 
   @@map("workout_plans")
 }
 
-model WorkoutSession {
-  id             BigInt    @id @default(autoincrement())
-  userId         BigInt    @map("user_id")
-  planId         BigInt?   @map("plan_id")
-  dayNumber      Int?      @map("day_number")
-  sessionDate    String    @map("session_date") // Stored as string for compatibility
-  durationMinutes Int?     @map("duration_minutes")
-  completionRate Float?    @map("completion_rate")
-  exercises      String?   // JSON array of exercises
-  notes          String?
-  createdAt      DateTime  @default(now()) @map("created_at")
+model Workout {
+  id              BigInt           @id @default(autoincrement())
+  planId          BigInt           @map("plan_id")
+  day             Int
+  muscleGroup     String           @map("muscle_group")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  exercises       Exercise[]
+  workoutSessions WorkoutSession[]
+  plan            WorkoutPlan      @relation(fields: [planId], references: [id], onDelete: Cascade)
 
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan WorkoutPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  @@unique([planId, day])
+  @@map("workouts")
+}
+
+model Exercise {
+  id            BigInt   @id @default(autoincrement())
+  workoutId     BigInt   @map("workout_id")
+  orderIndex    Int      @map("order_index")
+  exerciseTitle String   @map("exercise_title")
+  numberOfReps  String   @map("number_of_reps")
+  weight        Float?
+  isBodyweight  Boolean  @default(false) @map("is_bodyweight")
+  restTime      Int?     @map("rest_time")
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  workout       Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutId, orderIndex])
+  @@map("exercises")
+}
+
+model WorkoutSession {
+  id              BigInt       @id @default(autoincrement())
+  userId          BigInt       @map("user_id")
+  planId          BigInt?      @map("plan_id")
+  sessionDate     String       @map("session_date")
+  durationMinutes Int?         @map("duration_minutes")
+  completionRate  Float?       @map("completion_rate")
+  notes           String?
+  createdAt       DateTime     @default(now()) @map("created_at")
+  workoutId       BigInt?      @map("workout_id")
+  plan            WorkoutPlan? @relation(fields: [planId], references: [id])
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workout         Workout?     @relation(fields: [workoutId], references: [id])
 
   @@map("workout_sessions")
 }
