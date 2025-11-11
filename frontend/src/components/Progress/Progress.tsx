@@ -1,43 +1,40 @@
-import React, { useState, useEffect } from 'react';
 import {
-  IonContent,
-  IonHeader,
-  IonPage,
-  IonTitle,
-  IonToolbar,
+  IonAlert,
+  IonBadge,
+  IonButton,
+  IonButtons,
   IonCard,
+  IonCardContent,
   IonCardHeader,
   IonCardTitle,
-  IonCardContent,
-  IonList,
+  IonChip,
+  IonContent,
+  IonHeader,
+  IonIcon,
   IonItem,
   IonLabel,
-  IonBadge,
-  IonIcon,
-  IonSpinner,
-  IonChip,
-  IonButton,
-  IonAlert,
+  IonList,
   IonModal,
-  IonButtons,
-  IonSearchbar,
+  IonPage,
   IonSelect,
   IonSelectOption,
+  IonSpinner,
+  IonTitle,
+  IonToolbar
 } from '@ionic/react';
 import {
-  calendar,
   barbell,
-  time,
   checkmarkCircle,
-  fitness,
-  trendingUp,
-  trashOutline,
   close,
+  fitness,
   statsChartOutline,
+  time,
+  trashOutline,
+  trendingUp
 } from 'ionicons/icons';
+import React, { useEffect, useState } from 'react';
+import { useDeleteWorkoutSession, useWorkoutSessions } from '../../hooks/useWorkoutQueries';
 import { useStore } from '../../store/useStore';
-import { useWorkoutSessions, useDeleteWorkoutSession } from '../../hooks/useWorkoutQueries';
-import type { WorkoutPlan } from '../../types';
 import './Progress.css';
 
 interface Exercise {

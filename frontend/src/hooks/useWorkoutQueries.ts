@@ -38,6 +38,7 @@ export const useWorkoutSessions = (userId: number | undefined) => {
 
       // Backend API already returns workout plan details with each session
       const data = await getUserSessions(userId);
+      console.log(JSON.stringify(data))
       return data as WorkoutSession[];
     },
     enabled: !!userId,

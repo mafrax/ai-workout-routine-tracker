@@ -1,38 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { Preferences } from '@capacitor/preferences';
 import {
-  IonContent,
-  IonHeader,
-  IonPage,
-  IonTitle,
-  IonToolbar,
+  IonButton,
   IonCard,
+  IonCardContent,
   IonCardHeader,
   IonCardTitle,
-  IonCardContent,
-  IonButton,
-  IonList,
-  IonItem,
-  IonLabel,
+  IonContent,
+  IonHeader,
   IonIcon,
+  IonPage,
   IonSpinner,
-  IonSegment,
-  IonSegmentButton,
-  IonChip,
+  IonTitle,
+  IonToolbar
 } from '@ionic/react';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Pagination } from 'swiper/modules';
+import { barbell, calendar, checkmarkCircleOutline, eye, eyeOff } from 'ionicons/icons';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Swiper as SwiperType } from 'swiper';
 import 'swiper/css';
 import 'swiper/css/pagination';
-import { calendar, barbell, time, checkmarkCircleOutline, fitness, eyeOff, eye } from 'ionicons/icons';
-import { Preferences } from '@capacitor/preferences';
-import { useStore } from '../../store/useStore';
-import { workoutPlanApi as localWorkoutPlanApi } from '../../services/api';
-import { workoutPlanApi as backendWorkoutPlanApi } from '../../services/api_backend';
-import { parseWorkoutPlan, type DailyWorkout } from '../../types/workout';
-import WorkoutExecution from './WorkoutExecution';
+import { Pagination } from 'swiper/modules';
+import { Swiper, SwiperSlide } from 'swiper/react';
 import { aiService } from '../../services/aiService';
+import { workoutPlanApi as backendWorkoutPlanApi } from '../../services/api_backend';
+import { useStore } from '../../store/useStore';
+import { parseWorkoutPlan, type DailyWorkout } from '../../types/workout';
 import './TodaysWorkout.css';
+import WorkoutExecution from './WorkoutExecution';
 
 const TodaysWorkout: React.FC = () => {
   const { user, activeWorkoutPlan, setActiveWorkoutPlan } = useStore();
@@ -54,22 +47,6 @@ const TodaysWorkout: React.FC = () => {
     });
   };
 
-  // Load hideCompleted preference on mount
-  useEffect(() => {
-    const loadHideCompletedPreference = async () => {
-      try {
-        const { value } = await Preferences.get({ key: 'hideCompletedWorkouts' });
-        if (value !== null) {
-          setHideCompleted(JSON.parse(value));
-        }
-        // If no preference stored, default stays as true (hide completed)
-      } catch (error) {
-        console.log('Error loading hideCompleted preference:', error);
-        // Keep default value of true
-      }
-    };
-    loadHideCompletedPreference();
-  }, []);
 
   useEffect(() => {
     const initializeData = async () => {
