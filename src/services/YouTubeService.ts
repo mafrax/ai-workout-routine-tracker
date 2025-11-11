@@ -47,9 +47,10 @@ export class YouTubeService {
           part: 'snippet',
           q: searchQueries[0],
           type: 'video',
-          maxResults: maxResults * 2, // Get more results to filter
+          maxResults: maxResults * 3, // Get more results to filter
           videoDuration: 'short', // Prefer shorter videos
           videoDefinition: 'high',
+          videoEmbeddable: 'true', // Only get embeddable videos
           order: 'relevance',
           safeSearch: 'strict',
         },
@@ -75,14 +76,21 @@ export class YouTubeService {
       const detailsResponse = await axios.get(`${this.baseUrl}/videos`, {
         params: {
           key: this.apiKey,
-          part: 'contentDetails',
+          part: 'contentDetails,status',
           id: videoIds,
         },
       });
 
-      // Filter for videos under 10 minutes (shorts and quick tutorials)
+      // Filter for videos under 10 minutes that are embeddable
       const shortVideos = allVideos.filter((video, index) => {
-        const duration = detailsResponse.data.items[index]?.contentDetails?.duration || '';
+        const item = detailsResponse.data.items[index];
+        if (!item) return false;
+
+        // Check if video is embeddable
+        const isEmbeddable = item.status?.embeddable !== false;
+        if (!isEmbeddable) return false;
+
+        const duration = item.contentDetails?.duration || '';
         // Parse ISO 8601 duration (e.g., "PT5M30S" = 5 minutes 30 seconds)
         // If it contains 'H' (hours), skip it
         if (duration.includes('H')) return false;
