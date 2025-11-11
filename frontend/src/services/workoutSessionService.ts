@@ -99,9 +99,9 @@ export const getUserProgress = async (userId: number) => {
 
   // Calculate progress statistics
   const totalSessions = sessions.length;
-  const totalMinutes = sessions.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+  const totalMinutes = sessions.reduce((sum: number, s: any) => sum + (s.durationMinutes || 0), 0);
   const avgCompletionRate = sessions.length > 0
-    ? sessions.reduce((sum, s) => sum + (s.completionRate || 0), 0) / sessions.length
+    ? sessions.reduce((sum: number, s: any) => sum + (s.completionRate || 0), 0) / sessions.length
     : 0;
 
   return {
@@ -132,11 +132,14 @@ export const deleteWorkoutSession = async (sessionId: number | string) => {
   }
 
   // Delete from backend (will handle mock IDs gracefully)
-  try {
-    await workoutSessionApi.delete(sessionId);
-    console.log('✅ Workout session deleted from backend');
-  } catch (error) {
-    console.error('Failed to delete workout session from backend:', error);
-    throw error;
+  // Only delete from backend if it's a real numeric ID
+  if (typeof sessionId === 'number') {
+    try {
+      await workoutSessionApi.delete(sessionId);
+      console.log('✅ Workout session deleted from backend');
+    } catch (error) {
+      console.error('Failed to delete workout session from backend:', error);
+      throw error;
+    }
   }
 };

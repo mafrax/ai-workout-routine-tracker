@@ -80,13 +80,13 @@ class DailyRecapService {
       sevenDaysAgo.setHours(0, 0, 0, 0);
 
       // Filter sessions from last 7 days
-      const thisWeekSessions = sessions.filter(session => {
+      const thisWeekSessions = sessions.filter((session: WorkoutSession) => {
         const sessionDate = new Date(session.sessionDate);
         return sessionDate >= sevenDaysAgo;
       });
 
       const workoutsThisWeek = thisWeekSessions.length;
-      const totalMinutesThisWeek = thisWeekSessions.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+      const totalMinutesThisWeek = thisWeekSessions.reduce((sum: number, s: WorkoutSession) => sum + (s.durationMinutes || 0), 0);
 
       // Get last workout date
       const sortedSessions = [...sessions].sort((a, b) =>

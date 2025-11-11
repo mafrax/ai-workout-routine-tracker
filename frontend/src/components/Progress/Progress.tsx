@@ -223,7 +223,7 @@ const Progress: React.FC = () => {
         console.log('📤 Sending delete request to backend...');
         await deleteMutation.mutateAsync({
           sessionId: sessionToDelete,
-          userId: user.id,
+          userId: user?.id ?? 0,
           planId: session?.workoutPlanId,
           dayNumber: session?.dayNumber
         });

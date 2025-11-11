@@ -116,7 +116,7 @@ const Plans: React.FC = () => {
 
       // If we're activating the first plan, set it as the active workout plan
       if (updatedPlan.isActive) {
-        const activePlans = plans.filter(p => p.isActive || p.id == plan.id);
+        const activePlans = plans.filter((p: WorkoutPlan) => p.isActive || p.id == plan.id);
         if (activePlans.length === 1) {
           setActiveWorkoutPlan(updatedPlan);
         }
@@ -399,8 +399,8 @@ const Plans: React.FC = () => {
     }
   };
 
-  const activePlans = plans.filter(p => !p.isArchived);
-  const archivedPlans = plans.filter(p => p.isArchived);
+  const activePlans = plans.filter((p: WorkoutPlan) => !p.isArchived);
+  const archivedPlans = plans.filter((p: WorkoutPlan) => p.isArchived);
 
   return (
     <IonPage>
@@ -434,7 +434,7 @@ const Plans: React.FC = () => {
             <>
               {/* Desktop view - show all cards */}
               <div className="plans-desktop">
-                {activePlans.map(plan => (
+                {activePlans.map((plan: WorkoutPlan) => (
                   <IonCard
                     key={plan.id}
                     className="plan-card"
@@ -526,7 +526,7 @@ const Plans: React.FC = () => {
                       width: `${activePlans.length * 100}%`
                     }}
                   >
-                    {activePlans.map((plan) => (
+                    {activePlans.map((plan: WorkoutPlan) => (
                       <div key={plan.id} className="carousel-slide">
                         <IonCard
                           className="plan-card"
@@ -608,7 +608,7 @@ const Plans: React.FC = () => {
                 {activePlans.length > 1 && (
                   <>
                     <div className="carousel-indicators">
-                      {activePlans.map((_, index) => (
+                      {activePlans.map((_: WorkoutPlan, index: number) => (
                         <div
                           key={index}
                           className={`indicator ${index === currentPlanIndex ? 'active' : ''}`}
@@ -628,7 +628,7 @@ const Plans: React.FC = () => {
           {archivedPlans.length > 0 && (
             <>
               <h2 className="section-title" style={{ marginTop: '32px' }}>Archived Plans</h2>
-              {archivedPlans.map(plan => (
+              {archivedPlans.map((plan: WorkoutPlan) => (
                 <IonCard
                   key={plan.id}
                   className="plan-card archived"
