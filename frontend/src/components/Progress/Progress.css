@@ -352,11 +352,12 @@
   color: var(--text-primary);
 }
 
-.calendar-grid {
+.progress-calendar-grid {
+  display: block;
   margin-top: 8px;
 }
 
-.calendar-weekdays {
+.progress-calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: var(--spacing-xs);
@@ -369,11 +370,11 @@
   letter-spacing: 0.5px;
 }
 
-.calendar-weekdays div {
+.progress-calendar-weekdays > div {
   padding: 8px 0;
 }
 
-.calendar-days {
+.progress-calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;

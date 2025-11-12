@@ -493,8 +493,8 @@ const Progress: React.FC = () => {
               </div>
             </IonCardHeader>
             <IonCardContent>
-              <div className="calendar-grid">
-                <div className="calendar-weekdays">
+              <div className="progress-calendar-grid">
+                <div className="progress-calendar-weekdays">
                   <div>Sun</div>
                   <div>Mon</div>
                   <div>Tue</div>
@@ -503,7 +503,7 @@ const Progress: React.FC = () => {
                   <div>Fri</div>
                   <div>Sat</div>
                 </div>
-                <div className="calendar-days">
+                <div className="progress-calendar-days">
                   {renderCalendar()}
                 </div>
               </div>
