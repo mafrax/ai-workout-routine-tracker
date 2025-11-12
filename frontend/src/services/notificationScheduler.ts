@@ -55,8 +55,8 @@ export class NotificationScheduler {
   }
 
   // Check if we need to reset milestones for a new eating window
-  private checkEatingWindowChange() {
-    const activeEatingWindow = fastingService.getActiveEatingWindow();
+  private async checkEatingWindowChange() {
+    const activeEatingWindow = await fastingService.getActiveEatingWindow();
 
     if (!activeEatingWindow) {
       // No active eating window, reset state
@@ -79,7 +79,7 @@ export class NotificationScheduler {
 
   // Check and trigger notifications for eating window
   private async checkEatingWindowNotifications() {
-    const activeEatingWindow = fastingService.getActiveEatingWindow();
+    const activeEatingWindow = await fastingService.getActiveEatingWindow();
     if (!activeEatingWindow) return;
 
     const now = Date.now();
@@ -109,7 +109,7 @@ export class NotificationScheduler {
 
   // Check and trigger fasting goal notifications
   private async checkFastingNotifications() {
-    const activeSession = fastingService.getActiveSession();
+    const activeSession = await fastingService.getActiveSession();
     if (!activeSession) return;
 
     const settings = notificationService.getSettings();
@@ -151,7 +151,7 @@ export class NotificationScheduler {
 
     try {
       // Check for eating window changes
-      this.checkEatingWindowChange();
+      await this.checkEatingWindowChange();
 
       // Check eating window notifications
       await this.checkEatingWindowNotifications();
@@ -195,8 +195,8 @@ export class NotificationScheduler {
   }
 
   // Reset all milestones (useful for testing or manual reset)
-  resetMilestones() {
-    const activeEatingWindow = fastingService.getActiveEatingWindow();
+  async resetMilestones() {
+    const activeEatingWindow = await fastingService.getActiveEatingWindow();
     if (activeEatingWindow) {
       this.state.eatingWindowId = activeEatingWindow.id;
       this.state.milestones = this.initializeMilestones();

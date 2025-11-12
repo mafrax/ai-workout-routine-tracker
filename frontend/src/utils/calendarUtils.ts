@@ -83,7 +83,9 @@ export function generateCalendarDays(
   // Update cache
   if (calendarCache.size >= MAX_CACHE_SIZE) {
     const firstKey = calendarCache.keys().next().value;
-    calendarCache.delete(firstKey);
+    if (firstKey !== undefined) {
+      calendarCache.delete(firstKey);
+    }
   }
   calendarCache.set(cacheKey, days);
 

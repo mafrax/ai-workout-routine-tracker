@@ -59,7 +59,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   const config = EMPTY_STATE_CONFIG[type];
   const displayTitle = title || config.title;
   const displayDescription = description || config.description;
-  const displayActionLabel = actionLabel || config.actionLabel;
+  const displayActionLabel = actionLabel || ('actionLabel' in config ? config.actionLabel : undefined);
 
   if (compact) {
     return (
