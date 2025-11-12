@@ -1,0 +1,25 @@
+.preset-selector {
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.preset-chips {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  padding-bottom: 0.5rem;
+}
+
+.preset-chip {
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.preset-chip:active {
+  transform: scale(0.95);
+}
+
+.add-preset-button {
+  flex-shrink: 0;
+}
