@@ -1,0 +1,26 @@
+.notification-settings {
+  padding: 0;
+  width: 100%;
+}
+
+.notification-settings ion-list-header {
+  margin-top: 1rem;
+  font-weight: 600;
+}
+
+.notification-settings ion-item h2 {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.notification-settings ion-item p {
+  font-size: 0.875rem;
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.notification-settings ion-note {
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}

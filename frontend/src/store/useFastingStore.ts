@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { FastingPreset, FastingSession, FastingStats, NotificationSettings, EatingWindow, TimerState } from '../types/fasting';
 import { fastingService } from '../services/fastingService';
+import { notificationService } from '../services/notificationService';
+import { notificationScheduler } from '../services/notificationScheduler';
 
 interface FastingState {
   presets: FastingPreset[];
@@ -27,24 +29,30 @@ interface FastingState {
   loadSessions: () => void;
 
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
+  loadNotificationSettings: () => void;
+  startNotificationScheduler: () => void;
+  stopNotificationScheduler: () => void;
 }
 
 const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
-  enabled: true,
-  sendToTelegram: false,
-  fastingMilestones: {
-    twoHours: true,
-    oneHour: true,
-    thirtyMinutes: true,
-    goalReached: true,
-  },
+  enabled: false,
+  localNotifications: true,
+  telegramNotifications: false,
   eatingWindowReminders: {
     twoHours: true,
     oneHour: true,
     thirtyMinutes: true,
-    timeToFast: true,
+    windowEnding: true,
   },
-  dailyReminderTime: null,
+  overdueReminders: {
+    fifteenMinutes: true,
+    thirtyMinutes: true,
+    oneHour: true,
+  },
+  fastingMilestones: {
+    goalReached: true,
+    twoHoursExtra: false,
+  },
 };
 
 export const useFastingStore = create<FastingState>((set, get) => ({
@@ -132,8 +140,33 @@ export const useFastingStore = create<FastingState>((set, get) => ({
   },
 
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => {
-    set(state => ({
-      notificationSettings: { ...state.notificationSettings, ...settings }
-    }));
+    const newSettings = { ...get().notificationSettings, ...settings };
+    set({ notificationSettings: newSettings });
+
+    // Update the notification service settings
+    notificationService.updateSettings(newSettings);
+
+    // Start/stop scheduler based on enabled state
+    if (newSettings.enabled) {
+      notificationScheduler.start();
+    } else {
+      notificationScheduler.stop();
+    }
+  },
+
+  loadNotificationSettings: () => {
+    const settings = notificationService.getSettings();
+    set({ notificationSettings: settings });
+  },
+
+  startNotificationScheduler: () => {
+    const { notificationSettings } = get();
+    if (notificationSettings.enabled) {
+      notificationScheduler.start();
+    }
+  },
+
+  stopNotificationScheduler: () => {
+    notificationScheduler.stop();
   },
 }));

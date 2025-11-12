@@ -7,13 +7,19 @@ import {
   IonContent,
   IonRefresher,
   IonRefresherContent,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonModal,
 } from '@ionic/react';
+import { notifications } from 'ionicons/icons';
 import { useFastingStore } from '../store/useFastingStore';
 import TimerButton from '../components/Fasting/TimerButton';
 import PresetSelector from '../components/Fasting/PresetSelector';
 import StopFastModal from '../components/Fasting/StopFastModal';
 import QuickStats from '../components/Fasting/QuickStats';
 import PresetModal from '../components/Fasting/PresetModal';
+import NotificationSettings from '../components/Fasting/NotificationSettings';
 import './Fasting.css';
 
 const Fasting: React.FC = () => {
@@ -21,6 +27,8 @@ const Fasting: React.FC = () => {
     loadPresets,
     loadActiveState,
     loadStats,
+    loadNotificationSettings,
+    startNotificationScheduler,
     activeSession,
     activeEatingWindow,
     timerState,
@@ -30,11 +38,14 @@ const Fasting: React.FC = () => {
 
   const [showStopModal, setShowStopModal] = useState(false);
   const [showPresetModal, setShowPresetModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   useEffect(() => {
     loadPresets();
     loadActiveState();
     loadStats();
+    loadNotificationSettings();
+    startNotificationScheduler();
   }, []);
 
   const handleStopClick = () => {
@@ -56,6 +67,11 @@ const Fasting: React.FC = () => {
       <IonHeader>
         <IonToolbar>
           <IonTitle>Fasting</IonTitle>
+          <IonButtons slot="end">
+            <IonButton onClick={() => setShowSettingsModal(true)}>
+              <IonIcon slot="icon-only" icon={notifications} />
+            </IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
       <IonContent>
@@ -85,6 +101,20 @@ const Fasting: React.FC = () => {
           isOpen={showPresetModal}
           onClose={() => setShowPresetModal(false)}
         />
+
+        <IonModal isOpen={showSettingsModal} onDidDismiss={() => setShowSettingsModal(false)}>
+          <IonHeader>
+            <IonToolbar>
+              <IonTitle>Notification Settings</IonTitle>
+              <IonButtons slot="end">
+                <IonButton onClick={() => setShowSettingsModal(false)}>Close</IonButton>
+              </IonButtons>
+            </IonToolbar>
+          </IonHeader>
+          <IonContent>
+            <NotificationSettings />
+          </IonContent>
+        </IonModal>
       </IonContent>
     </IonPage>
   );
