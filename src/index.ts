@@ -17,6 +17,7 @@ import telegramConfigRoutes from './routes/telegram-config';
 import userRoutes from './routes/users';
 import chatRoutes from './routes/chat';
 import youtubeRoutes from './routes/youtube';
+import fastingRoutes from './routes/fasting';
 
 // Load environment variables
 dotenv.config();
@@ -48,6 +49,7 @@ app.use('/api/auth', authRoutes);
 // API routes
 app.use('/api/chat', chatRoutes);
 app.use('/api/daily-tasks', dailyTaskRoutes);
+app.use('/api/fasting', fastingRoutes);
 app.use('/api/migration', migrationRoutes);
 app.use('/api/plans', workoutPlanRoutes);
 app.use('/api/sessions', workoutSessionRoutes);

@@ -1,5 +1,10 @@
 import { FastingPreset, FastingSession, FastingStats, EatingWindow, TimerState } from '../types/fasting';
 import { v4 as uuidv4 } from 'uuid';
+import { fastingApi } from './api_backend';
+import { authService } from './authService';
+
+// Feature flag for backend migration
+const USE_BACKEND = import.meta.env.VITE_USE_FASTING_BACKEND === 'true';
 
 const STORAGE_KEYS = {
   PRESETS: 'fasting_presets',
@@ -20,8 +25,63 @@ const DEFAULT_PRESETS: FastingPreset[] = [
 const MINUTES_IN_DAY = 1440; // 24 hours
 
 class FastingService {
+  // Helper to get current user ID
+  private getUserId(): number | null {
+    const user = authService.getCurrentUser();
+    return user ? Number(user.id) : null;
+  }
+
+  // Helper to convert backend preset to frontend type
+  private toFrontendPreset(backendPreset: any): FastingPreset {
+    return {
+      id: backendPreset.id,
+      name: backendPreset.name,
+      durationMinutes: backendPreset.durationMinutes,
+    };
+  }
+
+  // Helper to convert backend session to frontend type
+  private toFrontendSession(backendSession: any): FastingSession {
+    return {
+      id: backendSession.id,
+      startTime: backendSession.startTime,
+      endTime: backendSession.endTime,
+      goalMinutes: backendSession.goalMinutes,
+      presetName: backendSession.presetName,
+      stoppedEarly: backendSession.stoppedEarly,
+      eatingWindowMinutes: backendSession.eatingWindowMinutes,
+    };
+  }
+
+  // Helper to convert backend eating window to frontend type
+  private toFrontendEatingWindow(backendWindow: any): EatingWindow {
+    return {
+      id: backendWindow.id,
+      startTime: backendWindow.startTime,
+      endTime: backendWindow.endTime,
+      expectedDurationMinutes: backendWindow.expectedDurationMinutes,
+      nextFastDueTime: backendWindow.nextFastDueTime,
+    };
+  }
+
   // Presets
-  getPresets(): FastingPreset[] {
+  async getPresets(): Promise<FastingPreset[]> {
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (!userId) {
+        console.log('[FastingService] No user authenticated, using localStorage');
+      } else {
+        try {
+          console.log('[FastingService] Fetching presets from backend');
+          const backendPresets = await fastingApi.getUserPresets(userId);
+          return backendPresets.map(p => this.toFrontendPreset(p));
+        } catch (error) {
+          console.error('[FastingService] Backend fetch failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback
     const stored = localStorage.getItem(STORAGE_KEYS.PRESETS);
     if (!stored) {
       this.savePresets(DEFAULT_PRESETS);
@@ -34,29 +94,79 @@ class FastingService {
     localStorage.setItem(STORAGE_KEYS.PRESETS, JSON.stringify(presets));
   }
 
-  addPreset(name: string, durationMinutes: number): FastingPreset {
-    const presets = this.getPresets();
+  async savePreset(preset: Omit<FastingPreset, 'id'> | FastingPreset): Promise<FastingPreset> {
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (userId) {
+        try {
+          console.log('[FastingService] Creating preset in backend');
+          const backendPreset = await fastingApi.createPreset(
+            userId,
+            { name: preset.name, durationMinutes: preset.durationMinutes }
+          );
+          return this.toFrontendPreset(backendPreset);
+        } catch (error) {
+          console.error('[FastingService] Backend creation failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback
+    const presets = await this.getPresets();
     const newPreset: FastingPreset = {
-      id: uuidv4(),
-      name,
-      durationMinutes,
+      id: 'id' in preset ? preset.id : uuidv4(),
+      name: preset.name,
+      durationMinutes: preset.durationMinutes,
     };
     presets.push(newPreset);
     this.savePresets(presets);
     return newPreset;
   }
 
-  updatePreset(id: string, name: string, durationMinutes: number): void {
-    const presets = this.getPresets();
+  // Legacy method for backward compatibility
+  async addPreset(name: string, durationMinutes: number): Promise<FastingPreset> {
+    return this.savePreset({ name, durationMinutes });
+  }
+
+  async updatePreset(id: string, updates: Partial<Omit<FastingPreset, 'id'>>): Promise<void> {
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (userId) {
+        try {
+          console.log('[FastingService] Updating preset in backend');
+          await fastingApi.updatePreset(id, updates);
+          return;
+        } catch (error) {
+          console.error('[FastingService] Backend update failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback
+    const presets = await this.getPresets();
     const index = presets.findIndex(p => p.id === id);
     if (index !== -1) {
-      presets[index] = { ...presets[index], name, durationMinutes };
+      presets[index] = { ...presets[index], ...updates };
       this.savePresets(presets);
     }
   }
 
-  deletePreset(id: string): void {
-    const presets = this.getPresets();
+  async deletePreset(id: string): Promise<void> {
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (userId) {
+        try {
+          console.log('[FastingService] Deleting preset from backend');
+          await fastingApi.deletePreset(id);
+          return;
+        } catch (error) {
+          console.error('[FastingService] Backend delete failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback
+    const presets = await this.getPresets();
     const filtered = presets.filter(p => p.id !== id);
     this.savePresets(filtered);
   }
@@ -71,7 +181,21 @@ class FastingService {
   }
 
   // Sessions
-  getSessions(): FastingSession[] {
+  async getSessions(): Promise<FastingSession[]> {
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (userId) {
+        try {
+          console.log('[FastingService] Fetching sessions from backend');
+          const backendSessions = await fastingApi.getUserSessions(userId);
+          return backendSessions.map(s => this.toFrontendSession(s));
+        } catch (error) {
+          console.error('[FastingService] Backend fetch failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback
     const stored = localStorage.getItem(STORAGE_KEYS.SESSIONS);
     return stored ? JSON.parse(stored) : [];
   }
@@ -80,9 +204,68 @@ class FastingService {
     localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
   }
 
-  getActiveSession(): FastingSession | null {
+  async saveSession(session: FastingSession): Promise<FastingSession> {
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (userId) {
+        try {
+          console.log('[FastingService] Saving session to backend');
+          // Note: Backend doesn't have a direct save, sessions are managed through start/stop
+          // This is for localStorage compatibility
+          console.log('[FastingService] Session save via backend not implemented, using localStorage');
+        } catch (error) {
+          console.error('[FastingService] Backend save failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback
+    const sessions = await this.getSessions();
+    sessions.push(session);
+    this.saveSessions(sessions);
+    return session;
+  }
+
+  async getActiveSession(): Promise<FastingSession | null> {
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (userId) {
+        try {
+          console.log('[FastingService] Fetching active session from backend');
+          const backendSession = await fastingApi.getActiveSession(userId);
+          return backendSession ? this.toFrontendSession(backendSession) : null;
+        } catch (error) {
+          console.error('[FastingService] Backend fetch failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback
     const stored = localStorage.getItem(STORAGE_KEYS.ACTIVE_SESSION);
     return stored ? JSON.parse(stored) : null;
+  }
+
+  async stopActiveSession(): Promise<void> {
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (userId) {
+        try {
+          const activeSession = await this.getActiveSession();
+          if (activeSession) {
+            console.log('[FastingService] Stopping session in backend');
+            const elapsedMinutes = this.getElapsedMinutes(activeSession);
+            const stoppedEarly = elapsedMinutes < activeSession.goalMinutes;
+            await fastingApi.stopSession(activeSession.id, { stoppedEarly });
+            return;
+          }
+        } catch (error) {
+          console.error('[FastingService] Backend stop failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback - handled by stopFast method
+    localStorage.removeItem(STORAGE_KEYS.ACTIVE_SESSION);
   }
 
   // Eating Windows
@@ -95,28 +278,104 @@ class FastingService {
     localStorage.setItem(STORAGE_KEYS.EATING_WINDOWS, JSON.stringify(windows));
   }
 
-  getActiveEatingWindow(): EatingWindow | null {
+  async getActiveEatingWindow(): Promise<EatingWindow | null> {
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (userId) {
+        try {
+          console.log('[FastingService] Fetching active eating window from backend');
+          const backendWindow = await fastingApi.getActiveEatingWindow(userId);
+          return backendWindow ? this.toFrontendEatingWindow(backendWindow) : null;
+        } catch (error) {
+          console.error('[FastingService] Backend fetch failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback
     const stored = localStorage.getItem(STORAGE_KEYS.ACTIVE_EATING_WINDOW);
     return stored ? JSON.parse(stored) : null;
   }
 
-  startFast(presetId: string): FastingSession {
-    const presets = this.getPresets();
+  async saveEatingWindow(window: EatingWindow): Promise<EatingWindow> {
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (userId) {
+        try {
+          console.log('[FastingService] Creating eating window in backend');
+          const backendWindow = await fastingApi.createEatingWindow(userId, {
+            startTime: window.startTime,
+            expectedDurationMinutes: window.expectedDurationMinutes,
+            nextFastDueTime: window.nextFastDueTime,
+          });
+          return this.toFrontendEatingWindow(backendWindow);
+        } catch (error) {
+          console.error('[FastingService] Backend create failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_EATING_WINDOW, JSON.stringify(window));
+    return window;
+  }
+
+  async clearActiveEatingWindow(): Promise<void> {
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (userId) {
+        try {
+          const activeWindow = await this.getActiveEatingWindow();
+          if (activeWindow) {
+            console.log('[FastingService] Closing eating window in backend');
+            await fastingApi.closeEatingWindow(activeWindow.id);
+            return;
+          }
+        } catch (error) {
+          console.error('[FastingService] Backend close failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback
+    localStorage.removeItem(STORAGE_KEYS.ACTIVE_EATING_WINDOW);
+  }
+
+  async startFast(presetId: string): Promise<FastingSession> {
+    const presets = await this.getPresets();
     const preset = presets.find(p => p.id === presetId);
     if (!preset) throw new Error('Preset not found');
 
     // End active eating window if exists
-    const activeEating = this.getActiveEatingWindow();
+    const activeEating = await this.getActiveEatingWindow();
     if (activeEating) {
+      await this.clearActiveEatingWindow();
       activeEating.endTime = new Date().toISOString();
       const windows = this.getEatingWindows();
       windows.push(activeEating);
       this.saveEatingWindows(windows);
-      localStorage.removeItem(STORAGE_KEYS.ACTIVE_EATING_WINDOW);
     }
 
     const eatingWindowMinutes = MINUTES_IN_DAY - preset.durationMinutes;
 
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (userId) {
+        try {
+          console.log('[FastingService] Starting fast in backend');
+          const backendSession = await fastingApi.startSession(userId, {
+            presetName: preset.name,
+            goalMinutes: preset.durationMinutes,
+            eatingWindowMinutes,
+          });
+          return this.toFrontendSession(backendSession);
+        } catch (error) {
+          console.error('[FastingService] Backend start failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback
     const session: FastingSession = {
       id: uuidv4(),
       startTime: new Date().toISOString(),
@@ -131,19 +390,47 @@ class FastingService {
     return session;
   }
 
-  stopFast(): FastingSession | null {
-    const activeSession = this.getActiveSession();
+  async stopFast(): Promise<FastingSession | null> {
+    const activeSession = await this.getActiveSession();
     if (!activeSession) return null;
 
     const now = new Date();
-    activeSession.endTime = now.toISOString();
-
-    // Determine if stopped early
     const elapsedMinutes = this.getElapsedMinutes(activeSession);
-    activeSession.stoppedEarly = elapsedMinutes < activeSession.goalMinutes;
+    const stoppedEarly = elapsedMinutes < activeSession.goalMinutes;
+
+    if (USE_BACKEND) {
+      const userId = this.getUserId();
+      if (userId) {
+        try {
+          console.log('[FastingService] Stopping fast in backend');
+          const stoppedSession = await fastingApi.stopSession(activeSession.id, { stoppedEarly });
+
+          // Start eating window
+          const eatingWindowStart = new Date(now);
+          const nextFastDue = new Date(now.getTime() + activeSession.eatingWindowMinutes * 60 * 1000);
+
+          const eatingWindow: EatingWindow = {
+            id: uuidv4(),
+            startTime: eatingWindowStart.toISOString(),
+            endTime: null,
+            expectedDurationMinutes: activeSession.eatingWindowMinutes,
+            nextFastDueTime: nextFastDue.toISOString(),
+          };
+
+          await this.saveEatingWindow(eatingWindow);
+          return this.toFrontendSession(stoppedSession);
+        } catch (error) {
+          console.error('[FastingService] Backend stop failed, falling back to localStorage:', error);
+        }
+      }
+    }
+
+    // localStorage fallback
+    activeSession.endTime = now.toISOString();
+    activeSession.stoppedEarly = stoppedEarly;
 
     // Add to sessions history
-    const sessions = this.getSessions();
+    const sessions = await this.getSessions();
     sessions.push(activeSession);
     this.saveSessions(sessions);
 
@@ -168,13 +455,13 @@ class FastingService {
   }
 
   // Get current timer state
-  getCurrentState(): { state: TimerState; data: FastingSession | EatingWindow | null } {
-    const activeSession = this.getActiveSession();
+  async getCurrentState(): Promise<{ state: TimerState; data: FastingSession | EatingWindow | null }> {
+    const activeSession = await this.getActiveSession();
     if (activeSession) {
       return { state: 'fasting', data: activeSession };
     }
 
-    const activeEating = this.getActiveEatingWindow();
+    const activeEating = await this.getActiveEatingWindow();
     if (activeEating) {
       const now = Date.now();
       const dueTime = new Date(activeEating.nextFastDueTime).getTime();
@@ -190,8 +477,8 @@ class FastingService {
   }
 
   // Stats calculation
-  calculateStats(): FastingStats {
-    const sessions = this.getSessions();
+  async calculateStats(): Promise<FastingStats> {
+    const sessions = await this.getSessions();
     const completedSessions = sessions.filter(s => s.endTime !== null);
 
     // Success = met goal without stopping early
