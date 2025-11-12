@@ -1,14 +1,16 @@
 import { create } from 'zustand';
-import { FastingPreset, FastingSession, FastingStats, NotificationSettings } from '../types/fasting';
+import { FastingPreset, FastingSession, FastingStats, NotificationSettings, EatingWindow, TimerState } from '../types/fasting';
 import { fastingService } from '../services/fastingService';
 
 interface FastingState {
   presets: FastingPreset[];
   selectedPresetId: string | null;
   activeSession: FastingSession | null;
+  activeEatingWindow: EatingWindow | null;
   sessions: FastingSession[];
   stats: FastingStats | null;
   notificationSettings: NotificationSettings;
+  timerState: TimerState;
 
   // Actions
   loadPresets: () => void;
@@ -19,7 +21,7 @@ interface FastingState {
 
   startFast: () => void;
   stopFast: () => FastingSession | null;
-  loadActiveSession: () => void;
+  loadActiveState: () => void;
 
   loadStats: () => void;
   loadSessions: () => void;
@@ -30,11 +32,17 @@ interface FastingState {
 const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   enabled: true,
   sendToTelegram: false,
-  milestones: {
+  fastingMilestones: {
     twoHours: true,
     oneHour: true,
     thirtyMinutes: true,
     goalReached: true,
+  },
+  eatingWindowReminders: {
+    twoHours: true,
+    oneHour: true,
+    thirtyMinutes: true,
+    timeToFast: true,
   },
   dailyReminderTime: null,
 };
@@ -43,9 +51,11 @@ export const useFastingStore = create<FastingState>((set, get) => ({
   presets: [],
   selectedPresetId: null,
   activeSession: null,
+  activeEatingWindow: null,
   sessions: [],
   stats: null,
   notificationSettings: DEFAULT_NOTIFICATION_SETTINGS,
+  timerState: 'eating',
 
   loadPresets: () => {
     const presets = fastingService.getPresets();
@@ -81,20 +91,34 @@ export const useFastingStore = create<FastingState>((set, get) => ({
     if (!selectedPresetId) return;
 
     const session = fastingService.startFast(selectedPresetId);
-    set({ activeSession: session });
+    set({ activeSession: session, activeEatingWindow: null, timerState: 'fasting' });
   },
 
   stopFast: () => {
     const session = fastingService.stopFast();
-    set({ activeSession: null });
+    const activeEatingWindow = fastingService.getActiveEatingWindow();
+    set({ activeSession: null, activeEatingWindow, timerState: 'eating' });
     get().loadSessions();
     get().loadStats();
     return session;
   },
 
-  loadActiveSession: () => {
-    const activeSession = fastingService.getActiveSession();
-    set({ activeSession });
+  loadActiveState: () => {
+    const { state, data } = fastingService.getCurrentState();
+
+    if (state === 'fasting') {
+      set({
+        activeSession: data as FastingSession,
+        activeEatingWindow: null,
+        timerState: 'fasting'
+      });
+    } else {
+      set({
+        activeSession: null,
+        activeEatingWindow: data as EatingWindow | null,
+        timerState: state
+      });
+    }
   },
 
   loadStats: () => {
