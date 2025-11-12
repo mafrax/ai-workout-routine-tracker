@@ -1,7 +1,7 @@
 import { Redirect, Route, useHistory } from 'react-router-dom';
 import { IonApp, IonRouterOutlet, IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import { chatbubbles, barChart, fitness, today, home, person, listCircle, checkmarkDoneCircle } from 'ionicons/icons';
+import { chatbubbles, barChart, fitness, today, home, person, listCircle, checkmarkDoneCircle, timer } from 'ionicons/icons';
 import { App as CapacitorApp } from '@capacitor/app';
 import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -19,6 +19,7 @@ import Migration from './pages/Migration';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import PrivateRoute from './components/Auth/PrivateRoute';
+import Fasting from './pages/Fasting';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -134,6 +135,7 @@ const App: React.FC = () => (
           <PrivateRoute exact path="/progress" component={Progress} />
           <PrivateRoute exact path="/profile" component={Profile} />
           <PrivateRoute exact path="/tasks" component={DailyTasks} />
+          <PrivateRoute exact path="/fasting" component={Fasting} />
           <PrivateRoute exact path="/migration" component={Migration} />
           <Route exact path="/">
             <Redirect to="/home" />
@@ -156,6 +158,10 @@ const App: React.FC = () => (
           <IonTabButton tab="tasks" href="/tasks">
             <IonIcon icon={checkmarkDoneCircle} />
             <IonLabel>Tasks</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="fasting" href="/fasting">
+            <IonIcon icon={timer} />
+            <IonLabel>Fasting</IonLabel>
           </IonTabButton>
           <IonTabButton tab="progress" href="/progress">
             <IonIcon icon={barChart} />
