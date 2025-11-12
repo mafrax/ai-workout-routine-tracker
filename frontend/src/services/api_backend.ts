@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { User, WorkoutPlan, WorkoutSession, ProgressSummary } from '../types';
+import { User, WorkoutPlan, WorkoutSession, ProgressSummary, FastingPreset, FastingSession, EatingWindow } from '../types';
 
 // Use environment variable for API URL (defaults to production if not set)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://workout-marcs-projects-3a713b55.vercel.app/api';
@@ -89,6 +89,93 @@ export const telegramConfigApi = {
   },
   save: async (userId: number, config: { botToken: string; chatId: string; dailyTasksStartHour?: number }) => {
     const response = await api.post(`/telegram-config/user/${userId}`, config);
+    return response.data;
+  },
+};
+
+// Request types for fasting endpoints
+export interface CreateFastingPresetRequest {
+  name: string;
+  durationMinutes: number;
+}
+
+export interface UpdateFastingPresetRequest {
+  name?: string;
+  durationMinutes?: number;
+}
+
+export interface StartFastingSessionRequest {
+  presetName: string;
+  goalMinutes: number;
+  eatingWindowMinutes: number;
+}
+
+export interface StopFastingSessionRequest {
+  stoppedEarly: boolean;
+}
+
+export interface CreateEatingWindowRequest {
+  startTime: string; // ISO string
+  expectedDurationMinutes: number;
+  nextFastDueTime: string; // ISO string
+}
+
+// Fasting API methods
+export const fastingApi = {
+  // Preset methods
+  getUserPresets: async (userId: number): Promise<FastingPreset[]> => {
+    const response = await api.get<FastingPreset[]>(`/fasting/presets/user/${userId}`);
+    return response.data;
+  },
+
+  createPreset: async (userId: number, data: CreateFastingPresetRequest): Promise<FastingPreset> => {
+    const response = await api.post<FastingPreset>(`/fasting/presets/user/${userId}`, data);
+    return response.data;
+  },
+
+  updatePreset: async (id: string, data: UpdateFastingPresetRequest): Promise<FastingPreset> => {
+    const response = await api.put<FastingPreset>(`/fasting/presets/${id}`, data);
+    return response.data;
+  },
+
+  deletePreset: async (id: string): Promise<void> => {
+    await api.delete(`/fasting/presets/${id}`);
+  },
+
+  // Session methods
+  getUserSessions: async (userId: number): Promise<FastingSession[]> => {
+    const response = await api.get<FastingSession[]>(`/fasting/sessions/user/${userId}`);
+    return response.data;
+  },
+
+  getActiveSession: async (userId: number): Promise<FastingSession | null> => {
+    const response = await api.get<FastingSession | null>(`/fasting/sessions/user/${userId}/active`);
+    return response.data;
+  },
+
+  startSession: async (userId: number, data: StartFastingSessionRequest): Promise<FastingSession> => {
+    const response = await api.post<FastingSession>(`/fasting/sessions/user/${userId}/start`, data);
+    return response.data;
+  },
+
+  stopSession: async (id: string, data: StopFastingSessionRequest): Promise<FastingSession> => {
+    const response = await api.post<FastingSession>(`/fasting/sessions/${id}/stop`, data);
+    return response.data;
+  },
+
+  // Eating window methods
+  getActiveEatingWindow: async (userId: number): Promise<EatingWindow | null> => {
+    const response = await api.get<EatingWindow | null>(`/fasting/eating-windows/user/${userId}/active`);
+    return response.data;
+  },
+
+  createEatingWindow: async (userId: number, data: CreateEatingWindowRequest): Promise<EatingWindow> => {
+    const response = await api.post<EatingWindow>(`/fasting/eating-windows/user/${userId}`, data);
+    return response.data;
+  },
+
+  closeEatingWindow: async (id: string): Promise<EatingWindow> => {
+    const response = await api.post<EatingWindow>(`/fasting/eating-windows/${id}/close`);
     return response.data;
   },
 };

@@ -1,5 +1,9 @@
 import { FastingSession } from '../types/fasting';
 
+// Add a simple memoization cache
+const calendarCache = new Map<string, CalendarDay[]>();
+const MAX_CACHE_SIZE = 20;
+
 export interface CalendarDay {
   date: Date;
   dateString: string; // YYYY-MM-DD
@@ -31,6 +35,17 @@ export function generateCalendarDays(
   sessions: FastingSession[],
   activeSession: FastingSession | null
 ): CalendarDay[] {
+  // Create cache key
+  const sessionsHash = sessions.length > 0
+    ? sessions.map(s => s.id).join(',').slice(0, 50)
+    : 'empty';
+  const cacheKey = `${year}-${month}-${sessionsHash}-${activeSession?.id || 'none'}`;
+
+  // Check cache
+  if (calendarCache.has(cacheKey)) {
+    return calendarCache.get(cacheKey)!;
+  }
+
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const firstDayOfWeek = firstDay.getDay(); // 0 = Sunday
@@ -64,6 +79,13 @@ export function generateCalendarDays(
     const date = new Date(year, month + 1, day);
     days.push(createCalendarDay(date, false, sessions, activeSession, todayString));
   }
+
+  // Update cache
+  if (calendarCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = calendarCache.keys().next().value;
+    calendarCache.delete(firstKey);
+  }
+  calendarCache.set(cacheKey, days);
 
   return days;
 }
@@ -154,4 +176,11 @@ export function formatDateString(date: Date): string {
 export function getMonthYearString(year: number, month: number): string {
   const date = new Date(year, month, 1);
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+/**
+ * Export function to clear cache if needed
+ */
+export function clearCalendarCache(): void {
+  calendarCache.clear();
 }

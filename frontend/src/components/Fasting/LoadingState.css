@@ -1,0 +1,87 @@
+/* Timer skeleton */
+.loading-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 0;
+}
+
+.skeleton-circle {
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    var(--ion-color-light) 25%,
+    var(--ion-color-light-shade) 50%,
+    var(--ion-color-light) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Stats skeleton */
+.loading-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+.skeleton-stat-card {
+  padding: 1rem;
+}
+
+/* Chart skeleton */
+.loading-chart {
+  padding: 1rem;
+}
+
+.skeleton-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  height: 200px;
+}
+
+.skeleton-bar {
+  flex: 1;
+  background: linear-gradient(
+    90deg,
+    var(--ion-color-light) 25%,
+    var(--ion-color-light-shade) 50%,
+    var(--ion-color-light) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px 4px 0 0;
+}
+
+/* List skeleton */
+.loading-list {
+  padding: 1rem 0;
+}
+
+.skeleton-list-item {
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Reduced motion support for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-circle,
+  .skeleton-bar {
+    animation: none;
+    background: var(--ion-color-light);
+  }
+}

@@ -1,8 +1,11 @@
+@import '../../styles/animations.css';
+
 .fasting-calendar {
   padding: 1rem;
   background: var(--ion-color-light);
   border-radius: 12px;
   margin: 1rem;
+  animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards;
 }
 
 .calendar-header {
@@ -22,6 +25,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calendar-nav-button:hover {
+  transform: scale(1.1);
+}
+
+.calendar-nav-button:active {
+  transform: scale(0.9);
 }
 
 .calendar-month-year {
@@ -61,11 +73,17 @@
   border-radius: 8px;
   position: relative;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .calendar-day:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--ion-color-light);
+  transform: scale(1.05);
+}
+
+.calendar-day:active {
+  transform: scale(0.95);
+  transition-duration: 0.1s;
 }
 
 .calendar-day-other-month {
@@ -88,6 +106,12 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calendar-day-indicator.active-pulse {
+  animation: pulse-subtle 2s ease-in-out infinite;
+  box-shadow: 0 0 8px currentColor;
 }
 
 .success-dot {

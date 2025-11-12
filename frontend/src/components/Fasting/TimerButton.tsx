@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { IonButton } from '@ionic/react';
 import { useFastingStore } from '../../store/useFastingStore';
 import { fastingService } from '../../services/fastingService';
@@ -11,8 +11,33 @@ interface TimerButtonProps {
 const TimerButton: React.FC<TimerButtonProps> = ({ onStop }) => {
   const { activeSession, activeEatingWindow, selectedPresetId, presets, startFast, timerState } = useFastingStore();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
+  // Visibility detection
   useEffect(() => {
+    if (!buttonRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(buttonRef.current);
+
+    return () => {
+      if (buttonRef.current) {
+        observer.unobserve(buttonRef.current);
+      }
+    };
+  }, []);
+
+  // Update timer only when visible
+  useEffect(() => {
+    if (!isVisible) return; // Skip updates when not visible
+
     const updateTimer = () => {
       if (activeSession) {
         // Fasting state - calculate elapsed seconds directly
@@ -34,7 +59,7 @@ const TimerButton: React.FC<TimerButtonProps> = ({ onStop }) => {
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [activeSession, activeEatingWindow]);
+  }, [activeSession, activeEatingWindow, isVisible]);
 
   const formatTime = (seconds: number): string => {
     const absSeconds = Math.abs(seconds);
@@ -64,7 +89,7 @@ const TimerButton: React.FC<TimerButtonProps> = ({ onStop }) => {
 
     return (
       <div className="timer-button-container">
-        <button className="timer-button timer-button-fasting" onClick={onStop}>
+        <button ref={buttonRef} className="timer-button timer-button-fasting" onClick={onStop}>
           <div className="timer-display">
             <div className="timer-time">{formatTime(elapsedSeconds)}</div>
             <div className="timer-progress">
@@ -90,7 +115,7 @@ const TimerButton: React.FC<TimerButtonProps> = ({ onStop }) => {
 
     return (
       <div className="timer-button-container">
-        <button className="timer-button timer-button-eating" onClick={() => startFast()}>
+        <button ref={buttonRef} className="timer-button timer-button-eating" onClick={() => startFast()}>
           <div className="timer-display">
             <div className="timer-label">Eating</div>
             <div className="timer-time">{formatTime(elapsedSeconds)}</div>
@@ -110,7 +135,7 @@ const TimerButton: React.FC<TimerButtonProps> = ({ onStop }) => {
 
     return (
       <div className="timer-button-container">
-        <button className="timer-button timer-button-overdue" onClick={() => startFast()}>
+        <button ref={buttonRef} className="timer-button timer-button-overdue" onClick={() => startFast()}>
           <div className="timer-display">
             <div className="timer-label">OVERDUE!</div>
             <div className="timer-time timer-overdue-time">+{formatDuration(overdueMinutes)}</div>
@@ -130,6 +155,7 @@ const TimerButton: React.FC<TimerButtonProps> = ({ onStop }) => {
   return (
     <div className="timer-button-container">
       <button
+        ref={buttonRef}
         className="timer-button timer-button-inactive"
         onClick={() => startFast()}
         disabled={!selectedPresetId}

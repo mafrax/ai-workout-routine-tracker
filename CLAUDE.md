@@ -225,3 +225,4 @@ When implementing UI features, verify:
 - Introduced a systematic method for verifying front-end changes
 - Detailed the process of using Playwright for visual testing
 - Added specific scenarios for when to use quick and comprehensive design reviews
+- test features with playwright mcp
