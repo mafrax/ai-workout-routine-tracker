@@ -25,6 +25,7 @@ import WeekChart from '../components/Fasting/WeekChart';
 import Calendar from '../components/Fasting/Calendar';
 import HistoryList from '../components/Fasting/HistoryList';
 import DayDetailsModal from '../components/Fasting/DayDetailsModal';
+import ErrorBoundary from '../components/ErrorBoundary';
 import './Fasting.css';
 
 const Fasting: React.FC = () => {
@@ -92,63 +93,65 @@ const Fasting: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent>
-        <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
-          <IonRefresherContent />
-        </IonRefresher>
+        <ErrorBoundary>
+          <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
+            <IonRefresherContent />
+          </IonRefresher>
 
-        <div className="fasting-container">
-          <PresetSelector
-            onAddPreset={() => setShowPresetModal(true)}
-            disabled={timerState !== 'eating' || !!activeEatingWindow}
-          />
+          <div className="fasting-container">
+            <PresetSelector
+              onAddPreset={() => setShowPresetModal(true)}
+              disabled={timerState !== 'eating' || !!activeEatingWindow}
+            />
 
-          <TimerButton onStop={handleStopClick} />
+            <TimerButton onStop={handleStopClick} />
 
-          <QuickStats stats={stats} />
+            <QuickStats stats={stats} />
 
-          <WeekChart sessions={sessions} />
+            <WeekChart sessions={sessions} />
 
-          <Calendar
-            sessions={sessions}
+            <Calendar
+              sessions={sessions}
+              activeSession={activeSession}
+              onDayClick={handleDayClick}
+            />
+
+            <HistoryList sessions={sessions} />
+          </div>
+
+          <StopFastModal
+            isOpen={showStopModal}
             activeSession={activeSession}
-            onDayClick={handleDayClick}
+            onConfirm={handleStopConfirm}
+            onCancel={() => setShowStopModal(false)}
           />
 
-          <HistoryList sessions={sessions} />
-        </div>
+          <PresetModal
+            isOpen={showPresetModal}
+            onClose={() => setShowPresetModal(false)}
+          />
 
-        <StopFastModal
-          isOpen={showStopModal}
-          activeSession={activeSession}
-          onConfirm={handleStopConfirm}
-          onCancel={() => setShowStopModal(false)}
-        />
+          <IonModal isOpen={showSettingsModal} onDidDismiss={() => setShowSettingsModal(false)}>
+            <IonHeader>
+              <IonToolbar>
+                <IonTitle>Notification Settings</IonTitle>
+                <IonButtons slot="end">
+                  <IonButton onClick={() => setShowSettingsModal(false)}>Close</IonButton>
+                </IonButtons>
+              </IonToolbar>
+            </IonHeader>
+            <IonContent>
+              <NotificationSettings />
+            </IonContent>
+          </IonModal>
 
-        <PresetModal
-          isOpen={showPresetModal}
-          onClose={() => setShowPresetModal(false)}
-        />
-
-        <IonModal isOpen={showSettingsModal} onDidDismiss={() => setShowSettingsModal(false)}>
-          <IonHeader>
-            <IonToolbar>
-              <IonTitle>Notification Settings</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={() => setShowSettingsModal(false)}>Close</IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent>
-            <NotificationSettings />
-          </IonContent>
-        </IonModal>
-
-        <DayDetailsModal
-          isOpen={showDayDetails}
-          dateString={selectedDayDate}
-          sessions={selectedDaySessions}
-          onClose={() => setShowDayDetails(false)}
-        />
+          <DayDetailsModal
+            isOpen={showDayDetails}
+            dateString={selectedDayDate}
+            sessions={selectedDaySessions}
+            onClose={() => setShowDayDetails(false)}
+          />
+        </ErrorBoundary>
       </IonContent>
     </IonPage>
   );

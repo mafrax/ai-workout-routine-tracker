@@ -1,0 +1,44 @@
+.error-state-card {
+  margin: 1rem 0;
+  border-left: 4px solid var(--ion-color-danger);
+}
+
+.error-state-content {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.error-icon-large {
+  font-size: 3rem;
+  color: var(--ion-color-danger);
+  margin-bottom: 1rem;
+}
+
+.error-text {
+  color: var(--ion-color-medium);
+  margin: 1rem 0;
+  line-height: 1.5;
+}
+
+/* Compact error state */
+.error-state-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--ion-color-danger-tint);
+  border-radius: 8px;
+  margin: 0.5rem 0;
+}
+
+.error-icon-compact {
+  font-size: 1.25rem;
+  color: var(--ion-color-danger);
+  flex-shrink: 0;
+}
+
+.error-text-compact {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--ion-color-danger-shade);
+}
