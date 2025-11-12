@@ -37,22 +37,38 @@ export interface FastingStats {
   }[];
 }
 
+export interface NotificationMilestone {
+  type: 'eating_2h' | 'eating_1h' | 'eating_30min' | 'eating_end' | 'overdue_15min' | 'overdue_30min' | 'overdue_1h';
+  minutesRemaining: number; // negative for overdue
+  triggered: boolean;
+  timestamp: string | null;
+}
+
+export interface NotificationState {
+  eatingWindowId: string | null;
+  milestones: NotificationMilestone[];
+  lastChecked: string | null;
+}
+
 export interface NotificationSettings {
   enabled: boolean;
-  sendToTelegram: boolean;
-  fastingMilestones: {
-    twoHours: boolean;
-    oneHour: boolean;
-    thirtyMinutes: boolean;
-    goalReached: boolean;
-  };
+  localNotifications: boolean;
+  telegramNotifications: boolean;
   eatingWindowReminders: {
     twoHours: boolean;
     oneHour: boolean;
     thirtyMinutes: boolean;
-    timeToFast: boolean; // when eating window ends
+    windowEnding: boolean; // When eating window ends
   };
-  dailyReminderTime: string | null;
+  overdueReminders: {
+    fifteenMinutes: boolean;
+    thirtyMinutes: boolean;
+    oneHour: boolean;
+  };
+  fastingMilestones: {
+    goalReached: boolean;
+    twoHoursExtra: boolean; // Optional: notify when 2h past goal
+  };
 }
 
 export type TimerState = 'fasting' | 'eating' | 'overdue';
