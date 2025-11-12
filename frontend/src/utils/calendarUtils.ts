@@ -53,8 +53,13 @@ export function generateCalendarDays(
     days.push(createCalendarDay(date, true, sessions, activeSession, todayString));
   }
 
+  // Calculate grid size (35 for 5 weeks, 42 for 6 weeks)
+  const totalDaysNeeded = firstDayOfWeek + daysInMonth;
+  const weeksNeeded = Math.ceil(totalDaysNeeded / 7);
+  const gridSize = weeksNeeded * 7; // Will be 35 or 42
+
   // Add padding days from next month to complete the grid
-  const remainingDays = 35 - days.length; // Minimum 5 weeks
+  const remainingDays = gridSize - days.length;
   for (let day = 1; day <= remainingDays; day++) {
     const date = new Date(year, month + 1, day);
     days.push(createCalendarDay(date, false, sessions, activeSession, todayString));
