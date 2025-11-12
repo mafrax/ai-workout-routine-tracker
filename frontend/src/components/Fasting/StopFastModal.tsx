@@ -32,6 +32,12 @@ const StopFastModal: React.FC<StopFastModalProps> = ({
 
   const elapsedMinutes = fastingService.getElapsedMinutes(activeSession);
   const goalMet = elapsedMinutes >= activeSession.goalMinutes;
+  const overtime = goalMet ? elapsedMinutes - activeSession.goalMinutes : 0;
+  const shortfall = !goalMet ? activeSession.goalMinutes - elapsedMinutes : 0;
+
+  // Calculate eating window duration
+  const eatingWindowHours = Math.floor(activeSession.eatingWindowMinutes / 60);
+  const eatingWindowMins = activeSession.eatingWindowMinutes % 60;
 
   const formatDuration = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
@@ -54,22 +60,47 @@ const StopFastModal: React.FC<StopFastModalProps> = ({
       <IonContent className="ion-padding">
         <IonCard color={goalMet ? 'success' : 'warning'}>
           <IonCardContent>
-            <h2 style={{ margin: '0 0 1rem 0' }}>
-              {goalMet ? '✓ Goal Met!' : 'Goal Not Met'}
+            <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.5rem' }}>
+              {goalMet ? '✅ SUCCESS!' : '⚠️ Stopped Early'}
             </h2>
             <div style={{ fontSize: '1.125rem', marginBottom: '0.5rem' }}>
-              <strong>Duration:</strong> {formatDuration(elapsedMinutes)}
+              <strong>Fasted:</strong> {formatDuration(elapsedMinutes)}
             </div>
-            <div style={{ fontSize: '1.125rem' }}>
+            <div style={{ fontSize: '1.125rem', marginBottom: '0.5rem' }}>
               <strong>Goal:</strong> {formatDuration(activeSession.goalMinutes)}
             </div>
+            {goalMet && (
+              <div style={{ fontSize: '1rem', marginTop: '0.75rem', opacity: 0.9 }}>
+                💪 Exceeded goal by {formatDuration(overtime)}!
+              </div>
+            )}
+            {!goalMet && (
+              <div style={{ fontSize: '1rem', marginTop: '0.75rem', opacity: 0.9 }}>
+                Short by {formatDuration(shortfall)}
+              </div>
+            )}
           </IonCardContent>
         </IonCard>
 
-        <p style={{ textAlign: 'center', margin: '1.5rem 0', fontSize: '1rem' }}>
+        <div style={{
+          background: 'var(--ion-color-light)',
+          padding: '1rem',
+          borderRadius: '8px',
+          margin: '1rem 0',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '0.875rem', color: 'var(--ion-color-medium)', marginBottom: '0.25rem' }}>
+            Next eating window:
+          </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: '600', color: 'var(--ion-color-primary)' }}>
+            {eatingWindowMins > 0 ? `${eatingWindowHours}h ${eatingWindowMins}m` : `${eatingWindowHours}h`}
+          </div>
+        </div>
+
+        <p style={{ textAlign: 'center', margin: '1rem 0', fontSize: '0.875rem', color: 'var(--ion-color-medium)' }}>
           {goalMet
-            ? 'Congratulations! You reached your fasting goal.'
-            : 'You can still continue fasting or end now.'}
+            ? 'Great job! Your eating window will start when you end this fast.'
+            : 'Stopping early will count as a failed fast in your statistics.'}
         </p>
 
         <IonButton
