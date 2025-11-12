@@ -1,6 +1,9 @@
+@import '../../styles/animations.css';
+
 .preset-selector {
   padding: 1rem;
   overflow-x: auto;
+  animation: fadeIn 0.4s ease-out;
 }
 
 .preset-chips {
@@ -8,18 +11,29 @@
   gap: 0.5rem;
   flex-wrap: nowrap;
   padding-bottom: 0.5rem;
+  animation: slideInRight 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .preset-chip {
   flex-shrink: 0;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.preset-chip:active {
-  transform: scale(0.95);
+.preset-chip:hover:not([disabled]) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.preset-chip:active:not([disabled]) {
+  animation: tap-feedback 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .add-preset-button {
   flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.add-preset-button:hover {
+  transform: translateY(-2px);
 }
