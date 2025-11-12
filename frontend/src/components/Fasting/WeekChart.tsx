@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { FastingSession } from '../../types/fasting';
 import { generateWeekDays, WeekDay } from '../../utils/calendarUtils';
 import './WeekChart.css';
@@ -7,9 +7,16 @@ interface WeekChartProps {
   sessions: FastingSession[];
 }
 
-const WeekChart: React.FC<WeekChartProps> = ({ sessions }) => {
-  const weekDays = generateWeekDays(sessions);
-  const maxMinutes = Math.max(...weekDays.map(d => d.totalMinutes), 1440); // At least 24h scale
+const WeekChart: React.FC<WeekChartProps> = React.memo(({ sessions }) => {
+  // Memoize week data calculation
+  const weekDays = useMemo(() => {
+    return generateWeekDays(sessions);
+  }, [sessions]);
+
+  // Memoize max height calculation
+  const maxMinutes = useMemo(() => {
+    return Math.max(...weekDays.map(d => d.totalMinutes), 1440);
+  }, [weekDays]);
 
   const formatDuration = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
@@ -17,9 +24,11 @@ const WeekChart: React.FC<WeekChartProps> = ({ sessions }) => {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
-  const getBarHeight = (minutes: number): number => {
-    return (minutes / maxMinutes) * 100;
-  };
+  const getBarHeight = useMemo(() => {
+    return (minutes: number) => {
+      return `${(minutes / maxMinutes) * 100}%`;
+    };
+  }, [maxMinutes]);
 
   const getBarColor = (day: WeekDay): string => {
     if (!day.hasSession) return 'var(--ion-color-light)';
@@ -37,7 +46,7 @@ const WeekChart: React.FC<WeekChartProps> = ({ sessions }) => {
               <div
                 className="week-chart-bar"
                 style={{
-                  height: `${getBarHeight(day.totalMinutes)}%`,
+                  height: getBarHeight(day.totalMinutes),
                   backgroundColor: getBarColor(day),
                 }}
               >
@@ -54,6 +63,8 @@ const WeekChart: React.FC<WeekChartProps> = ({ sessions }) => {
       </div>
     </div>
   );
-};
+});
+
+WeekChart.displayName = 'WeekChart';
 
 export default WeekChart;

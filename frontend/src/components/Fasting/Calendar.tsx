@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { IonIcon } from '@ionic/react';
 import { chevronBack, chevronForward } from 'ionicons/icons';
 import { FastingSession } from '../../types/fasting';
@@ -12,13 +12,20 @@ interface CalendarProps {
   onDayClick?: (dateString: string, sessions: FastingSession[]) => void;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ sessions, activeSession, onDayClick }) => {
+const Calendar: React.FC<CalendarProps> = React.memo(({ sessions, activeSession, onDayClick }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const days = generateCalendarDays(year, month, sessions, activeSession);
-  const monthYearString = getMonthYearString(year, month);
+  // Memoize calendar days calculation
+  const days = useMemo(() => {
+    return generateCalendarDays(year, month, sessions, activeSession);
+  }, [year, month, sessions, activeSession]);
+
+  // Memoize month/year for display
+  const monthYearString = useMemo(() => {
+    return getMonthYearString(year, month);
+  }, [year, month]);
 
   const goToPreviousMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
@@ -108,6 +115,8 @@ const Calendar: React.FC<CalendarProps> = ({ sessions, activeSession, onDayClick
       </div>
     </div>
   );
-};
+});
+
+Calendar.displayName = 'Calendar';
 
 export default Calendar;
