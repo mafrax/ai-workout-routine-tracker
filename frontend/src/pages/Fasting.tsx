@@ -14,12 +14,17 @@ import {
 } from '@ionic/react';
 import { notifications } from 'ionicons/icons';
 import { useFastingStore } from '../store/useFastingStore';
+import { FastingSession } from '../types/fasting';
 import TimerButton from '../components/Fasting/TimerButton';
 import PresetSelector from '../components/Fasting/PresetSelector';
 import StopFastModal from '../components/Fasting/StopFastModal';
 import QuickStats from '../components/Fasting/QuickStats';
 import PresetModal from '../components/Fasting/PresetModal';
 import NotificationSettings from '../components/Fasting/NotificationSettings';
+import WeekChart from '../components/Fasting/WeekChart';
+import Calendar from '../components/Fasting/Calendar';
+import HistoryList from '../components/Fasting/HistoryList';
+import DayDetailsModal from '../components/Fasting/DayDetailsModal';
 import './Fasting.css';
 
 const Fasting: React.FC = () => {
@@ -29,16 +34,21 @@ const Fasting: React.FC = () => {
     loadStats,
     loadNotificationSettings,
     startNotificationScheduler,
+    loadSessions,
     activeSession,
     activeEatingWindow,
     timerState,
     stats,
+    sessions,
     stopFast,
   } = useFastingStore();
 
   const [showStopModal, setShowStopModal] = useState(false);
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showDayDetails, setShowDayDetails] = useState(false);
+  const [selectedDayDate, setSelectedDayDate] = useState<string>('');
+  const [selectedDaySessions, setSelectedDaySessions] = useState<FastingSession[]>([]);
 
   useEffect(() => {
     loadPresets();
@@ -46,6 +56,7 @@ const Fasting: React.FC = () => {
     loadStats();
     loadNotificationSettings();
     startNotificationScheduler();
+    loadSessions();
   }, []);
 
   const handleStopClick = () => {
@@ -60,6 +71,12 @@ const Fasting: React.FC = () => {
   const handleRefresh = (event: CustomEvent) => {
     loadStats();
     event.detail.complete();
+  };
+
+  const handleDayClick = (dateString: string, sessions: FastingSession[]) => {
+    setSelectedDayDate(dateString);
+    setSelectedDaySessions(sessions);
+    setShowDayDetails(true);
   };
 
   return (
@@ -88,6 +105,16 @@ const Fasting: React.FC = () => {
           <TimerButton onStop={handleStopClick} />
 
           <QuickStats stats={stats} />
+
+          <WeekChart sessions={sessions} />
+
+          <Calendar
+            sessions={sessions}
+            activeSession={activeSession}
+            onDayClick={handleDayClick}
+          />
+
+          <HistoryList sessions={sessions} />
         </div>
 
         <StopFastModal
@@ -115,6 +142,13 @@ const Fasting: React.FC = () => {
             <NotificationSettings />
           </IonContent>
         </IonModal>
+
+        <DayDetailsModal
+          isOpen={showDayDetails}
+          dateString={selectedDayDate}
+          sessions={selectedDaySessions}
+          onClose={() => setShowDayDetails(false)}
+        />
       </IonContent>
     </IonPage>
   );
