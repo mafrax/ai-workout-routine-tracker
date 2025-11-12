@@ -26,6 +26,7 @@ import Calendar from '../components/Fasting/Calendar';
 import HistoryList from '../components/Fasting/HistoryList';
 import DayDetailsModal from '../components/Fasting/DayDetailsModal';
 import ErrorBoundary from '../components/ErrorBoundary';
+import LoadingState from '../components/Fasting/LoadingState';
 import './Fasting.css';
 
 const Fasting: React.FC = () => {
@@ -42,6 +43,8 @@ const Fasting: React.FC = () => {
     stats,
     sessions,
     stopFast,
+    isLoading,
+    loadingItems,
   } = useFastingStore();
 
   const [showStopModal, setShowStopModal] = useState(false);
@@ -104,19 +107,31 @@ const Fasting: React.FC = () => {
               disabled={timerState !== 'eating' || !!activeEatingWindow}
             />
 
-            <TimerButton onStop={handleStopClick} />
+            {loadingItems.has('activeState') ? (
+              <LoadingState type="timer" />
+            ) : (
+              <TimerButton onStop={handleStopClick} />
+            )}
 
-            <QuickStats stats={stats} />
+            {loadingItems.has('stats') ? (
+              <LoadingState type="stats" />
+            ) : (
+              <QuickStats stats={stats} />
+            )}
 
-            <WeekChart sessions={sessions} />
-
-            <Calendar
-              sessions={sessions}
-              activeSession={activeSession}
-              onDayClick={handleDayClick}
-            />
-
-            <HistoryList sessions={sessions} />
+            {loadingItems.has('sessions') ? (
+              <LoadingState type="chart" />
+            ) : (
+              <>
+                <WeekChart sessions={sessions} />
+                <Calendar
+                  sessions={sessions}
+                  activeSession={activeSession}
+                  onDayClick={handleDayClick}
+                />
+                <HistoryList sessions={sessions} />
+              </>
+            )}
           </div>
 
           <StopFastModal

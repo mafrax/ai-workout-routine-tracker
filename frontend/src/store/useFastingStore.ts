@@ -13,20 +13,23 @@ interface FastingState {
   stats: FastingStats | null;
   notificationSettings: NotificationSettings;
   timerState: TimerState;
+  isLoading: boolean;
+  loadingItems: Set<string>; // Track what's loading: 'presets', 'sessions', 'stats', etc.
 
   // Actions
-  loadPresets: () => void;
+  setLoading: (item: string, loading: boolean) => void;
+  loadPresets: () => Promise<void>;
   selectPreset: (id: string) => void;
-  addPreset: (name: string, durationMinutes: number) => void;
-  updatePreset: (id: string, name: string, durationMinutes: number) => void;
-  deletePreset: (id: string) => void;
+  addPreset: (name: string, durationMinutes: number) => Promise<void>;
+  updatePreset: (id: string, name: string, durationMinutes: number) => Promise<void>;
+  deletePreset: (id: string) => Promise<void>;
 
-  startFast: () => void;
-  stopFast: () => FastingSession | null;
-  loadActiveState: () => void;
+  startFast: () => Promise<void>;
+  stopFast: () => Promise<FastingSession | null>;
+  loadActiveState: () => Promise<void>;
 
-  loadStats: () => void;
-  loadSessions: () => void;
+  loadStats: () => Promise<void>;
+  loadSessions: () => Promise<void>;
 
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
   loadNotificationSettings: () => void;
@@ -64,11 +67,30 @@ export const useFastingStore = create<FastingState>((set, get) => ({
   stats: null,
   notificationSettings: DEFAULT_NOTIFICATION_SETTINGS,
   timerState: 'eating',
+  isLoading: false,
+  loadingItems: new Set(),
 
-  loadPresets: () => {
-    const presets = fastingService.getPresets();
-    const selectedPresetId = fastingService.getSelectedPresetId() || presets[0]?.id || null;
-    set({ presets, selectedPresetId });
+  setLoading: (item: string, loading: boolean) => {
+    const loadingItems = new Set(get().loadingItems);
+    if (loading) {
+      loadingItems.add(item);
+    } else {
+      loadingItems.delete(item);
+    }
+    set({ loadingItems, isLoading: loadingItems.size > 0 });
+  },
+
+  loadPresets: async () => {
+    get().setLoading('presets', true);
+    try {
+      const presets = await fastingService.getPresets();
+      const selectedPresetId = fastingService.getSelectedPresetId() || presets[0]?.id || null;
+      set({ presets, selectedPresetId });
+    } catch (error) {
+      console.error('Failed to load presets:', error);
+    } finally {
+      get().setLoading('presets', false);
+    }
   },
 
   selectPreset: (id: string) => {
@@ -76,67 +98,88 @@ export const useFastingStore = create<FastingState>((set, get) => ({
     set({ selectedPresetId: id });
   },
 
-  addPreset: (name: string, durationMinutes: number) => {
-    const newPreset = fastingService.addPreset(name, durationMinutes);
-    const presets = fastingService.getPresets();
+  addPreset: async (name: string, durationMinutes: number) => {
+    const newPreset = await fastingService.addPreset(name, durationMinutes);
+    const presets = await fastingService.getPresets();
     set({ presets });
   },
 
-  updatePreset: (id: string, name: string, durationMinutes: number) => {
-    fastingService.updatePreset(id, name, durationMinutes);
-    const presets = fastingService.getPresets();
+  updatePreset: async (id: string, name: string, durationMinutes: number) => {
+    await fastingService.updatePreset(id, { name, durationMinutes });
+    const presets = await fastingService.getPresets();
     set({ presets });
   },
 
-  deletePreset: (id: string) => {
-    fastingService.deletePreset(id);
-    const presets = fastingService.getPresets();
+  deletePreset: async (id: string) => {
+    await fastingService.deletePreset(id);
+    const presets = await fastingService.getPresets();
     set({ presets });
   },
 
-  startFast: () => {
+  startFast: async () => {
     const { selectedPresetId } = get();
     if (!selectedPresetId) return;
 
-    const session = fastingService.startFast(selectedPresetId);
+    const session = await fastingService.startFast(selectedPresetId);
     set({ activeSession: session, activeEatingWindow: null, timerState: 'fasting' });
   },
 
-  stopFast: () => {
-    const session = fastingService.stopFast();
-    const activeEatingWindow = fastingService.getActiveEatingWindow();
+  stopFast: async () => {
+    const session = await fastingService.stopFast();
+    const activeEatingWindow = await fastingService.getActiveEatingWindow();
     set({ activeSession: null, activeEatingWindow, timerState: 'eating' });
-    get().loadSessions();
-    get().loadStats();
+    await get().loadSessions();
+    await get().loadStats();
     return session;
   },
 
-  loadActiveState: () => {
-    const { state, data } = fastingService.getCurrentState();
+  loadActiveState: async () => {
+    get().setLoading('activeState', true);
+    try {
+      const { state, data } = await fastingService.getCurrentState();
 
-    if (state === 'fasting') {
-      set({
-        activeSession: data as FastingSession,
-        activeEatingWindow: null,
-        timerState: 'fasting'
-      });
-    } else {
-      set({
-        activeSession: null,
-        activeEatingWindow: data as EatingWindow | null,
-        timerState: state
-      });
+      if (state === 'fasting') {
+        set({
+          activeSession: data as FastingSession,
+          activeEatingWindow: null,
+          timerState: 'fasting'
+        });
+      } else {
+        set({
+          activeSession: null,
+          activeEatingWindow: data as EatingWindow | null,
+          timerState: state
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load active state:', error);
+    } finally {
+      get().setLoading('activeState', false);
     }
   },
 
-  loadStats: () => {
-    const stats = fastingService.calculateStats();
-    set({ stats });
+  loadStats: async () => {
+    get().setLoading('stats', true);
+    try {
+      const stats = await fastingService.calculateStats();
+      set({ stats });
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+    } finally {
+      get().setLoading('stats', false);
+    }
   },
 
-  loadSessions: () => {
-    const sessions = fastingService.getSessions();
-    set({ sessions });
+  loadSessions: async () => {
+    get().setLoading('sessions', true);
+    try {
+      const sessions = await fastingService.getSessions();
+      set({ sessions });
+    } catch (error) {
+      console.error('Failed to load sessions:', error);
+    } finally {
+      get().setLoading('sessions', false);
+    }
   },
 
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => {
