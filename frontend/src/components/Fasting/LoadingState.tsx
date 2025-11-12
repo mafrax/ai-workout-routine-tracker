@@ -30,12 +30,14 @@ const LoadingState: React.FC<LoadingStateProps> = ({ type = 'list' }) => {
   }
 
   if (type === 'chart') {
+    // Deterministic heights to prevent jitter on re-renders
+    const heights = [60, 85, 72, 95, 68, 78, 90];
     return (
       <div className="loading-chart">
         <IonSkeletonText animated style={{ width: '30%', height: '18px', marginBottom: '1rem' }} />
         <div className="skeleton-bars">
-          {[1, 2, 3, 4, 5, 6, 7].map(i => (
-            <div key={i} className="skeleton-bar" style={{ height: `${Math.random() * 80 + 20}%` }} />
+          {heights.map((height, i) => (
+            <div key={i} className="skeleton-bar" style={{ height: `${height}%` }} />
           ))}
         </div>
       </div>

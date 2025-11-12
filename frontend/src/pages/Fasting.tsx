@@ -120,7 +120,10 @@ const Fasting: React.FC = () => {
             )}
 
             {loadingItems.has('sessions') ? (
-              <LoadingState type="chart" />
+              <>
+                <LoadingState type="chart" />
+                <LoadingState type="list" />
+              </>
             ) : (
               <>
                 <WeekChart sessions={sessions} />

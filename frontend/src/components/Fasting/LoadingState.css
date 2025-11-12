@@ -76,3 +76,12 @@
     background-position: -200% 0;
   }
 }
+
+/* Reduced motion support for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-circle,
+  .skeleton-bar {
+    animation: none;
+    background: var(--ion-color-light);
+  }
+}
