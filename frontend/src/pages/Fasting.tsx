@@ -19,9 +19,11 @@ import './Fasting.css';
 const Fasting: React.FC = () => {
   const {
     loadPresets,
-    loadActiveSession,
+    loadActiveState,
     loadStats,
     activeSession,
+    activeEatingWindow,
+    timerState,
     stats,
     stopFast,
   } = useFastingStore();
@@ -31,7 +33,7 @@ const Fasting: React.FC = () => {
 
   useEffect(() => {
     loadPresets();
-    loadActiveSession();
+    loadActiveState();
     loadStats();
   }, []);
 
@@ -64,7 +66,7 @@ const Fasting: React.FC = () => {
         <div className="fasting-container">
           <PresetSelector
             onAddPreset={() => setShowPresetModal(true)}
-            disabled={!!activeSession}
+            disabled={timerState !== 'eating' || !!activeEatingWindow}
           />
 
           <TimerButton onStop={handleStopClick} />

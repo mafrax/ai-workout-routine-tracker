@@ -9,65 +9,120 @@ interface TimerButtonProps {
 }
 
 const TimerButton: React.FC<TimerButtonProps> = ({ onStop }) => {
-  const { activeSession, selectedPresetId, presets, startFast } = useFastingStore();
+  const { activeSession, activeEatingWindow, selectedPresetId, presets, startFast, timerState } = useFastingStore();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
-    if (!activeSession) {
-      setElapsedSeconds(0);
-      return;
-    }
-
-    // Calculate initial elapsed time
-    const updateElapsed = () => {
-      const elapsed = fastingService.getElapsedMinutes(activeSession) * 60;
-      setElapsedSeconds(elapsed);
+    const updateTimer = () => {
+      if (activeSession) {
+        // Fasting state
+        const elapsed = fastingService.getElapsedMinutes(activeSession) * 60;
+        setElapsedSeconds(elapsed);
+      } else if (activeEatingWindow) {
+        // Eating or Overdue state
+        const remaining = fastingService.getEatingWindowRemaining(activeEatingWindow) * 60;
+        setElapsedSeconds(remaining);
+      } else {
+        setElapsedSeconds(0);
+      }
     };
 
-    updateElapsed();
-
-    // Update every second
-    const interval = setInterval(updateElapsed, 1000);
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [activeSession]);
+  }, [activeSession, activeEatingWindow]);
 
   const formatTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const absSeconds = Math.abs(seconds);
+    const hours = Math.floor(absSeconds / 3600);
+    const minutes = Math.floor((absSeconds % 3600) / 60);
+    const secs = absSeconds % 60;
+    const formatted = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return seconds < 0 ? `-${formatted}` : formatted;
   };
 
   const formatDuration = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    const absMinutes = Math.abs(minutes);
+    const hours = Math.floor(absMinutes / 60);
+    const mins = absMinutes % 60;
+    const formatted = mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    return minutes < 0 ? `-${formatted}` : formatted;
   };
 
   const selectedPreset = presets.find(p => p.id === selectedPresetId);
-  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
-  const progressPercent = activeSession
-    ? Math.min((elapsedMinutes / activeSession.goalMinutes) * 100, 100)
-    : 0;
-  const goalMet = activeSession && elapsedMinutes >= activeSession.goalMinutes;
 
-  if (activeSession) {
+  // FASTING STATE
+  if (timerState === 'fasting' && activeSession) {
+    const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+    const progressPercent = Math.min((elapsedMinutes / activeSession.goalMinutes) * 100, 100);
+    const goalMet = elapsedMinutes >= activeSession.goalMinutes;
+    const overtime = goalMet ? elapsedMinutes - activeSession.goalMinutes : 0;
+
     return (
       <div className="timer-button-container">
-        <button className="timer-button timer-button-active" onClick={onStop}>
+        <button className="timer-button timer-button-fasting" onClick={onStop}>
           <div className="timer-display">
             <div className="timer-time">{formatTime(elapsedSeconds)}</div>
             <div className="timer-progress">
               {formatDuration(elapsedMinutes)} / {formatDuration(activeSession.goalMinutes)}
             </div>
             <div className="timer-percentage">{Math.round(progressPercent)}%</div>
-            {goalMet && <div className="timer-badge">Goal met ✓</div>}
+            {goalMet && (
+              <div className="timer-badge timer-badge-success">
+                Goal met! +{formatDuration(overtime)}
+              </div>
+            )}
           </div>
         </button>
       </div>
     );
   }
 
+  // EATING WINDOW STATE
+  if (timerState === 'eating' && activeEatingWindow) {
+    const remainingMinutes = Math.floor(elapsedSeconds / 60);
+    const elapsedMinutes = fastingService.getEatingWindowElapsed(activeEatingWindow);
+    const progressPercent = Math.min((elapsedMinutes / activeEatingWindow.expectedDurationMinutes) * 100, 100);
+
+    return (
+      <div className="timer-button-container">
+        <button className="timer-button timer-button-eating" onClick={() => startFast()}>
+          <div className="timer-display">
+            <div className="timer-label">Eating Window</div>
+            <div className="timer-time">{formatTime(elapsedSeconds)}</div>
+            <div className="timer-progress">
+              Time until next fast
+            </div>
+            <div className="timer-percentage">{Math.round(progressPercent)}% eaten</div>
+          </div>
+        </button>
+      </div>
+    );
+  }
+
+  // OVERDUE STATE (past eating window)
+  if (timerState === 'overdue' && activeEatingWindow) {
+    const overdueMinutes = fastingService.getOverdueMinutes(activeEatingWindow);
+
+    return (
+      <div className="timer-button-container">
+        <button className="timer-button timer-button-overdue" onClick={() => startFast()}>
+          <div className="timer-display">
+            <div className="timer-label">OVERDUE!</div>
+            <div className="timer-time timer-overdue-time">+{formatDuration(overdueMinutes)}</div>
+            <div className="timer-progress">
+              You should have started fasting!
+            </div>
+            <div className="timer-badge timer-badge-warning">
+              Tap to start now
+            </div>
+          </div>
+        </button>
+      </div>
+    );
+  }
+
+  // DEFAULT STATE (ready to start first fast)
   return (
     <div className="timer-button-container">
       <button

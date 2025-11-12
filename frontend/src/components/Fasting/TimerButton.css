@@ -27,13 +27,24 @@
   box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);
 }
 
-.timer-button-active {
+.timer-button-fasting {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
-  animation: pulse 2s infinite;
+  animation: pulse-red 2s infinite;
 }
 
-@keyframes pulse {
+.timer-button-eating {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+}
+
+.timer-button-overdue {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+  animation: pulse-orange 1.5s infinite;
+}
+
+@keyframes pulse-red {
   0%, 100% {
     box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
   }
@@ -42,15 +53,48 @@
   }
 }
 
+@keyframes pulse-orange {
+  0%, 100% {
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.5);
+  }
+  50% {
+    box-shadow: 0 8px 36px rgba(245, 158, 11, 0.8);
+    transform: scale(1.02);
+  }
+}
+
 .timer-display {
   text-align: center;
   color: white;
+}
+
+.timer-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+  opacity: 0.9;
 }
 
 .timer-time {
   font-size: 3rem;
   font-weight: bold;
   margin-bottom: 0.5rem;
+}
+
+.timer-overdue-time {
+  color: #fff;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50%, 100% {
+    opacity: 1;
+  }
+  25%, 75% {
+    opacity: 0.6;
+  }
 }
 
 .timer-progress {
@@ -78,9 +122,28 @@
 .timer-badge {
   margin-top: 0.5rem;
   padding: 0.25rem 0.75rem;
-  background: rgba(255, 255, 255, 0.2);
   border-radius: 1rem;
   font-size: 0.875rem;
   font-weight: 600;
   display: inline-block;
+}
+
+.timer-badge-success {
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.timer-badge-warning {
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  animation: pulse-badge 1s infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
