@@ -15,12 +15,16 @@ const TimerButton: React.FC<TimerButtonProps> = ({ onStop }) => {
   useEffect(() => {
     const updateTimer = () => {
       if (activeSession) {
-        // Fasting state
-        const elapsed = fastingService.getElapsedMinutes(activeSession) * 60;
+        // Fasting state - calculate elapsed seconds directly
+        const start = new Date(activeSession.startTime).getTime();
+        const now = Date.now();
+        const elapsed = Math.floor((now - start) / 1000);
         setElapsedSeconds(elapsed);
       } else if (activeEatingWindow) {
-        // Eating or Overdue state
-        const remaining = fastingService.getEatingWindowRemaining(activeEatingWindow) * 60;
+        // Eating or Overdue state - calculate remaining seconds
+        const dueTime = new Date(activeEatingWindow.nextFastDueTime).getTime();
+        const now = Date.now();
+        const remaining = Math.floor((dueTime - now) / 1000);
         setElapsedSeconds(remaining);
       } else {
         setElapsedSeconds(0);
@@ -88,12 +92,12 @@ const TimerButton: React.FC<TimerButtonProps> = ({ onStop }) => {
       <div className="timer-button-container">
         <button className="timer-button timer-button-eating" onClick={() => startFast()}>
           <div className="timer-display">
-            <div className="timer-label">Eating Window</div>
+            <div className="timer-label">Eating</div>
             <div className="timer-time">{formatTime(elapsedSeconds)}</div>
             <div className="timer-progress">
-              Time until next fast
+              Until next fast
             </div>
-            <div className="timer-percentage">{Math.round(progressPercent)}% eaten</div>
+            <div className="timer-percentage">{Math.round(progressPercent)}%</div>
           </div>
         </button>
       </div>
@@ -111,10 +115,10 @@ const TimerButton: React.FC<TimerButtonProps> = ({ onStop }) => {
             <div className="timer-label">OVERDUE!</div>
             <div className="timer-time timer-overdue-time">+{formatDuration(overdueMinutes)}</div>
             <div className="timer-progress">
-              You should have started fasting!
+              Start fasting now!
             </div>
             <div className="timer-badge timer-badge-warning">
-              Tap to start now
+              Tap to start
             </div>
           </div>
         </button>
