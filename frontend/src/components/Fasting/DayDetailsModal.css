@@ -1,0 +1,14 @@
+.day-details-content {
+  padding: 1rem 0;
+}
+
+.day-details-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--ion-color-medium);
+}
+
+.day-details-empty p {
+  margin: 0;
+  font-size: 0.875rem;
+}
