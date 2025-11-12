@@ -110,3 +110,54 @@ export interface Workout {
   day: string;
   exercises: string[];
 }
+
+// Fasting Types
+export interface FastingPresetDto {
+  id: string;
+  userId: number;
+  name: string;
+  durationMinutes: number;
+  createdAt: string;
+}
+
+export interface FastingSessionDto {
+  id: string;
+  userId: number;
+  startTime: string;
+  endTime: string | null;
+  goalMinutes: number;
+  presetName: string;
+  stoppedEarly: boolean;
+  eatingWindowMinutes: number;
+  createdAt: string;
+}
+
+export interface FastingEatingWindowDto {
+  id: string;
+  userId: number;
+  startTime: string;
+  endTime: string | null;
+  expectedDurationMinutes: number;
+  nextFastDueTime: string;
+  createdAt: string;
+}
+
+export interface CreateFastingPresetRequest {
+  name: string;
+  durationMinutes: number;
+}
+
+export interface UpdateFastingPresetRequest {
+  name?: string;
+  durationMinutes?: number;
+}
+
+export interface StartFastingSessionRequest {
+  presetId: string;
+  presetName: string;
+  goalMinutes: number;
+}
+
+export interface StopFastingSessionRequest {
+  sessionId: string;
+}
