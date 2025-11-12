@@ -1,6 +1,7 @@
 import React from 'react';
 import { IonCard, IonCardContent } from '@ionic/react';
 import { FastingStats } from '../../types/fasting';
+import EmptyState from './EmptyState';
 import './QuickStats.css';
 
 interface QuickStatsProps {
@@ -8,7 +9,14 @@ interface QuickStatsProps {
 }
 
 const QuickStats: React.FC<QuickStatsProps> = ({ stats }) => {
-  if (!stats) return null;
+  if (!stats) {
+    return (
+      <div className="quick-stats">
+        <h2 className="section-title">Quick Stats</h2>
+        <EmptyState type="stats" compact />
+      </div>
+    );
+  }
 
   const formatDuration = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);

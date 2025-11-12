@@ -1,0 +1,80 @@
+.empty-state-card {
+  margin: 2rem 0;
+  background: var(--ion-background-color);
+}
+
+.empty-state-content {
+  text-align: center;
+  padding: 3rem 1.5rem;
+}
+
+.empty-icon-container {
+  margin-bottom: 1.5rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+.empty-icon {
+  font-size: 5rem;
+  color: var(--ion-color-medium);
+  opacity: 0.5;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.empty-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin: 0 0 0.5rem 0;
+}
+
+.empty-description {
+  font-size: 1rem;
+  color: var(--ion-color-medium);
+  line-height: 1.6;
+  margin: 0 0 1.5rem 0;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.empty-action {
+  margin-top: 1rem;
+}
+
+/* Compact variant */
+.empty-state-compact {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 1rem;
+  text-align: left;
+}
+
+.empty-icon-compact {
+  font-size: 3rem;
+  color: var(--ion-color-medium);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.empty-text-compact h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin: 0 0 0.25rem 0;
+}
+
+.empty-text-compact p {
+  font-size: 0.875rem;
+  color: var(--ion-color-medium);
+  margin: 0;
+  line-height: 1.4;
+}

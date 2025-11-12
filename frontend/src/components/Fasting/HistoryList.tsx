@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { IonList, IonItem, IonLabel, IonBadge, IonIcon } from '@ionic/react';
 import { chevronDown, chevronUp, checkmarkCircle, alertCircle } from 'ionicons/icons';
 import { FastingSession } from '../../types/fasting';
+import EmptyState from './EmptyState';
 import './HistoryList.css';
 
 interface HistoryListProps {
@@ -53,8 +54,12 @@ const HistoryList: React.FC<HistoryListProps> = ({ sessions }) => {
 
   if (sortedSessions.length === 0) {
     return (
-      <div className="history-list-empty">
-        <p>No fasting sessions yet. Start your first fast!</p>
+      <div className="history-list">
+        <h2 className="section-title">History</h2>
+        <EmptyState
+          type="sessions"
+          description="Start your first fast to begin tracking your intermittent fasting journey. Your completed sessions will appear here."
+        />
       </div>
     );
   }

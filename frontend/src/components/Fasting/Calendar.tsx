@@ -3,6 +3,7 @@ import { IonIcon } from '@ionic/react';
 import { chevronBack, chevronForward } from 'ionicons/icons';
 import { FastingSession } from '../../types/fasting';
 import { generateCalendarDays, getMonthYearString } from '../../utils/calendarUtils';
+import EmptyState from './EmptyState';
 import './Calendar.css';
 
 interface CalendarProps {
@@ -85,7 +86,12 @@ const Calendar: React.FC<CalendarProps> = ({ sessions, activeSession, onDayClick
           </div>
         ))}
       </div>
-
+      {sessions.length === 0 && (
+        <EmptyState
+          type="calendar"
+          compact
+        />
+      )}
       <div className="calendar-legend">
         <div className="calendar-legend-item">
           <div className="calendar-legend-dot success-dot"></div>
