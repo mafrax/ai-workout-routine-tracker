@@ -30,6 +30,7 @@
     "@types/pg": "^8.15.6",
     "@types/react-router": "^5.1.20",
     "@types/react-router-dom": "^5.3.3",
+    "@types/uuid": "^11.0.0",
     "axios": "^1.12.2",
     "ionicons": "^7.4.0",
     "pg": "^8.16.3",
@@ -38,6 +39,7 @@
     "react-router": "^5.3.4",
     "react-router-dom": "^5.3.4",
     "swiper": "^12.0.3",
+    "uuid": "^13.0.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

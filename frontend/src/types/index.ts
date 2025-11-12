@@ -59,3 +59,5 @@ export interface ProgressSummary {
   totalMinutesTrained: number;
   trend: string;
 }
+
+export * from './fasting';
