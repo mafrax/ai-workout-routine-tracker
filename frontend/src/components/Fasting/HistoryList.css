@@ -1,0 +1,96 @@
+.history-list {
+  margin: 1rem;
+}
+
+.history-list-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  padding: 0 0.5rem;
+  color: var(--ion-color-dark);
+}
+
+.history-list-items {
+  background: var(--ion-color-light);
+  border-radius: 12px;
+  padding: 0;
+}
+
+.history-list-item {
+  --padding-start: 1rem;
+  --padding-end: 1rem;
+  --inner-padding-end: 0;
+}
+
+.history-icon-success {
+  color: #22c55e;
+  font-size: 1.5rem;
+}
+
+.history-icon-partial {
+  color: #f59e0b;
+  font-size: 1.5rem;
+}
+
+.history-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.history-item-header h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ion-color-dark);
+}
+
+.history-item-summary {
+  font-size: 0.875rem;
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.history-item-details {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.history-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  font-size: 0.8125rem;
+}
+
+.history-detail-label {
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.history-detail-value {
+  color: var(--ion-color-dark);
+  font-weight: 600;
+}
+
+.history-detail-stopped {
+  color: #f59e0b;
+}
+
+.history-expand-icon {
+  color: var(--ion-color-medium);
+  font-size: 1.25rem;
+}
+
+.history-list-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--ion-color-medium);
+}
+
+.history-list-empty p {
+  margin: 0;
+  font-size: 0.875rem;
+}
