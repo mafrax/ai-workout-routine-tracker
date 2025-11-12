@@ -23,10 +23,13 @@ model User {
   goals               String?
   availableEquipment  String?          @map("available_equipment")
   bodyweightExercises String?          @map("bodyweight_exercises")
-  dailyTasks          DailyTask[]
-  telegramConfig      TelegramConfig?
-  workoutPlans        WorkoutPlan[]
-  workoutSessions     WorkoutSession[]
+  dailyTasks           DailyTask[]
+  telegramConfig       TelegramConfig?
+  workoutPlans         WorkoutPlan[]
+  workoutSessions      WorkoutSession[]
+  fastingPresets       FastingPreset[]
+  fastingSessions      FastingSession[]
+  fastingEatingWindows FastingEatingWindow[]
 
   @@map("users")
 }
@@ -135,4 +138,43 @@ model ConversationHistory {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("conversation_history")
+}
+
+model FastingPreset {
+  id              String   @id @default(uuid())
+  userId          BigInt   @map("user_id")
+  name            String
+  durationMinutes Int      @map("duration_minutes")
+  createdAt       DateTime @default(now()) @map("created_at")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("fasting_presets")
+}
+
+model FastingSession {
+  id                  String    @id @default(uuid())
+  userId              BigInt    @map("user_id")
+  startTime           DateTime  @map("start_time")
+  endTime             DateTime? @map("end_time")
+  goalMinutes         Int       @map("goal_minutes")
+  presetName          String    @map("preset_name")
+  stoppedEarly        Boolean   @map("stopped_early")
+  eatingWindowMinutes Int       @map("eating_window_minutes")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("fasting_sessions")
+}
+
+model FastingEatingWindow {
+  id                      String    @id @default(uuid())
+  userId                  BigInt    @map("user_id")
+  startTime               DateTime  @map("start_time")
+  endTime                 DateTime? @map("end_time")
+  expectedDurationMinutes Int       @map("expected_duration_minutes")
+  nextFastDueTime         DateTime  @map("next_fast_due_time")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("fasting_eating_windows")
 }
