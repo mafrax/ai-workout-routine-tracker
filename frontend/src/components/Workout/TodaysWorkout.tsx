@@ -1,25 +1,28 @@
 import { Preferences } from '@capacitor/preferences';
 import {
+  IonBadge,
   IonButton,
+  IonButtons,
   IonCard,
   IonCardContent,
   IonCardHeader,
   IonCardTitle,
+  IonChip,
   IonContent,
   IonHeader,
   IonIcon,
+  IonInput,
+  IonItem,
+  IonLabel,
+  IonModal,
   IonPage,
   IonSpinner,
   IonTitle,
+  IonToast,
   IonToolbar
 } from '@ionic/react';
-import { barbell, calendar, checkmarkCircleOutline, eye, eyeOff } from 'ionicons/icons';
+import { add, archive, barbell, calendar, checkmarkCircle, checkmarkCircleOutline, close, copy, eye, eyeOff, fitness, pause, send, time } from 'ionicons/icons';
 import React, { useEffect, useRef, useState } from 'react';
-import type { Swiper as SwiperType } from 'swiper';
-import 'swiper/css';
-import 'swiper/css/pagination';
-import { Pagination } from 'swiper/modules';
-import { Swiper, SwiperSlide } from 'swiper/react';
 import { aiService } from '../../services/aiService';
 import { workoutPlanApi as backendWorkoutPlanApi, workoutSessionApi } from '../../services/api_backend';
 import { useStore } from '../../store/useStore';
@@ -36,7 +39,52 @@ const TodaysWorkout: React.FC = () => {
   const [activeWorkoutPlans, setActiveWorkoutPlans] = useState<any[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const [hideCompleted, setHideCompleted] = useState(true);
-  const swiperRef = useRef<SwiperType | null>(null);
+  const [currentPlanIndex, setCurrentPlanIndex] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [showPlanDetailsModal, setShowPlanDetailsModal] = useState(false);
+  const [viewingPlan, setViewingPlan] = useState<any | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Touch handling for carousel
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentPlanIndex < activeWorkoutPlans.length - 1) {
+      const newIndex = currentPlanIndex + 1;
+      setCurrentPlanIndex(newIndex);
+      const newPlan = activeWorkoutPlans[newIndex];
+      if (newPlan) {
+        handlePlanSelect(newPlan.id);
+      }
+    }
+    if (isRightSwipe && currentPlanIndex > 0) {
+      const newIndex = currentPlanIndex - 1;
+      setCurrentPlanIndex(newIndex);
+      const newPlan = activeWorkoutPlans[newIndex];
+      if (newPlan) {
+        handlePlanSelect(newPlan.id);
+      }
+    }
+  };
 
   const toggleHideCompleted = async () => {
     const newValue = !hideCompleted;
@@ -81,20 +129,20 @@ const TodaysWorkout: React.FC = () => {
     initializeData();
   }, [user, activeWorkoutPlan, hasCheckedGeneration]);
 
-  // Reload active plans whenever the activeWorkoutPlan changes (e.g., updated via chat)
+  // Reload all plans (active and archived) whenever the activeWorkoutPlan changes
   useEffect(() => {
     if (user?.id && activeWorkoutPlan) {
       const refreshPlans = async () => {
         const allPlans = await backendWorkoutPlanApi.getUserPlans(user.id!);
-        const activePlans = allPlans.filter(p => p.isActive && !p.isArchived);
-        setActiveWorkoutPlans(activePlans);
+        // Show all plans (both active and archived)
+        setActiveWorkoutPlans(allPlans);
 
         // Update the selected plan if it matches the activeWorkoutPlan
         if (selectedPlanId == activeWorkoutPlan.id) {
-          const updatedPlan = activePlans.find(p => p.id == activeWorkoutPlan.id);
+          const updatedPlan = allPlans.find(p => p.id == activeWorkoutPlan.id);
           if (updatedPlan) {
             // Force re-render by updating both states
-            setActiveWorkoutPlans([...activePlans]);
+            setActiveWorkoutPlans([...allPlans]);
           }
         }
       };
@@ -106,15 +154,17 @@ const TodaysWorkout: React.FC = () => {
     if (!user?.id) return;
 
     try {
-      // Load all plans from backend
+      // Load all plans from backend (including archived)
       const allPlans = await backendWorkoutPlanApi.getUserPlans(user.id);
+
+      // Show all plans in carousel
+      setActiveWorkoutPlans(allPlans);
+
+      // Set the first active (non-archived) plan as the default selected plan, or first plan if none active
       const activePlans = allPlans.filter(p => p.isActive && !p.isArchived);
+      const firstPlan = activePlans.length > 0 ? activePlans[0] : allPlans[0];
 
-      setActiveWorkoutPlans(activePlans);
-
-      // Set the first active plan as the default selected plan
-      if (activePlans.length > 0) {
-        const firstPlan = activePlans[0];
+      if (firstPlan) {
         setActiveWorkoutPlan(firstPlan);
         setSelectedPlanId(firstPlan.id!);
 
@@ -151,6 +201,16 @@ const TodaysWorkout: React.FC = () => {
     }
   };
 
+  // Sync carousel index with selected plan
+  useEffect(() => {
+    if (selectedPlanId && activeWorkoutPlans.length > 0) {
+      const index = activeWorkoutPlans.findIndex(p => p.id === selectedPlanId);
+      if (index !== -1 && index !== currentPlanIndex) {
+        setCurrentPlanIndex(index);
+      }
+    }
+  }, [selectedPlanId, activeWorkoutPlans, currentPlanIndex]);
+
   const handlePlanSelect = (planId: number) => {
     const plan = activeWorkoutPlans.find(p => p.id == planId);
     console.log(activeWorkoutPlans)
@@ -159,6 +219,159 @@ const TodaysWorkout: React.FC = () => {
     if (plan) {
       setSelectedPlanId(planId);
       setActiveWorkoutPlan(plan);
+    }
+  };
+
+  const handleViewPlanDetails = (plan: any) => {
+    setViewingPlan(plan);
+    setShowPlanDetailsModal(true);
+  };
+
+  const handleTogglePlanActive = async (plan: any) => {
+    if (!user?.id || !plan.id) return;
+
+    try {
+      const updatedPlan = await backendWorkoutPlanApi.updatePlan(plan.id, {
+        ...plan,
+        isActive: !plan.isActive
+      });
+
+      // Update local state
+      setActiveWorkoutPlans(plans =>
+        plans.map(p => p.id === updatedPlan.id ? updatedPlan : p)
+      );
+
+      // If this is the selected plan, update it
+      if (plan.id === selectedPlanId) {
+        setActiveWorkoutPlan(updatedPlan);
+      }
+
+      setToastMessage(updatedPlan.isActive ? 'Plan activated!' : 'Plan paused!');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error toggling plan:', error);
+      setToastMessage('Failed to update plan');
+      setShowToast(true);
+    }
+  };
+
+  const handleArchivePlan = async (plan: any) => {
+    if (!plan.id) return;
+
+    try {
+      const updatedPlan = await backendWorkoutPlanApi.updatePlan(plan.id, {
+        ...plan,
+        isArchived: !plan.isArchived,
+        isActive: false
+      });
+
+      // Update local state
+      setActiveWorkoutPlans(plans =>
+        plans.map(p => p.id === updatedPlan.id ? updatedPlan : p)
+      );
+
+      // If this was the selected plan and it's now archived, select another one
+      if (plan.id === selectedPlanId && updatedPlan.isArchived) {
+        const activePlans = activeWorkoutPlans.filter(p => p.isActive && !p.isArchived && p.id !== plan.id);
+        if (activePlans.length > 0) {
+          setSelectedPlanId(activePlans[0].id);
+          setActiveWorkoutPlan(activePlans[0]);
+        }
+      }
+
+      setToastMessage(updatedPlan.isArchived ? 'Plan archived!' : 'Plan restored!');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error archiving plan:', error);
+      setToastMessage('Failed to archive plan');
+      setShowToast(true);
+    }
+  };
+
+  const parseNextWorkouts = (planDetails: string, count: number = 4) => {
+    const lines = planDetails.split('\n');
+    const workouts: Array<{ day: string; exercises: string[] }> = [];
+    let currentDay = '';
+    let currentExercises: string[] = [];
+
+    lines.forEach(line => {
+      const trimmedLine = line.trim();
+
+      // Check if it's a day header (e.g., "Day 1 - Push", "Day 1:", etc.)
+      if (trimmedLine.match(/^Day\s+\d+/i)) {
+        // Save previous day if exists
+        if (currentDay && currentExercises.length > 0) {
+          workouts.push({ day: currentDay, exercises: [...currentExercises] });
+          currentExercises = [];
+        }
+        currentDay = trimmedLine;
+      } else if (trimmedLine && currentDay && trimmedLine.match(/^\d+\./)) {
+        // It's an exercise line (starts with number and period)
+        currentExercises.push(trimmedLine);
+      }
+    });
+
+    // Add the last day
+    if (currentDay && currentExercises.length > 0) {
+      workouts.push({ day: currentDay, exercises: [...currentExercises] });
+    }
+
+    return workouts.slice(0, count);
+  };
+
+  const handleCopyPlanDetails = (plan: any) => {
+    navigator.clipboard.writeText(plan.planDetails || '');
+    setToastMessage('Plan details copied to clipboard!');
+    setShowToast(true);
+  };
+
+  const handleSendWorkoutPreview = async (plan: any) => {
+    setToastMessage('Sending workout preview to Telegram...');
+    setShowToast(true);
+    // TODO: Implement Telegram send functionality
+  };
+
+  const handleUpdateTelegramHour = async (plan: any, hour: number) => {
+    if (!plan.id) return;
+    try {
+      await backendWorkoutPlanApi.updatePlan(plan.id, {
+        ...plan,
+        telegramPreviewHour: hour
+      });
+      setActiveWorkoutPlans(plans =>
+        plans.map(p => p.id === plan.id ? { ...p, telegramPreviewHour: hour } : p)
+      );
+      if (viewingPlan?.id === plan.id) {
+        setViewingPlan({ ...plan, telegramPreviewHour: hour });
+      }
+      setToastMessage(`Preview time updated to ${hour}:00`);
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error updating telegram hour:', error);
+      setToastMessage('Failed to update preview time');
+      setShowToast(true);
+    }
+  };
+
+  const handleUpdateReminderTime = async (plan: any, reminderTime: string) => {
+    if (!plan.id) return;
+    try {
+      await backendWorkoutPlanApi.updatePlan(plan.id, {
+        ...plan,
+        reminderTime
+      });
+      setActiveWorkoutPlans(plans =>
+        plans.map(p => p.id === plan.id ? { ...p, reminderTime } : p)
+      );
+      if (viewingPlan?.id === plan.id) {
+        setViewingPlan({ ...plan, reminderTime });
+      }
+      setToastMessage('Reminder time updated!');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error updating reminder time:', error);
+      setToastMessage('Failed to update reminder time');
+      setShowToast(true);
     }
   };
 
@@ -386,97 +599,154 @@ NOW GENERATE:`;
       <IonHeader>
         <IonToolbar>
           <IonTitle>Today's Workout</IonTitle>
+          <IonButtons slot="end">
+            <IonButton routerLink="/chat">
+              <IonIcon icon={add} slot="start" />
+              New Plan
+            </IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
 
       <IonContent>
         <div className="todays-workout-container">
-          {activeWorkoutPlans.length > 1 ? (
-            <div className="plan-carousel-container">
-              <Swiper
-                modules={[Pagination]}
-                spaceBetween={16}
-                slidesPerView={1}
-                pagination={{ clickable: true }}
-                onSwiper={(swiper) => {
-                  swiperRef.current = swiper;
-                }}
-                onSlideChange={(swiper) => {
-                  const plan = activeWorkoutPlans[swiper.activeIndex];
-                  if (plan) {
-                    handlePlanSelect(plan.id);
-                  }
-                }}
-                initialSlide={activeWorkoutPlans.findIndex(p => p.id === selectedPlanId)}
-                className="plan-swiper"
+          {activeWorkoutPlans.length > 0 && (
+            <div className="plans-mobile-carousel">
+              <div
+                className="carousel-container"
+                ref={carouselRef}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
               >
-                {activeWorkoutPlans.map((plan) => (
-                  <SwiperSlide key={plan.id}>
-                    <IonCard className="plan-info-card">
-                      <IonCardHeader>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <IonCardTitle style={{ color: 'var(--text-primary)' }}>{plan.name}</IonCardTitle>
-                          {plan.color && (
-                            <div
-                              style={{
-                                width: '12px',
-                                height: '12px',
-                                borderRadius: '50%',
-                                backgroundColor: plan.color,
-                              }}
-                            />
-                          )}
-                        </div>
-                      </IonCardHeader>
-                      <IonCardContent style={{ color: 'var(--text-secondary)' }}>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '12px' }}>{plan.description}</p>
-                        <div className="plan-stats-row">
-                          <div className="stat">
-                            <IonIcon icon={calendar} />
-                            <span>{plan.durationWeeks} weeks</span>
+                <div
+                  className="carousel-track"
+                  style={{
+                    transform: `translateX(-${currentPlanIndex * (100 / activeWorkoutPlans.length)}%)`,
+                    width: `${activeWorkoutPlans.length * 100}%`
+                  }}
+                >
+                  {activeWorkoutPlans.map((plan) => (
+                    <div key={plan.id} className="carousel-slide" style={{ width: `${100 / activeWorkoutPlans.length}%` }}>
+                      <IonCard
+                        className={`plan-card ${plan.isArchived ? 'archived' : ''}`}
+                        style={{
+                          borderLeft: `6px solid ${plan.color || '#667eea'}`,
+                          cursor: 'pointer',
+                          margin: '0 8px',
+                          opacity: plan.isArchived ? 0.7 : 1
+                        }}
+                        onClick={() => handlePlanSelect(plan.id)}
+                      >
+                        <IonCardHeader>
+                          <div className="plan-header">
+                            <IonCardTitle style={{ color: 'var(--text-primary)' }}>{plan.name}</IonCardTitle>
+                            {plan.isArchived ? (
+                              <IonChip color="medium">
+                                <IonIcon icon={archive} />
+                                <IonLabel>Archived</IonLabel>
+                              </IonChip>
+                            ) : plan.id === selectedPlanId ? (
+                              <IonChip color="success">
+                                <IonIcon icon={checkmarkCircle} />
+                                <IonLabel>Active</IonLabel>
+                              </IonChip>
+                            ) : plan.isActive ? (
+                              <IonChip color="primary">
+                                <IonIcon icon={checkmarkCircle} />
+                                <IonLabel>Active</IonLabel>
+                              </IonChip>
+                            ) : (
+                              <IonChip color="medium">
+                                <IonIcon icon={pause} />
+                                <IonLabel>Paused</IonLabel>
+                              </IonChip>
+                            )}
                           </div>
-                          <div className="stat">
-                            <IonIcon icon={barbell} />
-                            <span>{plan.daysPerWeek} days/week</span>
+                        </IonCardHeader>
+
+                        <IonCardContent>
+                          <p className="plan-description" style={{ color: 'var(--text-secondary)' }}>{plan.description}</p>
+
+                          <div className="plan-stats">
+                            <div className="stat-item">
+                              <IonIcon icon={calendar} />
+                              <span>{plan.daysPerWeek} days/week</span>
+                            </div>
+                            <div className="stat-item">
+                              <IonIcon icon={fitness} />
+                              <span>{plan.durationWeeks} weeks</span>
+                            </div>
                           </div>
-                        </div>
-                      </IonCardContent>
-                    </IonCard>
-                  </SwiperSlide>
-                ))}
-              </Swiper>
+
+                          <div className="plan-progress">
+                            <IonBadge color="primary">
+                              {plan.completedWorkouts?.length || 0} workouts completed
+                            </IonBadge>
+                          </div>
+
+                          <div className="plan-actions" onClick={(e) => e.stopPropagation()}>
+                            <IonButton
+                              size="small"
+                              fill="solid"
+                              onClick={() => handleViewPlanDetails(plan)}
+                            >
+                              View Details
+                            </IonButton>
+
+                            <IonButton
+                              size="small"
+                              fill={plan.isActive ? "outline" : "solid"}
+                              color={plan.isActive ? "medium" : "primary"}
+                              onClick={() => handleTogglePlanActive(plan)}
+                            >
+                              <IonIcon icon={plan.isActive ? pause : checkmarkCircle} slot="start" />
+                              {plan.isActive ? 'Pause' : 'Activate'}
+                            </IonButton>
+
+                            {!plan.isArchived && (
+                              <IonButton
+                                size="small"
+                                fill="outline"
+                                color="warning"
+                                onClick={() => handleArchivePlan(plan)}
+                              >
+                                <IonIcon icon={archive} slot="start" />
+                                Archive
+                              </IonButton>
+                            )}
+                          </div>
+                        </IonCardContent>
+                      </IonCard>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Carousel indicators and navigation */}
+              {activeWorkoutPlans.length > 1 && (
+                <>
+                  <div className="carousel-indicators">
+                    {activeWorkoutPlans.map((_: any, index: number) => (
+                      <div
+                        key={index}
+                        className={`indicator ${index === currentPlanIndex ? 'active' : ''}`}
+                        onClick={() => {
+                          setCurrentPlanIndex(index);
+                          const plan = activeWorkoutPlans[index];
+                          if (plan) {
+                            handlePlanSelect(plan.id);
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="carousel-counter">
+                    {currentPlanIndex + 1} of {activeWorkoutPlans.length}
+                  </div>
+                </>
+              )}
             </div>
-          ) : (
-            <IonCard className="plan-info-card">
-              <IonCardHeader>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <IonCardTitle style={{ color: 'var(--text-primary)' }}>{currentPlan.name}</IonCardTitle>
-                  {currentPlan.color && (
-                    <div
-                      style={{
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '50%',
-                        backgroundColor: currentPlan.color,
-                      }}
-                    />
-                  )}
-                </div>
-              </IonCardHeader>
-              <IonCardContent style={{ color: 'var(--text-secondary)' }}>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '12px' }}>{currentPlan.description}</p>
-                <div className="plan-stats-row">
-                  <div className="stat">
-                    <IonIcon icon={calendar} />
-                    <span>{currentPlan.durationWeeks} weeks</span>
-                  </div>
-                  <div className="stat">
-                    <IonIcon icon={barbell} />
-                    <span>{currentPlan.daysPerWeek} days/week</span>
-                  </div>
-                </div>
-              </IonCardContent>
-            </IonCard>
           )}
 
           <div style={{ padding: '0 16px', marginBottom: '16px' }}>
@@ -545,6 +815,179 @@ NOW GENERATE:`;
           </div>
         </div>
       </IonContent>
+
+      <IonModal
+        isOpen={showPlanDetailsModal}
+        onDidDismiss={() => {
+          setShowPlanDetailsModal(false);
+          setViewingPlan(null);
+        }}
+      >
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>{viewingPlan?.name}</IonTitle>
+            <IonButtons slot="end">
+              {viewingPlan && (
+                <IonButton onClick={() => handleCopyPlanDetails(viewingPlan)}>
+                  <IonIcon icon={copy} />
+                </IonButton>
+              )}
+              <IonButton onClick={() => setShowPlanDetailsModal(false)}>
+                <IonIcon icon={close} />
+              </IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          {viewingPlan && (
+            <div style={{ padding: '20px' }}>
+              <div style={{ marginBottom: '20px' }}>
+                <h3 style={{ marginBottom: '8px', color: 'var(--brand-primary)' }}>Description</h3>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>{viewingPlan.description}</p>
+              </div>
+
+              <div style={{ marginBottom: '20px', display: 'flex', gap: '12px' }}>
+                <IonChip color="primary">
+                  <IonIcon icon={calendar} />
+                  <IonLabel>{viewingPlan.daysPerWeek} days/week</IonLabel>
+                </IonChip>
+                <IonChip color="primary">
+                  <IonIcon icon={fitness} />
+                  <IonLabel>{viewingPlan.durationWeeks} weeks</IonLabel>
+                </IonChip>
+                {viewingPlan.isActive && (
+                  <IonChip color="success">
+                    <IonIcon icon={checkmarkCircle} />
+                    <IonLabel>Active</IonLabel>
+                  </IonChip>
+                )}
+              </div>
+
+              <IonCard color="secondary" style={{ marginBottom: '20px' }}>
+                <IonCardContent>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <IonIcon icon={send} style={{ fontSize: '20px' }} />
+                      <strong>Telegram Workout Preview</strong>
+                    </div>
+                    <IonButton
+                      size="small"
+                      fill="solid"
+                      onClick={() => handleSendWorkoutPreview(viewingPlan)}
+                    >
+                      <IonIcon icon={send} slot="start" />
+                      Send Now
+                    </IonButton>
+                  </div>
+                  <p style={{ fontSize: '14px', marginBottom: '12px', opacity: 0.9 }}>
+                    Get your next workout details sent directly to Telegram
+                  </p>
+                  <div style={{ marginTop: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <IonIcon icon={time} />
+                      <span style={{ fontSize: '14px', fontWeight: '500' }}>Daily preview time:</span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {[6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].map((hour) => (
+                        <IonButton
+                          key={hour}
+                          size="small"
+                          fill={viewingPlan.telegramPreviewHour === hour ? 'solid' : 'outline'}
+                          color={viewingPlan.telegramPreviewHour === hour ? 'primary' : 'medium'}
+                          onClick={() => handleUpdateTelegramHour(viewingPlan, hour)}
+                        >
+                          {hour}:00
+                        </IonButton>
+                      ))}
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>
+                    Note: Scheduled messages require a backend service. Use "Send Now" for manual previews.
+                  </p>
+                </IonCardContent>
+              </IonCard>
+
+              <IonCard color="secondary" style={{ marginBottom: '20px' }}>
+                <IonCardContent>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <IonIcon icon={time} style={{ fontSize: '20px' }} />
+                    <strong>Workout Reminder Time</strong>
+                  </div>
+                  <p style={{ fontSize: '14px', marginBottom: '12px', opacity: 0.9 }}>
+                    Set a daily reminder time for this workout plan
+                  </p>
+                  <IonItem>
+                    <IonInput
+                      type="time"
+                      value={viewingPlan.reminderTime || ''}
+                      placeholder="Select time"
+                      onIonChange={(e) => {
+                        if (e.detail.value) {
+                          handleUpdateReminderTime(viewingPlan, e.detail.value);
+                        }
+                      }}
+                    />
+                  </IonItem>
+                  <p style={{ fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>
+                    {viewingPlan.reminderTime
+                      ? `Daily reminder set for ${viewingPlan.reminderTime}`
+                      : 'No reminder time set'}
+                  </p>
+                </IonCardContent>
+              </IonCard>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 style={{ margin: 0, color: 'var(--brand-primary)' }}>Next 4 Workouts</h3>
+                </div>
+                {(() => {
+                  const workouts = parseNextWorkouts(viewingPlan.planDetails || '');
+                  const hasNoExercises = workouts.length === 0 || workouts.every(w => w.exercises.length === 0);
+                  return hasNoExercises ? (
+                    <IonCard>
+                      <IonCardContent>
+                        <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
+                          No exercises found. This plan may be in an old format.
+                        </p>
+                      </IonCardContent>
+                    </IonCard>
+                  ) : (
+                    parseNextWorkouts(viewingPlan.planDetails || '').map((workout, idx) => (
+                      <IonCard key={idx} style={{ marginBottom: '12px' }}>
+                        <IonCardHeader>
+                          <IonCardTitle style={{ fontSize: '16px' }}>{workout.day}</IonCardTitle>
+                        </IonCardHeader>
+                        <IonCardContent>
+                          <div style={{ fontSize: '14px', lineHeight: '1.8' }}>
+                            {workout.exercises.slice(0, 5).map((exercise, exIdx) => (
+                              <div key={exIdx} style={{ marginBottom: '4px', color: 'var(--text-secondary)' }}>
+                                {exercise}
+                              </div>
+                            ))}
+                            {workout.exercises.length > 5 && (
+                              <div style={{ marginTop: '8px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                +{workout.exercises.length - 5} more exercises...
+                              </div>
+                            )}
+                          </div>
+                        </IonCardContent>
+                      </IonCard>
+                    ))
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+        </IonContent>
+      </IonModal>
+
+      <IonToast
+        isOpen={showToast}
+        onDidDismiss={() => setShowToast(false)}
+        message={toastMessage}
+        duration={2000}
+        position="top"
+      />
     </IonPage>
   );
 };

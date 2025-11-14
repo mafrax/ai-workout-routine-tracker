@@ -239,3 +239,145 @@
   box-shadow: var(--card-shadow);
   font-weight: var(--font-weight-bold);
 }
+
+/* Carousel styles - always visible on Today's page */
+.todays-workout-container .plans-mobile-carousel {
+  display: block !important;
+  margin-bottom: var(--spacing-lg);
+}
+
+.carousel-container {
+  overflow: hidden;
+  position: relative;
+  margin: 0 -8px;
+  padding: var(--spacing-md) 0;
+}
+
+.carousel-track {
+  display: flex;
+  transition: transform 0.3s ease;
+  will-change: transform;
+}
+
+.todays-workout-container .carousel-slide {
+  flex-shrink: 0;
+  width: 100%;
+  padding: 0;
+}
+
+.carousel-indicators {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-lg) 0 var(--spacing-sm) 0;
+  padding: var(--spacing-sm) 0;
+}
+
+.indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: rgba(102, 126, 234, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.indicator.active {
+  background-color: var(--brand-primary);
+  transform: scale(1.3);
+  border-color: var(--bg-primary);
+  box-shadow: 0 0 0 2px var(--brand-primary);
+}
+
+.carousel-counter {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-md);
+  font-weight: var(--font-weight-medium);
+  background: var(--bg-surface-variant);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--chip-border-radius);
+  display: inline-block;
+}
+
+ion-card.plan-card {
+  margin: 0 0 var(--spacing-lg) 0;
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+  /* Use Ionic's CSS variable system for background */
+  --background: var(--ion-background-color, #1e1e1e);
+  background: var(--ion-background-color, #1e1e1e) !important;
+}
+
+/* Ensure proper colors in dark mode */
+ion-card.plan-card ion-card-title,
+ion-card.plan-card ion-card-header,
+ion-card.plan-card ion-card-content {
+  color: var(--ion-text-color) !important;
+}
+
+/* Force dark mode for nested elements */
+ion-card.plan-card .plan-stats {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--ion-text-color) !important;
+}
+
+.plan-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.plan-description {
+  font-size: var(--font-size-md);
+  color: var(--text-muted);
+  margin: var(--spacing-sm) 0;
+  line-height: 1.5;
+}
+
+.plan-stats {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin: var(--spacing-lg) 0;
+  padding: var(--spacing-md);
+  background: var(--bg-surface-variant);
+  border-radius: var(--card-border-radius-small);
+  border: 1px solid var(--border-light);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.stat-item ion-icon {
+  font-size: 20px;
+  color: var(--brand-primary);
+}
+
+.plan-progress {
+  margin: var(--spacing-md) 0;
+}
+
+/* Touch gestures for carousel */
+@media (max-width: 768px) {
+  .carousel-container {
+    touch-action: pan-y;
+  }
+}

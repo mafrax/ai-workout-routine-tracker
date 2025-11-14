@@ -93,7 +93,12 @@ const TimerButton: React.FC<TimerButtonProps> = ({ onStop }) => {
           <div className="timer-display">
             <div className="timer-time">{formatTime(elapsedSeconds)}</div>
             <div className="timer-progress">
-              {formatDuration(elapsedMinutes)} / {formatDuration(activeSession.goalMinutes)}
+              <p>
+                {formatDuration(elapsedMinutes)}
+              </p>
+              <p>
+                {formatDuration(activeSession.goalMinutes)}
+              </p>
             </div>
             <div className="timer-percentage">{Math.round(progressPercent)}%</div>
             {goalMet && (
@@ -116,13 +121,19 @@ const TimerButton: React.FC<TimerButtonProps> = ({ onStop }) => {
     return (
       <div className="timer-button-container">
         <button ref={buttonRef} className="timer-button timer-button-eating" onClick={() => startFast()}>
+
           <div className="timer-display">
-            <div className="timer-label">Eating</div>
-            <div className="timer-time">{formatTime(elapsedSeconds)}</div>
-            <div className="timer-progress">
-              Until next fast
-            </div>
-            <div className="timer-percentage">{Math.round(progressPercent)}%</div>
+            <p>
+              <div className="timer-label">Eating</div>
+            </p>
+            <p>
+              <div className="timer-time">{formatTime(elapsedSeconds)}</div>
+              <div className="timer-progress">
+                Until next fast
+              </div>
+              <div className="timer-percentage">{Math.round(progressPercent)}%</div>
+            </p>
+
           </div>
         </button>
       </div>

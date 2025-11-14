@@ -1,4 +1,10 @@
 import axios from 'axios';
+import {
+  DailyTask,
+  TaskStats,
+  AggregateStats,
+  TaskCompletionRecord
+} from '../types/dailyTasks';
 
 // Use environment variable for API URL (defaults to production if not set)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://workout-marcs-projects-3a713b55.vercel.app/api';
@@ -10,176 +16,132 @@ const api = axios.create({
   },
 });
 
-export interface DailyTask {
-  id: number;
-  title: string;
-  completed: boolean;
-  createdAt: string;
-  backendId?: number; // Store backend ID for syncing
-}
-
 // Backend API calls
 const dailyTasksApi = {
-  getUserTasks: async (userId: number) => {
+  getUserTasks: async (userId: number): Promise<DailyTask[]> => {
     const response = await api.get(`/daily-tasks/user/${userId}`);
     return response.data;
   },
-  
-  createTask: async (userId: number, title: string) => {
+
+  createTask: async (userId: number, title: string): Promise<DailyTask> => {
     const response = await api.post(`/daily-tasks/user/${userId}`, { title });
     return response.data;
   },
-  
-  toggleTask: async (taskId: number) => {
+
+  toggleTask: async (taskId: number): Promise<DailyTask> => {
     const response = await api.put(`/daily-tasks/${taskId}/toggle`);
     return response.data;
   },
-  
-  deleteTask: async (taskId: number) => {
+
+  deleteTask: async (taskId: number): Promise<void> => {
     await api.delete(`/daily-tasks/${taskId}`);
   },
-  
-  resetTasks: async (userId: number) => {
-    const response = await api.post(`/daily-tasks/user/${userId}/reset`);
+
+  resetTasks: async (userId: number): Promise<void> => {
+    await api.post(`/daily-tasks/user/${userId}/reset`);
+  },
+
+  getAggregateStats: async (userId: number): Promise<AggregateStats> => {
+    const response = await api.get(`/daily-tasks/user/${userId}/stats`);
+    return response.data;
+  },
+
+  getTaskStats: async (taskId: number): Promise<TaskStats> => {
+    const response = await api.get(`/daily-tasks/${taskId}/stats`);
+    return response.data;
+  },
+
+  getCompletionHistory: async (userId: number, days: number = 30): Promise<TaskCompletionRecord[]> => {
+    const response = await api.get(`/daily-tasks/user/${userId}/history?days=${days}`);
     return response.data;
   }
 };
 
-// Hybrid service functions that sync to both local storage and backend
+// Service functions - now primarily backend-driven
 export const dailyTasksService = {
-  // Load tasks from local storage (primary) with backend sync
-  loadTasks: async (userId?: number): Promise<DailyTask[]> => {
-    // Load from localStorage first (fast)
-    const stored = localStorage.getItem('dailyTasks');
-    let localTasks: DailyTask[] = stored ? JSON.parse(stored) : [];
-    
-    // Also try to sync from backend if user is available
-    if (userId) {
-      try {
-        const backendTasks = await dailyTasksApi.getUserTasks(userId);
-        // Backend tasks override local if they exist
-        if (backendTasks && backendTasks.length > 0) {
-          // Map backend tasks to local format with backend IDs
-          const mappedTasks = backendTasks.map((task: any) => ({
-            id: task.id || Date.now() + Math.random(), // Use backend ID or generate local ID
-            title: task.title,
-            completed: task.completed,
-            createdAt: task.createdAt || new Date().toISOString(),
-            backendId: task.id // Store backend ID for future syncing
-          }));
-          console.log('Synced tasks from backend:', mappedTasks.length);
-          localStorage.setItem('dailyTasks', JSON.stringify(mappedTasks));
-          return mappedTasks;
-        }
-      } catch (error) {
-        console.warn('Failed to sync tasks from backend, using local:', error);
-      }
-    }
-    
-    return localTasks;
-  },
-
-  // Save tasks to both local storage and backend
-  saveTasks: async (tasks: DailyTask[], userId?: number): Promise<void> => {
-    // Save to local storage first (immediate)
-    localStorage.setItem('dailyTasks', JSON.stringify(tasks));
-    
-    // Note: Full sync to backend would require individual API calls for each task
-    // For now, we'll rely on individual operations (add, toggle, delete) to sync
-    console.log('Tasks saved to local storage:', tasks.length);
-  },
-
-  // Add task to both local storage and backend
-  addTask: async (title: string, userId?: number): Promise<DailyTask> => {
-    const newTask: DailyTask = {
-      id: Date.now(),
-      title,
-      completed: false,
-      createdAt: new Date().toISOString(),
-    };
-
-    // Sync to backend first to get backend ID
-    if (userId) {
-      try {
-        const backendTask = await dailyTasksApi.createTask(userId, title);
-        newTask.backendId = backendTask.id;
-        console.log('Task synced to backend with ID:', backendTask.id);
-      } catch (error) {
-        console.warn('Failed to sync new task to backend:', error);
-      }
-    }
-
-    // Add to local storage with backend ID
-    const currentTasks = await dailyTasksService.loadTasks(userId);
-    const updatedTasks = [...currentTasks, newTask];
-    localStorage.setItem('dailyTasks', JSON.stringify(updatedTasks));
-
-    return newTask;
-  },
-
-  // Toggle task in both local storage and backend
-  toggleTask: async (taskId: number, userId?: number): Promise<void> => {
-    // Find the task to get its backend ID
-    const currentTasks = await dailyTasksService.loadTasks(userId);
-    const task = currentTasks.find(t => t.id === taskId);
-    
-    // Update local storage first
-    const updatedTasks = currentTasks.map(task =>
-      task.id === taskId ? { ...task, completed: !task.completed } : task
-    );
-    localStorage.setItem('dailyTasks', JSON.stringify(updatedTasks));
-
-    // Sync to backend using backend ID
-    if (userId && task?.backendId) {
-      try {
-        await dailyTasksApi.toggleTask(task.backendId);
-        console.log('Task toggle synced to backend with ID:', task.backendId);
-      } catch (error) {
-        console.warn('Failed to sync task toggle to backend:', error);
-      }
-    } else if (userId && !task?.backendId) {
-      console.warn('Task has no backend ID, cannot sync toggle:', taskId);
+  // Load tasks from backend
+  loadTasks: async (userId: number): Promise<DailyTask[]> => {
+    try {
+      const tasks = await dailyTasksApi.getUserTasks(userId);
+      return tasks;
+    } catch (error) {
+      console.error('Failed to load tasks from backend:', error);
+      throw error;
     }
   },
 
-  // Delete task from both local storage and backend
-  deleteTask: async (taskId: number, userId?: number): Promise<void> => {
-    // Find the task to get its backend ID
-    const currentTasks = await dailyTasksService.loadTasks(userId);
-    const task = currentTasks.find(t => t.id === taskId);
-    
-    // Update local storage first
-    const updatedTasks = currentTasks.filter(task => task.id !== taskId);
-    localStorage.setItem('dailyTasks', JSON.stringify(updatedTasks));
+  // Add task via backend
+  addTask: async (userId: number, title: string): Promise<DailyTask> => {
+    try {
+      const task = await dailyTasksApi.createTask(userId, title);
+      return task;
+    } catch (error) {
+      console.error('Failed to add task:', error);
+      throw error;
+    }
+  },
 
-    // Sync to backend using backend ID
-    if (userId && task?.backendId) {
-      try {
-        await dailyTasksApi.deleteTask(task.backendId);
-        console.log('Task deletion synced to backend with ID:', task.backendId);
-      } catch (error) {
-        console.warn('Failed to sync task deletion to backend:', error);
-      }
-    } else if (userId && !task?.backendId) {
-      console.warn('Task has no backend ID, cannot sync deletion:', taskId);
+  // Toggle task via backend
+  toggleTask: async (taskId: number): Promise<DailyTask> => {
+    try {
+      const task = await dailyTasksApi.toggleTask(taskId);
+      return task;
+    } catch (error) {
+      console.error('Failed to toggle task:', error);
+      throw error;
+    }
+  },
+
+  // Delete task via backend
+  deleteTask: async (taskId: number): Promise<void> => {
+    try {
+      await dailyTasksApi.deleteTask(taskId);
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      throw error;
     }
   },
 
   // Reset all tasks (midnight reset)
-  resetAllTasks: async (userId?: number): Promise<void> => {
-    // Update local storage first
-    const currentTasks = await dailyTasksService.loadTasks(userId);
-    const updatedTasks = currentTasks.map(task => ({ ...task, completed: false }));
-    localStorage.setItem('dailyTasks', JSON.stringify(updatedTasks));
+  resetAllTasks: async (userId: number): Promise<void> => {
+    try {
+      await dailyTasksApi.resetTasks(userId);
+    } catch (error) {
+      console.error('Failed to reset tasks:', error);
+      throw error;
+    }
+  },
 
-    // Sync to backend
-    if (userId) {
-      try {
-        await dailyTasksApi.resetTasks(userId);
-        console.log('Task reset synced to backend');
-      } catch (error) {
-        console.warn('Failed to sync task reset to backend:', error);
-      }
+  // Get aggregate stats
+  getAggregateStats: async (userId: number): Promise<AggregateStats> => {
+    try {
+      const stats = await dailyTasksApi.getAggregateStats(userId);
+      return stats;
+    } catch (error) {
+      console.error('Failed to get aggregate stats:', error);
+      throw error;
+    }
+  },
+
+  // Get task-specific stats
+  getTaskStats: async (taskId: number): Promise<TaskStats> => {
+    try {
+      const stats = await dailyTasksApi.getTaskStats(taskId);
+      return stats;
+    } catch (error) {
+      console.error('Failed to get task stats:', error);
+      throw error;
+    }
+  },
+
+  // Get completion history
+  getCompletionHistory: async (userId: number, days: number = 30): Promise<TaskCompletionRecord[]> => {
+    try {
+      const history = await dailyTasksApi.getCompletionHistory(userId, days);
+      return history;
+    } catch (error) {
+      console.error('Failed to get completion history:', error);
+      throw error;
     }
   }
 };

@@ -4,6 +4,11 @@ export interface DailyTaskDto {
   title: string;
   completed: boolean;
   createdAt: string;
+  completedAt: string | null;
+  currentStreak: number;
+  bestStreak: number;
+  totalCompletions: number;
+  lastCompletedDate: string | null;
 }
 
 export interface CreateDailyTaskRequest {

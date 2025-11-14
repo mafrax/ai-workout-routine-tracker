@@ -1,7 +1,7 @@
 import { Redirect, Route, useHistory } from 'react-router-dom';
 import { IonApp, IonRouterOutlet, IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import { chatbubbles, barChart, fitness, today, home, person, listCircle, checkmarkDoneCircle, timer } from 'ionicons/icons';
+import { chatbubbles, barChart, fitness, today, home, person, checkmarkDoneCircle, timer } from 'ionicons/icons';
 import { App as CapacitorApp } from '@capacitor/app';
 import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -13,7 +13,6 @@ import WorkoutLog from './components/Workout/WorkoutLog';
 import TodaysWorkout from './components/Workout/TodaysWorkout';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
-import Plans from './pages/Plans';
 import DailyTasks from './pages/DailyTasks';
 import Migration from './pages/Migration';
 import Login from './pages/Login';
@@ -129,7 +128,6 @@ const App: React.FC = () => (
           </Route>
           <PrivateRoute exact path="/home" component={Home} />
           <PrivateRoute exact path="/today" component={TodaysWorkout} />
-          <PrivateRoute exact path="/plans" component={Plans} />
           <PrivateRoute exact path="/chat" component={ChatInterface} />
           <PrivateRoute exact path="/workout" component={WorkoutLog} />
           <PrivateRoute exact path="/progress" component={Progress} />
@@ -150,10 +148,6 @@ const App: React.FC = () => (
           <IonTabButton tab="today" href="/today">
             <IonIcon icon={today} />
             <IonLabel>Today</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="plans" href="/plans">
-            <IonIcon icon={listCircle} />
-            <IonLabel>Plans</IonLabel>
           </IonTabButton>
           <IonTabButton tab="tasks" href="/tasks">
             <IonIcon icon={checkmarkDoneCircle} />
