@@ -1,37 +1,28 @@
 .daily-tasks-container {
-  padding: var(--container-padding);
+  padding: 16px;
+  padding-bottom: 80px; /* Space for FAB */
 }
 
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  text-align: center;
-  padding: var(--spacing-xxl);
-  background: var(--bg-surface);
-  border-radius: var(--card-border-radius);
-  margin: var(--spacing-lg);
-  box-shadow: var(--card-shadow-subtle);
-  border: 1px solid var(--border-light);
+.view-mode-toggle {
+  margin-bottom: 16px;
 }
 
-.empty-state h2 {
-  color: var(--brand-primary);
-  margin-bottom: var(--spacing-sm);
+.view-mode-toggle ion-segment {
+  background-color: var(--ion-color-light);
+  border-radius: 8px;
+  padding: 4px;
 }
 
-.empty-state p {
-  color: var(--text-muted);
-  font-size: var(--font-size-md);
+.task-section {
+  margin-top: 24px;
 }
 
 .task-section-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  margin: 0 0 var(--spacing-sm) 0;
-  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding-left: 4px;
+  color: var(--ion-color-dark);
 }
 
 .completed-task {
@@ -39,15 +30,14 @@
   transition: opacity 0.2s ease;
 }
 
-ion-card {
-  margin: var(--spacing-md) 0;
-  border-radius: var(--card-border-radius);
-  box-shadow: var(--card-shadow);
-  border: 1px solid var(--border-light);
-  transition: all 0.2s ease;
-}
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .daily-tasks-container {
+    padding: 12px;
+    padding-bottom: 80px;
+  }
 
-ion-card:hover {
-  box-shadow: var(--card-shadow-hover);
-  transform: translateY(-1px);
+  .task-section-title {
+    font-size: 16px;
+  }
 }

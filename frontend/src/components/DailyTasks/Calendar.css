@@ -1,0 +1,121 @@
+.calendar-card {
+  margin: 16px 0;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.calendar-header ion-card-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.calendar-grid {
+  margin-top: 8px;
+}
+
+.calendar-day-names {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.calendar-day-name {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  padding: 8px 4px;
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background-color: var(--ion-color-light);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  padding: 4px;
+}
+
+.calendar-day-number {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.calendar-day-count {
+  font-size: 10px;
+  margin-top: 2px;
+  opacity: 0.9;
+}
+
+/* States */
+.calendar-cell.other-month {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.calendar-cell.today {
+  box-shadow: 0 0 0 2px var(--ion-color-primary) inset;
+  font-weight: 700;
+}
+
+.calendar-cell.perfect {
+  background-color: var(--ion-color-success);
+  color: white;
+  font-weight: 600;
+}
+
+.calendar-cell.has-completion {
+  font-weight: 600;
+}
+
+.calendar-loading {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--ion-color-medium);
+}
+
+/* Hover effect */
+@media (hover: hover) {
+  .calendar-cell:not(.other-month):hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .calendar-day-name {
+    font-size: 10px;
+    padding: 4px 2px;
+  }
+
+  .calendar-day-number {
+    font-size: 12px;
+  }
+
+  .calendar-day-count {
+    font-size: 8px;
+  }
+
+  .calendar-days {
+    gap: 2px;
+  }
+}

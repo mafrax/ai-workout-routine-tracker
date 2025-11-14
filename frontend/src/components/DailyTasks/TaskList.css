@@ -1,0 +1,8 @@
+.task-list {
+  padding: 0;
+  margin: 16px 0;
+}
+
+.task-list ion-item:last-child {
+  --border-width: 0;
+}
