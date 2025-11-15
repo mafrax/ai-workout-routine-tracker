@@ -138,6 +138,108 @@ const DailyTasks: React.FC = () => {
   // Get selected task
   const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
 
+  // Get per-task calendar and week data
+  const perTaskCalendarDays = selectedTask ? getPerTaskCalendarDays(selectedTask, currentYear, currentMonth) : [];
+  const perTaskWeekData = selectedTask ? getPerTaskWeekData(selectedTask) : [];
+
+  // Helper function to generate calendar days for a specific task
+  function getPerTaskCalendarDays(task: typeof selectedTask, year: number, month: number) {
+    if (!task) return [];
+
+    // Generate calendar structure
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDayOfWeek = firstDay.getDay();
+    const daysFromPrevMonth = firstDayOfWeek;
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    const totalCells = Math.ceil((daysInMonth + daysFromPrevMonth) / 7) * 7;
+    const daysFromNextMonth = totalCells - (daysInMonth + daysFromPrevMonth);
+
+    const days: any[] = [];
+    const today = new Date().toISOString().split('T')[0];
+    const lastCompleted = task.lastCompletedDate;
+
+    // Previous month days
+    for (let i = daysFromPrevMonth - 1; i >= 0; i--) {
+      const day = prevMonthLastDay - i;
+      const date = new Date(year, month - 1, day);
+      const dateString = date.toISOString().split('T')[0];
+
+      days.push({
+        dateString,
+        tasksCompleted: dateString === lastCompleted ? 1 : 0,
+        tasksTotal: 1,
+        completionRate: dateString === lastCompleted ? 100 : 0,
+        hasAnyCompletion: dateString === lastCompleted,
+        isPerfect: dateString === lastCompleted,
+        isToday: dateString === today,
+        isCurrentMonth: false
+      });
+    }
+
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const dateString = date.toISOString().split('T')[0];
+
+      days.push({
+        dateString,
+        tasksCompleted: dateString === lastCompleted ? 1 : 0,
+        tasksTotal: 1,
+        completionRate: dateString === lastCompleted ? 100 : 0,
+        hasAnyCompletion: dateString === lastCompleted,
+        isPerfect: dateString === lastCompleted,
+        isToday: dateString === today,
+        isCurrentMonth: true
+      });
+    }
+
+    // Next month days
+    for (let day = 1; day <= daysFromNextMonth; day++) {
+      const date = new Date(year, month + 1, day);
+      const dateString = date.toISOString().split('T')[0];
+
+      days.push({
+        dateString,
+        tasksCompleted: dateString === lastCompleted ? 1 : 0,
+        tasksTotal: 1,
+        completionRate: dateString === lastCompleted ? 100 : 0,
+        hasAnyCompletion: dateString === lastCompleted,
+        isPerfect: dateString === lastCompleted,
+        isToday: dateString === today,
+        isCurrentMonth: false
+      });
+    }
+
+    return days;
+  }
+
+  // Helper function to generate week data for a specific task
+  function getPerTaskWeekData(task: typeof selectedTask) {
+    if (!task) return [];
+
+    const weekData: any[] = [];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const lastCompleted = task.lastCompletedDate;
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateString = date.toISOString().split('T')[0];
+      const dayName = dayNames[date.getDay()];
+
+      weekData.push({
+        date: dateString,
+        dayName,
+        tasksCompleted: dateString === lastCompleted ? 1 : 0,
+        tasksTotal: 1,
+        completionRate: dateString === lastCompleted ? 100 : 0
+      });
+    }
+
+    return weekData;
+  }
+
   return (
     <IonPage>
       <IonHeader>
@@ -246,12 +348,12 @@ const DailyTasks: React.FC = () => {
                 <>
                   <PerTaskStats task={selectedTask} />
 
-                  {/* Week Chart for selected task - TODO: filter by task */}
-                  <WeekChart weekData={weekData} isLoading={isLoading} />
+                  {/* Week Chart for selected task */}
+                  <WeekChart weekData={perTaskWeekData} isLoading={isLoading} />
 
-                  {/* Calendar for selected task - TODO: filter by task */}
+                  {/* Calendar for selected task */}
                   <Calendar
-                    calendarDays={calendarDays}
+                    calendarDays={perTaskCalendarDays}
                     currentMonth={currentMonth}
                     currentYear={currentYear}
                     onMonthChange={handleMonthChange}
