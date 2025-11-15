@@ -9,6 +9,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // Default 30 second timeout
 });
 
 export const chatApi = {
@@ -18,7 +19,9 @@ export const chatApi = {
     chatHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
     sessionId?: string
   ) => {
-    const response = await api.post('/chat', { userId, message, chatHistory, sessionId });
+    const response = await api.post('/chat', { userId, message, chatHistory, sessionId }, {
+      timeout: 60000, // 60 second timeout for AI responses (can take longer)
+    });
     return response.data;
   },
 };
