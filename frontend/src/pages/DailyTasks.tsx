@@ -27,6 +27,8 @@ import WeekChart from '../components/DailyTasks/WeekChart';
 import AddTaskModal from '../components/DailyTasks/AddTaskModal';
 import LoadingState from '../components/DailyTasks/LoadingState';
 import ErrorState from '../components/DailyTasks/ErrorState';
+import TaskSelector from '../components/DailyTasks/TaskSelector';
+import PerTaskStats from '../components/DailyTasks/PerTaskStats';
 import './DailyTasks.css';
 
 const DailyTasks: React.FC = () => {
@@ -34,10 +36,12 @@ const DailyTasks: React.FC = () => {
   const {
     tasks,
     stats,
+    selectedTaskId,
     isLoading,
     error,
     viewMode,
     setViewMode,
+    setSelectedTask,
     loadTasks,
     loadStats,
     loadHistory,
@@ -131,6 +135,9 @@ const DailyTasks: React.FC = () => {
   const incompleteTasks = tasks.filter(t => !t.completed);
   const completedTasks = tasks.filter(t => t.completed);
 
+  // Get selected task
+  const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
+
   return (
     <IonPage>
       <IonHeader>
@@ -165,56 +172,109 @@ const DailyTasks: React.FC = () => {
             </IonSegment>
           </div>
 
-          {/* Quick Stats */}
-          <QuickStats stats={stats} isLoading={isLoading} />
+          {/* Aggregate View */}
+          {viewMode === 'aggregate' && (
+            <>
+              {/* Quick Stats */}
+              <QuickStats stats={stats} isLoading={isLoading} />
 
-          {/* Week Chart */}
-          <WeekChart weekData={weekData} isLoading={isLoading} />
+              {/* Week Chart */}
+              <WeekChart weekData={weekData} isLoading={isLoading} />
 
-          {/* Calendar */}
-          <Calendar
-            calendarDays={calendarDays}
-            currentMonth={currentMonth}
-            currentYear={currentYear}
-            onMonthChange={handleMonthChange}
-            onDayClick={handleDayClick}
-            isLoading={isLoading}
-          />
+              {/* Calendar */}
+              <Calendar
+                calendarDays={calendarDays}
+                currentMonth={currentMonth}
+                currentYear={currentYear}
+                onMonthChange={handleMonthChange}
+                onDayClick={handleDayClick}
+                isLoading={isLoading}
+              />
 
-          {/* Error State */}
-          {error && (
-            <ErrorState
-              message={error}
-              onRetry={loadInitialData}
-            />
+              {/* Error State */}
+              {error && (
+                <ErrorState
+                  message={error}
+                  onRetry={loadInitialData}
+                />
+              )}
+
+              {/* Task Lists */}
+              {!error && (
+                <>
+                  <div className="task-section">
+                    <h2 className="task-section-title">
+                      To Do ({incompleteTasks.length})
+                    </h2>
+                    <TaskList
+                      tasks={incompleteTasks}
+                      onToggle={handleToggleTask}
+                      onDelete={handleDeleteTask}
+                      emptyMessage="All tasks completed! 🎉"
+                    />
+                  </div>
+
+                  {completedTasks.length > 0 && (
+                    <div className="task-section">
+                      <h2 className="task-section-title">
+                        Completed ({completedTasks.length})
+                      </h2>
+                      <TaskList
+                        tasks={completedTasks}
+                        onToggle={handleToggleTask}
+                        onDelete={handleDeleteTask}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </>
           )}
 
-          {/* Task Lists */}
-          {!error && (
+          {/* Per-Task View */}
+          {viewMode === 'per-task' && (
             <>
-              <div className="task-section">
-                <h2 className="task-section-title">
-                  To Do ({incompleteTasks.length})
-                </h2>
-                <TaskList
-                  tasks={incompleteTasks}
-                  onToggle={handleToggleTask}
-                  onDelete={handleDeleteTask}
-                  emptyMessage="All tasks completed! 🎉"
-                />
-              </div>
+              {/* Task Selector */}
+              <TaskSelector
+                tasks={tasks}
+                selectedTaskId={selectedTaskId}
+                onTaskSelect={setSelectedTask}
+              />
 
-              {completedTasks.length > 0 && (
-                <div className="task-section">
-                  <h2 className="task-section-title">
-                    Completed ({completedTasks.length})
-                  </h2>
-                  <TaskList
-                    tasks={completedTasks}
-                    onToggle={handleToggleTask}
-                    onDelete={handleDeleteTask}
+              {/* Show stats if a task is selected */}
+              {selectedTask && (
+                <>
+                  <PerTaskStats task={selectedTask} />
+
+                  {/* Week Chart for selected task - TODO: filter by task */}
+                  <WeekChart weekData={weekData} isLoading={isLoading} />
+
+                  {/* Calendar for selected task - TODO: filter by task */}
+                  <Calendar
+                    calendarDays={calendarDays}
+                    currentMonth={currentMonth}
+                    currentYear={currentYear}
+                    onMonthChange={handleMonthChange}
+                    onDayClick={handleDayClick}
+                    isLoading={isLoading}
                   />
-                </div>
+                </>
+              )}
+
+              {/* Show message if no task selected */}
+              {!selectedTask && tasks.length > 0 && (
+                <ErrorState
+                  message="Select a task to view its statistics"
+                  onRetry={undefined}
+                />
+              )}
+
+              {/* Show message if no tasks exist */}
+              {tasks.length === 0 && (
+                <ErrorState
+                  message="No tasks yet. Add a task to get started!"
+                  onRetry={undefined}
+                />
               )}
             </>
           )}

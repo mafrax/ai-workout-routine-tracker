@@ -1,0 +1,38 @@
+.task-selector-card {
+  margin: 16px 0;
+  background: var(--ion-color-light);
+  border-radius: 12px;
+}
+
+.task-selector-card ion-card-content {
+  padding: 16px;
+}
+
+.task-selector-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin-bottom: 8px;
+}
+
+.task-selector {
+  width: 100%;
+  border: 1px solid var(--ion-color-medium);
+  border-radius: 8px;
+  padding: 12px;
+  background: white;
+  font-size: 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .task-selector-label {
+    font-size: 12px;
+  }
+
+  .task-selector {
+    font-size: 14px;
+    padding: 10px;
+  }
+}

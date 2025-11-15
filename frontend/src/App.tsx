@@ -74,8 +74,10 @@ const AppContent: React.FC = () => {
       const oauthUser = authService.getCurrentUser();
       if (oauthUser) {
         console.log('🔄 App: Loading user from auth service:', oauthUser.email);
+        // For dev user, use ID 1, otherwise parse the OAuth ID
+        const userId = oauthUser.id === 'dev-user-123' ? 1 : parseInt(oauthUser.id);
         setUser({
-          id: parseInt(oauthUser.id),
+          id: userId,
           email: oauthUser.email,
           name: oauthUser.name
         });
