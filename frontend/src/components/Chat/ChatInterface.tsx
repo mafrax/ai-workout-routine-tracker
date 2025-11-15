@@ -51,7 +51,7 @@ const ChatInterface: React.FC = () => {
     addChatMessage({ role: 'user', content: userMessage });
 
     try {
-      const response = await chatApi.sendMessage(user.id!, userMessage, sessionId || undefined);
+      const response = await chatApi.sendMessage(user.id!, userMessage, chatHistory, sessionId || undefined);
 
       // Set session ID if this is a new conversation
       if (!sessionId) {

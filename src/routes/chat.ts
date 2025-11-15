@@ -16,7 +16,7 @@ router.post('/', async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
-    const { userId, message, sessionId } = req.body;
+    const { userId, message, sessionId, chatHistory } = req.body;
 
     if (!userId || !message) {
       console.error('❌ Missing required fields:', { userId, hasMessage: !!message });
@@ -25,6 +25,8 @@ router.post('/', async (req, res) => {
         error: 'Missing required fields: userId and message are required',
       });
     }
+
+    console.log('💬 Chat history length:', chatHistory?.length || 0);
 
     // Get user's active plan
     let activePlan = null;
@@ -60,9 +62,9 @@ router.post('/', async (req, res) => {
       console.error('❌ Could not fetch recent sessions:', error);
     }
 
-    // For now, we don't persist chat history in the backend
-    // The frontend manages chat history in localStorage
-    const chatHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+    // Chat history is now sent from the frontend with each request
+    // Default to empty array if not provided
+    const conversationHistory = chatHistory || [];
 
     console.log('🤖 Calling AI service...');
     // Call the AI service
@@ -76,7 +78,7 @@ router.post('/', async (req, res) => {
         duration: s.durationMinutes,
         exercises: s.exercises,
       })),
-      chatHistory,
+      chatHistory: conversationHistory,
     });
 
     console.log('✅ Chat response received, length:', response.length);
