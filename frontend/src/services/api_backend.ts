@@ -67,6 +67,23 @@ export const workoutPlanApi = {
   },
 };
 
+export const workoutApi = {
+  getByPlan: async (planId: number) => {
+    const response = await api.get(`/workouts/plan/${planId}`);
+    return response.data;
+  },
+  generateNext: async (planId: number, dayNumber: number, userId: number) => {
+    const response = await api.post('/workouts/generate-next', {
+      planId,
+      dayNumber,
+      userId
+    }, {
+      timeout: 60000, // 60 second timeout for AI generation
+    });
+    return response.data;
+  },
+};
+
 export const workoutSessionApi = {
   getUserSessions: async (userId: number) => {
     const response = await api.get<WorkoutSession[]>(`/sessions/user/${userId}`);

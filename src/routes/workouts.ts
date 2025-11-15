@@ -1,7 +1,10 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/database';
+import { ChatService } from '../services/ChatService';
+import { WorkoutGenerationService } from '../services/WorkoutGenerationService';
 
 const router = Router();
+const chatService = new ChatService();
 
 /**
  * GET /api/workouts/plan/:planId
@@ -359,6 +362,206 @@ router.delete('/exercises/:exerciseId', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error deleting exercise:', error);
     return res.status(500).json({ error: 'Failed to delete exercise' });
+  }
+});
+
+/**
+ * POST /api/workouts/generate-next
+ * Generate next workout day using AI
+ * Migrated from frontend generateNextWorkout function
+ */
+router.post('/generate-next', async (req: Request, res: Response) => {
+  try {
+    const { planId, dayNumber, userId } = req.body;
+
+    if (!planId || !dayNumber || !userId) {
+      return res.status(400).json({
+        error: 'Missing required fields: planId, dayNumber, userId'
+      });
+    }
+
+    console.log(`🏋️ Generating workout Day ${dayNumber} for plan ${planId}`);
+
+    // Fetch the workout plan
+    const plan = await prisma.workoutPlan.findUnique({
+      where: { id: BigInt(planId) },
+      include: {
+        workouts: {
+          include: {
+            exercises: {
+              orderBy: { orderIndex: 'asc' }
+            }
+          },
+          orderBy: { day: 'asc' }
+        }
+      }
+    });
+
+    if (!plan) {
+      return res.status(404).json({ error: 'Workout plan not found' });
+    }
+
+    // Fetch user for bodyweight exercises
+    const user = await prisma.user.findUnique({
+      where: { id: BigInt(userId) }
+    });
+
+    // Parse existing workouts for rotation pattern
+    const existingWorkouts = plan.workouts.map(w => ({
+      day: w.day,
+      focus: w.muscleGroup
+    }));
+
+    const daysPerWeek = existingWorkouts.length;
+    const rotationIndex = (dayNumber - 1) % daysPerWeek;
+    const targetWorkout = existingWorkouts[rotationIndex];
+
+    if (!targetWorkout) {
+      return res.status(400).json({
+        error: 'Cannot generate workout: no existing workout pattern found'
+      });
+    }
+
+    // Parse bodyweight exercises
+    let bodyweightExercises: any[] = [];
+    if (user?.bodyweightExercises) {
+      try {
+        bodyweightExercises = JSON.parse(user.bodyweightExercises);
+      } catch (e) {
+        console.warn('Failed to parse bodyweight exercises:', e);
+      }
+    }
+
+    const bodyweightInfo = bodyweightExercises.length > 0
+      ? `
+BODYWEIGHT EXERCISES (with max reps):
+${bodyweightExercises.map(ex => `- ${ex.name}: Max ${ex.maxReps} reps`).join('\n')}
+
+CRITICAL: You MUST include at least ${Math.min(2, bodyweightExercises.length)} bodyweight exercises in this workout.
+Program them based on max reps (strength: 40-60%, hypertrophy: 60-80%, endurance: 80-100%).
+`
+      : '';
+
+    // Build AI prompt
+    const prompt = `You are a professional fitness coach creating workout plans. Generate Day ${dayNumber} for this workout program.
+
+EXISTING WORKOUT PLAN (Days 1-${existingWorkouts.length}):
+${plan.planDetails}
+
+CONTEXT:
+- Plan Name: ${plan.name}
+- Days per week: ${daysPerWeek}
+- This is a ${daysPerWeek}-day split rotation
+- Day ${dayNumber} should follow the same muscle group pattern as Day ${rotationIndex + 1}
+${bodyweightInfo}
+
+CRITICAL INSTRUCTIONS:
+1. Day ${dayNumber} should target: ${targetWorkout.focus}
+2. Use similar exercises to Day ${rotationIndex + 1} but with slight progression (2-5% more weight or 1-2 more reps)
+3. ${bodyweightExercises.length > 0 ? 'MANDATORY: Include at least ' + Math.min(2, bodyweightExercises.length) + ' bodyweight exercises mixed with equipment exercises' : 'Use equipment-based exercises'}
+4. Follow the EXACT format below - this is mandatory
+5. Include ALL rest times (both between sets and before next exercise)
+6. Use realistic weights based on the existing plan
+7. For bodyweight exercises, use "bodyweight" as the weight
+8. DO NOT add any explanation, introduction, or commentary
+9. DO NOT ask questions
+10. Generate ONLY the workout content
+
+REQUIRED FORMAT (copy this structure exactly):
+
+Day ${dayNumber} - ${targetWorkout.focus}:
+1. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
+2. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
+3. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
+4. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
+5. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
+
+EXAMPLE WITH BODYWEIGHT:
+Day 5 - Chest & Triceps:
+1. Push-ups - 3x12 @ bodyweight | 60s | 90s
+2. Smith Machine Bench Press - 4x10 @ 52kg | 90s | 120s
+3. Dips - 3x8 @ bodyweight | 60s | 90s
+4. Cable Flyes - 3x15 @ 13kg | 60s | 90s
+5. Diamond Push-ups - 3x10 @ bodyweight | 60s | 90s
+
+NOW GENERATE:`;
+
+    // Call AI to generate workout
+    const aiResponse = await chatService.chat(prompt, {});
+    const generatedText = aiResponse.trim();
+
+    console.log('✅ AI generated workout for Day', dayNumber);
+
+    // Validate the response
+    if (!generatedText.includes(`Day ${dayNumber}`) || !generatedText.includes('-')) {
+      console.error('Invalid workout format from AI:', generatedText);
+      return res.status(500).json({ error: 'AI generated invalid workout format' });
+    }
+
+    // Dual write: Update plan_details AND create structured Workout/Exercise records
+    const updatedPlanDetails = plan.planDetails
+      ? `${plan.planDetails}\n\n${generatedText}`
+      : generatedText;
+
+    await prisma.workoutPlan.update({
+      where: { id: BigInt(planId) },
+      data: { planDetails: updatedPlanDetails }
+    });
+
+    // Parse and save the new workout to Workout/Exercise tables
+    const workoutsGenerated = await WorkoutGenerationService.generateWorkoutsFromPlanDetails(
+      BigInt(planId),
+      generatedText
+    );
+
+    // Fetch the newly created workout
+    const newWorkout = await prisma.workout.findUnique({
+      where: {
+        planId_day: {
+          planId: BigInt(planId),
+          day: dayNumber
+        }
+      },
+      include: {
+        exercises: {
+          orderBy: { orderIndex: 'asc' }
+        }
+      }
+    });
+
+    // Serialize for JSON response
+    const serializedWorkout = newWorkout ? {
+      id: newWorkout.id.toString(),
+      planId: newWorkout.planId.toString(),
+      day: newWorkout.day,
+      muscleGroup: newWorkout.muscleGroup,
+      createdAt: newWorkout.createdAt,
+      exercises: newWorkout.exercises.map(exercise => ({
+        id: exercise.id.toString(),
+        workoutId: exercise.workoutId.toString(),
+        orderIndex: exercise.orderIndex,
+        exerciseTitle: exercise.exerciseTitle,
+        numberOfReps: JSON.parse(exercise.numberOfReps),
+        weight: exercise.weight,
+        isBodyweight: exercise.isBodyweight,
+        restTime: exercise.restTime,
+        notes: exercise.notes,
+        createdAt: exercise.createdAt
+      }))
+    } : null;
+
+    return res.json({
+      success: true,
+      workout: serializedWorkout,
+      generatedText,
+      workoutsGenerated
+    });
+  } catch (error: any) {
+    console.error('Error generating next workout:', error);
+    return res.status(500).json({
+      error: 'Failed to generate next workout',
+      details: error.message
+    });
   }
 });
 

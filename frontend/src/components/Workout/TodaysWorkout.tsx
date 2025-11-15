@@ -23,8 +23,7 @@ import {
 } from '@ionic/react';
 import { add, archive, barbell, calendar, checkmarkCircle, checkmarkCircleOutline, close, copy, eye, eyeOff, fitness, pause, send, time } from 'ionicons/icons';
 import React, { useEffect, useRef, useState } from 'react';
-import { aiService } from '../../services/aiService';
-import { workoutPlanApi as backendWorkoutPlanApi, workoutSessionApi } from '../../services/api_backend';
+import { workoutPlanApi as backendWorkoutPlanApi, workoutSessionApi, workoutApi } from '../../services/api_backend';
 import { useStore } from '../../store/useStore';
 import { parseWorkoutPlan, type DailyWorkout } from '../../types/workout';
 import './TodaysWorkout.css';
@@ -45,6 +44,8 @@ const TodaysWorkout: React.FC = () => {
   const [viewingPlan, setViewingPlan] = useState<any | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [workouts, setWorkouts] = useState<DailyWorkout[]>([]);
+  const [loadingWorkouts, setLoadingWorkouts] = useState(false);
 
   // Touch handling for carousel
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -93,6 +94,56 @@ const TodaysWorkout: React.FC = () => {
       key: 'hideCompletedWorkouts',
       value: JSON.stringify(newValue)
     });
+  };
+
+  // Load workouts with fallback pattern
+  const loadWorkouts = async (plan: any): Promise<DailyWorkout[]> => {
+    if (!plan?.id) {
+      return [];
+    }
+
+    setLoadingWorkouts(true);
+    try {
+      // 1. Try fetching structured workouts from API
+      const response = await workoutApi.getByPlan(plan.id);
+
+      if (response && Array.isArray(response) && response.length > 0) {
+        console.log('✅ Using structured workout data from API:', response.length, 'workouts');
+
+        // Transform API response to DailyWorkout format
+        const transformedWorkouts: DailyWorkout[] = response.map((w: any) => ({
+          dayNumber: w.day,
+          focus: w.muscleGroup,
+          exercises: w.exercises.map((ex: any) => ({
+            name: ex.exerciseTitle,
+            sets: ex.numberOfReps, // This is an array from API
+            weight: ex.isBodyweight ? 'bodyweight' : `${ex.weight}kg`,
+            restBetweenSets: ex.restTime ? `${ex.restTime}s` : undefined,
+            notes: ex.notes || undefined
+          }))
+        }));
+
+        setWorkouts(transformedWorkouts);
+        return transformedWorkouts;
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch structured workouts, falling back to plan_details parsing:', error);
+    }
+
+    // 2. Fallback: parse plan_details text
+    try {
+      if (plan.planDetails) {
+        console.log('📝 Falling back to plan_details parsing');
+        const parsed = parseWorkoutPlan(plan.planDetails);
+        setWorkouts(parsed.weeklyWorkouts);
+        return parsed.weeklyWorkouts;
+      }
+    } catch (parseError) {
+      console.error('❌ Failed to parse plan_details:', parseError);
+    }
+
+    setWorkouts([]);
+    return [];
   };
 
 
@@ -149,6 +200,14 @@ const TodaysWorkout: React.FC = () => {
       refreshPlans();
     }
   }, [activeWorkoutPlan?.planDetails]);
+
+  // Load workouts when selectedPlanId changes
+  useEffect(() => {
+    const currentPlan = activeWorkoutPlans.find(p => p.id == selectedPlanId);
+    if (currentPlan) {
+      loadWorkouts(currentPlan);
+    }
+  }, [selectedPlanId, activeWorkoutPlans]);
 
   const loadActivePlan = async () => {
     if (!user?.id) return;
@@ -211,7 +270,7 @@ const TodaysWorkout: React.FC = () => {
     }
   }, [selectedPlanId, activeWorkoutPlans, currentPlanIndex]);
 
-  const handlePlanSelect = (planId: number) => {
+  const handlePlanSelect = async (planId: number) => {
     const plan = activeWorkoutPlans.find(p => p.id == planId);
     console.log(activeWorkoutPlans)
     console.log(planId);
@@ -219,6 +278,8 @@ const TodaysWorkout: React.FC = () => {
     if (plan) {
       setSelectedPlanId(planId);
       setActiveWorkoutPlan(plan);
+      // Load workouts for this plan
+      await loadWorkouts(plan);
     }
   };
 
@@ -426,8 +487,9 @@ const TodaysWorkout: React.FC = () => {
   };
 
   const checkAndGenerateNewWorkouts = async (plan: any) => {
-    const parsedPlan = parseWorkoutPlan(plan.planDetails);
-    const totalWorkouts = parsedPlan.weeklyWorkouts.length;
+    // Load current workouts to check count
+    const currentWorkouts = await loadWorkouts(plan);
+    const totalWorkouts = currentWorkouts.length;
     const completedWorkouts = plan.completedWorkouts || [];
     const incompleteCount = totalWorkouts - completedWorkouts.length;
 
@@ -441,26 +503,29 @@ const TodaysWorkout: React.FC = () => {
       console.log(`🔄 Need to generate ${neededWorkouts} new workout(s)...`);
 
       try {
-        // Generate all needed workouts
+        // Generate all needed workouts using backend API
         for (let i = 0; i < neededWorkouts; i++) {
           const newWorkoutDay = totalWorkouts + 1 + i;
-          console.log(`📝 Generating workout day ${newWorkoutDay}...`);
+          console.log(`📝 Generating workout day ${newWorkoutDay} via backend...`);
 
-          const generatedWorkout = await generateNextWorkout(plan, newWorkoutDay, parsedPlan.weeklyWorkouts);
+          const response = await workoutApi.generateNext(plan.id, newWorkoutDay, user!.id!);
 
-          if (generatedWorkout) {
-            // Append the new workout to the plan details
-            plan.planDetails = plan.planDetails + '\n\n' + generatedWorkout;
+          if (response.success) {
             console.log(`✅ Generated workout day ${newWorkoutDay}`);
           }
         }
 
-        // Save the updated plan
-        const updatedPlan = await backendWorkoutPlanApi.updatePlan(plan.id, {
-          planDetails: plan.planDetails
-        });
-        setActiveWorkoutPlan(updatedPlan);
-        console.log(`💾 Saved ${neededWorkouts} new workout(s) to plan`);
+        // Reload workouts to get the newly generated ones
+        await loadWorkouts(plan);
+
+        // Refresh the plan from backend to get updated planDetails
+        const updatedPlan = await backendWorkoutPlanApi.getUserPlans(user!.id!);
+        const refreshedPlan = updatedPlan.find((p: any) => p.id == plan.id);
+        if (refreshedPlan) {
+          setActiveWorkoutPlan(refreshedPlan);
+        }
+
+        console.log(`💾 Generated ${neededWorkouts} new workout(s) successfully`);
       } catch (error) {
         console.error('❌ Error generating new workouts:', error);
       }
@@ -470,79 +535,8 @@ const TodaysWorkout: React.FC = () => {
     console.log('=== END WORKOUT GENERATION CHECK ===');
   };
 
-  const generateNextWorkout = async (plan: any, dayNumber: number, existingWorkouts: DailyWorkout[]): Promise<string> => {
-    // Determine the muscle group rotation pattern based on existing workouts
-    const daysPerWeek = existingWorkouts.length; // Infer from parsed workouts
-    const rotationIndex = (dayNumber - 1) % daysPerWeek;
-    const targetWorkout = existingWorkouts[rotationIndex];
-
-    const bodyweightExercises = user?.bodyweightExercises || [];
-    const bodyweightInfo = bodyweightExercises.length > 0
-      ? `
-BODYWEIGHT EXERCISES (with max reps):
-${bodyweightExercises.map(ex => `- ${ex.name}: Max ${ex.maxReps} reps`).join('\n')}
-
-CRITICAL: You MUST include at least ${Math.min(2, bodyweightExercises.length)} bodyweight exercises in this workout.
-Program them based on max reps (strength: 40-60%, hypertrophy: 60-80%, endurance: 80-100%).
-`
-      : '';
-
-    const prompt = `You are a professional fitness coach creating workout plans. Generate Day ${dayNumber} for this workout program.
-
-EXISTING WORKOUT PLAN (Days 1-${existingWorkouts.length}):
-${plan.planDetails}
-
-CONTEXT:
-- Plan Name: ${plan.name}
-- Days per week: ${daysPerWeek}
-- This is a ${daysPerWeek}-day split rotation
-- Day ${dayNumber} should follow the same muscle group pattern as Day ${rotationIndex + 1}
-${bodyweightInfo}
-
-CRITICAL INSTRUCTIONS:
-1. Day ${dayNumber} should target: ${targetWorkout.focus}
-2. Use similar exercises to Day ${rotationIndex + 1} but with slight progression (2-5% more weight or 1-2 more reps)
-3. ${bodyweightExercises.length > 0 ? 'MANDATORY: Include at least ' + Math.min(2, bodyweightExercises.length) + ' bodyweight exercises mixed with equipment exercises' : 'Use equipment-based exercises'}
-4. Follow the EXACT format below - this is mandatory
-5. Include ALL rest times (both between sets and before next exercise)
-6. Use realistic weights based on the existing plan
-7. For bodyweight exercises, use "bodyweight" as the weight
-8. DO NOT add any explanation, introduction, or commentary
-9. DO NOT ask questions
-10. Generate ONLY the workout content
-
-REQUIRED FORMAT (copy this structure exactly):
-
-Day ${dayNumber} - ${targetWorkout.focus}:
-1. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
-2. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
-3. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
-4. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
-5. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
-
-EXAMPLE WITH BODYWEIGHT:
-Day 5 - Chest & Triceps:
-1. Push-ups - 3x12 @ bodyweight | 60s | 90s
-2. Smith Machine Bench Press - 4x10 @ 52kg | 90s | 120s
-3. Dips - 3x8 @ bodyweight | 60s | 90s
-4. Cable Flyes - 3x15 @ 13kg | 60s | 90s
-5. Diamond Push-ups - 3x10 @ bodyweight | 60s | 90s
-
-NOW GENERATE:`;
-
-    const response = await aiService.chat(prompt, {});
-    const cleaned = response.trim();
-
-    console.log('AI Response for Day', dayNumber, ':', cleaned.substring(0, 200));
-
-    // Validate the response has the correct format
-    if (!cleaned.includes(`Day ${dayNumber}`) || !cleaned.includes('-')) {
-      console.error('Invalid workout format from AI:', cleaned);
-      throw new Error('AI generated invalid workout format');
-    }
-
-    return cleaned;
-  };
+  // NOTE: generateNextWorkout has been moved to backend API
+  // See: POST /api/workouts/generate-next
 
   if (loading) {
     return (
@@ -585,10 +579,9 @@ NOW GENERATE:`;
     return null;
   }
 
-  const parsedPlan = parseWorkoutPlan(currentPlan.planDetails);
-
+  // Use workouts state (loaded with fallback pattern) instead of parsing on every render
   if (workoutInProgress && selectedDay !== null) {
-    const workout = parsedPlan.weeklyWorkouts.find(w => w.dayNumber === selectedDay);
+    const workout = workouts.find(w => w.dayNumber === selectedDay);
     if (workout) {
       return <WorkoutExecution workout={workout} onComplete={handleWorkoutComplete} />;
     }
@@ -762,11 +755,11 @@ NOW GENERATE:`;
           </div>
 
           <div className="workouts-grid">
-            {parsedPlan.weeklyWorkouts.filter(workout => {
+            {workouts.filter((workout: DailyWorkout) => {
               const isCompleted = currentPlan?.completedWorkouts?.includes(workout.dayNumber) || false;
               // Default behavior: hide completed workouts unless explicitly showing them
               return hideCompleted ? !isCompleted : true;
-            }).map((workout) => {
+            }).map((workout: DailyWorkout) => {
               const isCompleted = currentPlan?.completedWorkouts?.includes(workout.dayNumber) || false;
               return (
                 <IonCard
@@ -786,7 +779,10 @@ NOW GENERATE:`;
                     <div className="workout-meta">
                       <span className="exercise-count">{workout.exercises.length} exercises</span>
                       <span className="set-count">
-                        {workout.exercises.reduce((sum, ex) => sum + ex.sets, 0)} sets
+                        {workout.exercises.reduce((sum: number, ex: any) => {
+                          const sets = Array.isArray(ex.sets) ? ex.sets.length : (typeof ex.sets === 'number' ? ex.sets : 0);
+                          return sum + sets;
+                        }, 0)} sets
                       </span>
                     </div>
                     {isCompleted ? (

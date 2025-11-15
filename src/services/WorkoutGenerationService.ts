@@ -1,9 +1,11 @@
 /**
  * WorkoutGenerationService
  * Automatically generates Workout and Exercise records from workout plan details
+ * Now uses WorkoutParserService for consistent parsing logic
  */
 
 import prisma from '../lib/database';
+import { workoutParserService } from './WorkoutParserService';
 
 interface ExerciseDetails {
   restTime?: number;
