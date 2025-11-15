@@ -1,18 +1,23 @@
 .calendar-card {
   margin: 16px 0;
+  padding: 1rem;
+  background: var(--ion-color-light);
+  border-radius: 12px;
 }
 
 .calendar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 1rem;
 }
 
 .calendar-header ion-card-title {
   flex: 1;
   text-align: center;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
+  color: var(--ion-color-dark);
 }
 
 .calendar-grid {
@@ -22,22 +27,22 @@
 .calendar-day-names {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .calendar-day-name {
   text-align: center;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--ion-color-medium);
-  padding: 8px 4px;
+  padding: 0.5rem 0;
 }
 
 .calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 0.25rem;
 }
 
 .calendar-cell {
@@ -47,16 +52,25 @@
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  background-color: var(--ion-color-light);
-  transition: all 0.2s ease;
-  cursor: pointer;
   position: relative;
-  padding: 4px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calendar-cell:hover {
+  background: var(--ion-color-light);
+  transform: scale(1.05);
+}
+
+.calendar-cell:active {
+  transform: scale(0.95);
+  transition-duration: 0.1s;
 }
 
 .calendar-day-number {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
+  color: var(--ion-color-dark);
 }
 
 .calendar-day-count {
@@ -68,12 +82,10 @@
 /* States */
 .calendar-cell.other-month {
   opacity: 0.3;
-  cursor: default;
 }
 
 .calendar-cell.today {
-  box-shadow: 0 0 0 2px var(--ion-color-primary) inset;
-  font-weight: 700;
+  border: 2px solid var(--ion-color-primary);
 }
 
 .calendar-cell.perfect {
@@ -84,6 +96,23 @@
 
 .calendar-cell.has-completion {
   font-weight: 600;
+}
+
+.calendar-day-indicator {
+  position: absolute;
+  bottom: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.success-dot {
+  background: #22c55e;
+}
+
+.partial-dot {
+  background: #f59e0b;
 }
 
 .calendar-loading {

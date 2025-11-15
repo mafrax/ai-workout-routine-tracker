@@ -104,7 +104,7 @@ const Calendar: React.FC<CalendarProps> = ({
         {isLoading ? (
           <div className="calendar-loading">Loading...</div>
         ) : (
-          <div className="calendar-grid">
+          <>
             {/* Day names header */}
             <div className="calendar-day-names">
               {dayNames.map((name) => (
@@ -136,7 +136,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 );
               })}
             </div>
-          </div>
+          </>
         )}
       </IonCardContent>
     </IonCard>

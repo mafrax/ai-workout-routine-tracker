@@ -14,17 +14,11 @@ import {
   generateCalendarDays,
   generateWeekData
 } from '../utils/taskCalendarUtils';
+import { useStore } from './useStore';
 
-// Get userId from global state (you may need to adjust this based on your auth setup)
+// Get userId from global Zustand state
 const getUserId = (): number | null => {
-  const userStr = localStorage.getItem('user');
-  if (!userStr) return null;
-  try {
-    const user = JSON.parse(userStr);
-    return user.id || null;
-  } catch {
-    return null;
-  }
+  return useStore.getState().user?.id || null;
 };
 
 export const useDailyTasksStore = create<DailyTasksState>((set, get) => ({

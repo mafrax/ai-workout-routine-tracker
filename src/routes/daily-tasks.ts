@@ -27,21 +27,42 @@ const serializeTask = (task: any): DailyTaskDto => ({
   lastCompletedDate: task.lastCompletedDate || null
 });
 
-// GET /api/daily-tasks/user/:userId
-router.get('/user/:userId', async (req: Request, res: Response<DailyTaskDto[]>) => {
+// GET /api/daily-tasks/user/:userId/stats - Get aggregate stats (must come before /user/:userId)
+router.get('/user/:userId/stats', async (req: Request, res: Response) => {
   try {
     const userId = userIdSchema.parse(req.params.userId);
-    
-    // Check and reset if needed
-    await dailyTaskService.checkAndResetTasksIfNeeded(userId);
-    
-    const tasks = await dailyTaskService.getUserTasks(userId);
-    const taskDtos = tasks.map(serializeTask);
+    const stats = await dailyTaskService.calculateAggregateStats(userId);
 
-    return res.json(taskDtos);
+    res.json(stats);
   } catch (error) {
-    console.error('Error getting user tasks:', error);
-    return res.status(500).json({ error: 'Internal server error' } as any);
+    console.error('Error getting aggregate stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/daily-tasks/user/:userId/history - Get completion history (must come before /user/:userId)
+router.get('/user/:userId/history', async (req: Request, res: Response) => {
+  try {
+    const userId = userIdSchema.parse(req.params.userId);
+    const days = req.query.days ? parseInt(req.query.days as string) : 30;
+
+    const history = await dailyTaskService.getCompletionHistory(userId, days);
+
+    // Serialize the response
+    const serializedHistory = history.map(record => ({
+      id: Number(record.id),
+      userId: Number(record.userId),
+      recordDate: record.recordDate,
+      tasksTotal: record.tasksTotal,
+      tasksCompleted: record.tasksCompleted,
+      completionRate: record.completionRate,
+      createdAt: record.createdAt instanceof Date ? record.createdAt.toISOString() : String(record.createdAt)
+    }));
+
+    res.json(serializedHistory);
+  } catch (error) {
+    console.error('Error getting completion history:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -55,6 +76,24 @@ router.get('/user/:userId/incomplete', async (req: Request, res: Response<DailyT
     return res.json(taskDtos);
   } catch (error) {
     console.error('Error getting incomplete tasks:', error);
+    return res.status(500).json({ error: 'Internal server error' } as any);
+  }
+});
+
+// GET /api/daily-tasks/user/:userId
+router.get('/user/:userId', async (req: Request, res: Response<DailyTaskDto[]>) => {
+  try {
+    const userId = userIdSchema.parse(req.params.userId);
+
+    // Check and reset if needed
+    await dailyTaskService.checkAndResetTasksIfNeeded(userId);
+
+    const tasks = await dailyTaskService.getUserTasks(userId);
+    const taskDtos = tasks.map(serializeTask);
+
+    return res.json(taskDtos);
+  } catch (error) {
+    console.error('Error getting user tasks:', error);
     return res.status(500).json({ error: 'Internal server error' } as any);
   }
 });
@@ -119,19 +158,6 @@ router.post('/user/:userId/reset', async (req: Request, res: Response<ApiRespons
   }
 });
 
-// GET /api/daily-tasks/user/:userId/stats - Get aggregate stats
-router.get('/user/:userId/stats', async (req: Request, res: Response) => {
-  try {
-    const userId = userIdSchema.parse(req.params.userId);
-    const stats = await dailyTaskService.calculateAggregateStats(userId);
-
-    res.json(stats);
-  } catch (error) {
-    console.error('Error getting aggregate stats:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // GET /api/daily-tasks/:taskId/stats - Get per-task stats
 router.get('/:taskId/stats', async (req: Request, res: Response) => {
   try {
@@ -146,32 +172,6 @@ router.get('/:taskId/stats', async (req: Request, res: Response) => {
     } else {
       res.status(500).json({ error: 'Internal server error' });
     }
-  }
-});
-
-// GET /api/daily-tasks/user/:userId/history - Get completion history
-router.get('/user/:userId/history', async (req: Request, res: Response) => {
-  try {
-    const userId = userIdSchema.parse(req.params.userId);
-    const days = req.query.days ? parseInt(req.query.days as string) : 30;
-
-    const history = await dailyTaskService.getCompletionHistory(userId, days);
-
-    // Serialize the response
-    const serializedHistory = history.map(record => ({
-      id: Number(record.id),
-      userId: Number(record.userId),
-      recordDate: record.recordDate,
-      tasksTotal: record.tasksTotal,
-      tasksCompleted: record.tasksCompleted,
-      completionRate: record.completionRate,
-      createdAt: record.createdAt instanceof Date ? record.createdAt.toISOString() : String(record.createdAt)
-    }));
-
-    res.json(serializedHistory);
-  } catch (error) {
-    console.error('Error getting completion history:', error);
-    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
