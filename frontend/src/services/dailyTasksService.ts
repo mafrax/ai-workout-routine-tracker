@@ -7,7 +7,7 @@ import {
 } from '../types/dailyTasks';
 
 // Use environment variable for API URL (defaults to production if not set)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://workout-mnmxl9sg9-marcs-projects-3a713b55.vercel.app/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://workout-marcs-projects-3a713b55.vercel.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

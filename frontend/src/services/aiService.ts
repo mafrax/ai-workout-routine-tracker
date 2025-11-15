@@ -8,7 +8,7 @@ const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
 // API Base URL for backend services
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://workout-mnmxl9sg9-marcs-projects-3a713b55.vercel.app/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://workout-marcs-projects-3a713b55.vercel.app/api';
 
 interface ClaudeMessage {
   role: 'user' | 'assistant';
