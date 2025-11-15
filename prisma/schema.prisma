@@ -36,18 +36,14 @@ model User {
 }
 
 model DailyTask {
-  id                 BigInt    @id @default(autoincrement())
-  userId             BigInt    @map("user_id")
+  id                 BigInt                @id @default(autoincrement())
+  userId             BigInt                @map("user_id")
   title              String
-  completed          Boolean   @default(false)
-  createdAt          DateTime  @default(now()) @map("created_at")
-  completedAt        DateTime? @map("completed_at")
-  lastResetAt        DateTime? @map("last_reset_at")
-  currentStreak      Int       @default(0) @map("current_streak")
-  bestStreak         Int       @default(0) @map("best_streak")
-  totalCompletions   Int       @default(0) @map("total_completions")
-  lastCompletedDate  String?   @map("last_completed_date")
-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completed          Boolean               @default(false)
+  createdAt          DateTime              @default(now()) @map("created_at")
+  lastResetAt        DateTime?             @map("last_reset_at")
+  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions        DailyTaskCompletion[]
 
   @@map("daily_tasks")
 }
@@ -197,4 +193,15 @@ model TaskCompletionRecord {
 
   @@unique([userId, recordDate])
   @@map("task_completion_records")
+}
+
+model DailyTaskCompletion {
+  id             BigInt    @id @default(autoincrement())
+  taskId         BigInt    @map("task_id")
+  completionDate String    @map("completion_date")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  task           DailyTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, completionDate])
+  @@map("daily_task_completions")
 }

@@ -7,7 +7,7 @@ import {
 } from '../types/dailyTasks';
 
 // Use environment variable for API URL (defaults to production if not set)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://workout-marcs-projects-3a713b55.vercel.app/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://workout-mnmxl9sg9-marcs-projects-3a713b55.vercel.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -54,6 +54,11 @@ const dailyTasksApi = {
   getCompletionHistory: async (userId: number, days: number = 30): Promise<TaskCompletionRecord[]> => {
     const response = await api.get(`/daily-tasks/user/${userId}/history?days=${days}`);
     return response.data;
+  },
+
+  getTaskCompletionDates: async (taskId: number): Promise<string[]> => {
+    const response = await api.get(`/daily-tasks/${taskId}/completion-dates`);
+    return response.data.dates;
   }
 };
 
@@ -141,6 +146,17 @@ export const dailyTasksService = {
       return history;
     } catch (error) {
       console.error('Failed to get completion history:', error);
+      throw error;
+    }
+  },
+
+  // Get task completion dates
+  getTaskCompletionDates: async (taskId: number): Promise<string[]> => {
+    try {
+      const dates = await dailyTasksApi.getTaskCompletionDates(taskId);
+      return dates;
+    } catch (error) {
+      console.error('Failed to get task completion dates:', error);
       throw error;
     }
   }

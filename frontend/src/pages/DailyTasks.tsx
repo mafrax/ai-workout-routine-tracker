@@ -45,12 +45,14 @@ const DailyTasks: React.FC = () => {
     loadTasks,
     loadStats,
     loadHistory,
+    loadTaskCompletionDates,
     refresh,
     addTask,
     toggleTask,
     deleteTask,
     getCalendarDays,
-    getWeekData
+    getWeekData,
+    getTaskCompletionDates
   } = useDailyTasksStore();
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -65,6 +67,13 @@ const DailyTasks: React.FC = () => {
       loadInitialData();
     }
   }, [user]);
+
+  // Load completion dates when task is selected
+  useEffect(() => {
+    if (selectedTaskId) {
+      loadTaskCompletionDates(selectedTaskId);
+    }
+  }, [selectedTaskId]);
 
   const loadInitialData = async () => {
     try {
@@ -146,6 +155,10 @@ const DailyTasks: React.FC = () => {
   function getPerTaskCalendarDays(task: typeof selectedTask, year: number, month: number) {
     if (!task) return [];
 
+    // Get completion dates from store
+    const completionDates = getTaskCompletionDates(task.id);
+    const completionDatesSet = new Set(completionDates);
+
     // Generate calendar structure
     const firstDay = new Date(year, month, 1);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -157,21 +170,21 @@ const DailyTasks: React.FC = () => {
 
     const days: any[] = [];
     const today = new Date().toISOString().split('T')[0];
-    const lastCompleted = task.lastCompletedDate;
 
     // Previous month days
     for (let i = daysFromPrevMonth - 1; i >= 0; i--) {
       const day = prevMonthLastDay - i;
       const date = new Date(year, month - 1, day);
       const dateString = date.toISOString().split('T')[0];
+      const isCompleted = completionDatesSet.has(dateString);
 
       days.push({
         dateString,
-        tasksCompleted: dateString === lastCompleted ? 1 : 0,
+        tasksCompleted: isCompleted ? 1 : 0,
         tasksTotal: 1,
-        completionRate: dateString === lastCompleted ? 100 : 0,
-        hasAnyCompletion: dateString === lastCompleted,
-        isPerfect: dateString === lastCompleted,
+        completionRate: isCompleted ? 100 : 0,
+        hasAnyCompletion: isCompleted,
+        isPerfect: isCompleted,
         isToday: dateString === today,
         isCurrentMonth: false
       });
@@ -181,14 +194,15 @@ const DailyTasks: React.FC = () => {
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
       const dateString = date.toISOString().split('T')[0];
+      const isCompleted = completionDatesSet.has(dateString);
 
       days.push({
         dateString,
-        tasksCompleted: dateString === lastCompleted ? 1 : 0,
+        tasksCompleted: isCompleted ? 1 : 0,
         tasksTotal: 1,
-        completionRate: dateString === lastCompleted ? 100 : 0,
-        hasAnyCompletion: dateString === lastCompleted,
-        isPerfect: dateString === lastCompleted,
+        completionRate: isCompleted ? 100 : 0,
+        hasAnyCompletion: isCompleted,
+        isPerfect: isCompleted,
         isToday: dateString === today,
         isCurrentMonth: true
       });
@@ -198,14 +212,15 @@ const DailyTasks: React.FC = () => {
     for (let day = 1; day <= daysFromNextMonth; day++) {
       const date = new Date(year, month + 1, day);
       const dateString = date.toISOString().split('T')[0];
+      const isCompleted = completionDatesSet.has(dateString);
 
       days.push({
         dateString,
-        tasksCompleted: dateString === lastCompleted ? 1 : 0,
+        tasksCompleted: isCompleted ? 1 : 0,
         tasksTotal: 1,
-        completionRate: dateString === lastCompleted ? 100 : 0,
-        hasAnyCompletion: dateString === lastCompleted,
-        isPerfect: dateString === lastCompleted,
+        completionRate: isCompleted ? 100 : 0,
+        hasAnyCompletion: isCompleted,
+        isPerfect: isCompleted,
         isToday: dateString === today,
         isCurrentMonth: false
       });
@@ -218,22 +233,26 @@ const DailyTasks: React.FC = () => {
   function getPerTaskWeekData(task: typeof selectedTask) {
     if (!task) return [];
 
+    // Get completion dates from store
+    const completionDates = getTaskCompletionDates(task.id);
+    const completionDatesSet = new Set(completionDates);
+
     const weekData: any[] = [];
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const lastCompleted = task.lastCompletedDate;
 
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateString = date.toISOString().split('T')[0];
       const dayName = dayNames[date.getDay()];
+      const isCompleted = completionDatesSet.has(dateString);
 
       weekData.push({
         date: dateString,
         dayName,
-        tasksCompleted: dateString === lastCompleted ? 1 : 0,
+        tasksCompleted: isCompleted ? 1 : 0,
         tasksTotal: 1,
-        completionRate: dateString === lastCompleted ? 100 : 0
+        completionRate: isCompleted ? 100 : 0
       });
     }
 
@@ -346,7 +365,7 @@ const DailyTasks: React.FC = () => {
               {/* Show stats if a task is selected */}
               {selectedTask && (
                 <>
-                  <PerTaskStats task={selectedTask} />
+                  <PerTaskStats task={selectedTask} onToggleTask={handleToggleTask} />
 
                   {/* Week Chart for selected task */}
                   <WeekChart weekData={perTaskWeekData} isLoading={isLoading} />

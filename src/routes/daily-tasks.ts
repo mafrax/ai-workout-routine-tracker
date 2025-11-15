@@ -20,7 +20,6 @@ const serializeTask = (task: any): DailyTaskDto => ({
   title: String(task.title),
   completed: Boolean(task.completed),
   createdAt: task.createdAt instanceof Date ? task.createdAt.toISOString() : String(task.createdAt),
-  completedAt: task.completedAt ? (task.completedAt instanceof Date ? task.completedAt.toISOString() : String(task.completedAt)) : null,
   currentStreak: task.currentStreak || 0,
   bestStreak: task.bestStreak || 0,
   totalCompletions: task.totalCompletions || 0,
@@ -88,7 +87,7 @@ router.get('/user/:userId', async (req: Request, res: Response<DailyTaskDto[]>) 
     // Check and reset if needed
     await dailyTaskService.checkAndResetTasksIfNeeded(userId);
 
-    const tasks = await dailyTaskService.getUserTasks(userId);
+    const tasks = await dailyTaskService.getUserTasksWithStats(userId);
     const taskDtos = tasks.map(serializeTask);
 
     return res.json(taskDtos);
@@ -155,6 +154,19 @@ router.post('/user/:userId/reset', async (req: Request, res: Response<ApiRespons
   } catch (error) {
     console.error('Error resetting tasks:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// GET /api/daily-tasks/:taskId/completion-dates - Get completion dates for a task
+router.get('/:taskId/completion-dates', async (req: Request, res: Response) => {
+  try {
+    const taskId = taskIdSchema.parse(req.params.taskId);
+    const dates = await dailyTaskService.getTaskCompletionDates(taskId);
+
+    res.json({ dates });
+  } catch (error) {
+    console.error('Error getting task completion dates:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

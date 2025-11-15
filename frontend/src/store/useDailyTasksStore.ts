@@ -28,6 +28,7 @@ export const useDailyTasksStore = create<DailyTasksState>((set, get) => ({
   selectedTaskId: null,
   viewMode: 'aggregate',
   completionHistory: [],
+  taskCompletionDates: {},
   isLoading: false,
   loadingItems: new Set(),
   error: null,
@@ -129,6 +130,27 @@ export const useDailyTasksStore = create<DailyTasksState>((set, get) => ({
     }
   },
 
+  // Load task completion dates
+  loadTaskCompletionDates: async (taskId: number) => {
+    get().setLoading('loadTaskCompletionDates', true);
+    get().setError(null);
+
+    try {
+      const dates = await dailyTasksService.getTaskCompletionDates(taskId);
+      set((state) => ({
+        taskCompletionDates: {
+          ...state.taskCompletionDates,
+          [taskId]: dates
+        }
+      }));
+    } catch (error) {
+      console.error('Failed to load task completion dates:', error);
+      get().setError('Failed to load task completion dates');
+    } finally {
+      get().setLoading('loadTaskCompletionDates', false);
+    }
+  },
+
   // Refresh all data
   refresh: async () => {
     await Promise.all([
@@ -184,10 +206,11 @@ export const useDailyTasksStore = create<DailyTasksState>((set, get) => ({
         )
       }));
 
-      // Refresh stats and history to reflect changes
+      // Refresh stats, history, and completion dates to reflect changes
       await Promise.all([
         get().loadStats(),
-        get().loadHistory()
+        get().loadHistory(),
+        get().loadTaskCompletionDates(taskId)
       ]);
     } catch (error) {
       console.error('Failed to toggle task:', error);
@@ -259,5 +282,10 @@ export const useDailyTasksStore = create<DailyTasksState>((set, get) => ({
   getWeekData: (): WeekDayData[] => {
     const history = get().completionHistory;
     return generateWeekData(history);
+  },
+
+  // Get task completion dates
+  getTaskCompletionDates: (taskId: number): string[] => {
+    return get().taskCompletionDates[taskId] || [];
   }
 }));

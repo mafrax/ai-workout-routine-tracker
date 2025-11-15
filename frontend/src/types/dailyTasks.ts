@@ -4,7 +4,6 @@ export interface DailyTask {
   title: string;
   completed: boolean;
   createdAt: string;
-  completedAt: string | null;
   currentStreak: number;
   bestStreak: number;
   totalCompletions: number;
@@ -69,6 +68,7 @@ export interface DailyTasksState {
   selectedTaskId: number | null;
   viewMode: ViewMode;
   completionHistory: TaskCompletionRecord[];
+  taskCompletionDates: Record<number, string[]>; // taskId -> completion dates
   isLoading: boolean;
   loadingItems: Set<string>;
   error: string | null;
@@ -83,6 +83,7 @@ export interface DailyTasksState {
   loadTasks: () => Promise<void>;
   loadStats: () => Promise<void>;
   loadHistory: (days?: number) => Promise<void>;
+  loadTaskCompletionDates: (taskId: number) => Promise<void>;
   refresh: () => Promise<void>;
 
   // Task operations
@@ -95,4 +96,5 @@ export interface DailyTasksState {
   getAggregateStats: () => AggregateStats | null;
   getCalendarDays: (year: number, month: number) => CalendarDay[];
   getWeekData: () => WeekDayData[];
+  getTaskCompletionDates: (taskId: number) => string[];
 }

@@ -7,6 +7,7 @@ export interface TaskStats {
   currentStreak: number;
   bestStreak: number;
   totalCompletions: number;
+  lastCompletedDate: string | null;
   weekRate: number;
   monthRate: number;
   yearRate: number;
@@ -19,6 +20,13 @@ export interface AggregateStats {
   weekRate: number;
   monthRate: number;
   yearRate: number;
+}
+
+export interface DailyTaskWithStats extends DailyTask {
+  currentStreak: number;
+  bestStreak: number;
+  totalCompletions: number;
+  lastCompletedDate: string | null;
 }
 
 export class DailyTaskService {
@@ -37,6 +45,78 @@ export class DailyTaskService {
     const diffTime = Math.abs(date2.getTime() - date1.getTime());
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
   }
+
+  // Calculate streak from completion dates
+  private calculateStreak(completionDates: string[]): { currentStreak: number; bestStreak: number } {
+    if (completionDates.length === 0) {
+      return { currentStreak: 0, bestStreak: 0 };
+    }
+
+    // Sort dates in descending order (newest first)
+    const sortedDates = [...completionDates].sort((a, b) => b.localeCompare(a));
+    const today = this.formatDateString(new Date());
+
+    let currentStreak = 0;
+    let bestStreak = 0;
+    let tempStreak = 0;
+
+    // Calculate current streak (from today or yesterday backwards)
+    const latestDate = sortedDates[0] || '';
+    const daysSinceLatest = this.calculateDaysDifference(latestDate, today);
+
+    if (daysSinceLatest <= 1) {
+      // Current streak is active (completed today or yesterday)
+      let expectedDate = new Date(today);
+      if (daysSinceLatest === 1) {
+        expectedDate.setDate(expectedDate.getDate() - 1);
+      }
+
+      for (const dateStr of sortedDates) {
+        const expected = this.formatDateString(expectedDate);
+        if (dateStr === expected) {
+          currentStreak++;
+          expectedDate.setDate(expectedDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+    }
+
+    // Calculate best streak (iterate through all dates)
+    let prevDate: string | null = null;
+    for (const dateStr of sortedDates) {
+      if (prevDate === null) {
+        tempStreak = 1;
+      } else {
+        const daysDiff = this.calculateDaysDifference(dateStr, prevDate);
+        if (daysDiff === 1) {
+          tempStreak++;
+        } else {
+          bestStreak = Math.max(bestStreak, tempStreak);
+          tempStreak = 1;
+        }
+      }
+      prevDate = dateStr;
+    }
+    bestStreak = Math.max(bestStreak, tempStreak);
+
+    return { currentStreak, bestStreak };
+  }
+
+  // Calculate completion rate for a date range
+  private calculateCompletionRate(completionDates: string[], startDate: Date, endDate: Date): number {
+    const startStr = this.formatDateString(startDate);
+    const endStr = this.formatDateString(endDate);
+
+    const completionsInRange = completionDates.filter(
+      date => date >= startStr && date <= endStr
+    ).length;
+
+    const totalDays = this.calculateDaysDifference(startStr, endStr) + 1;
+
+    return totalDays > 0 ? (completionsInRange / totalDays) * 100 : 0;
+  }
+
   async getUserTasks(userId: bigint): Promise<DailyTask[]> {
     return prisma.dailyTask.findMany({
       where: { userId },
@@ -46,7 +126,7 @@ export class DailyTaskService {
 
   async getIncompleteTasks(userId: bigint): Promise<DailyTask[]> {
     return prisma.dailyTask.findMany({
-      where: { 
+      where: {
         userId,
         completed: false
       },
@@ -77,62 +157,46 @@ export class DailyTaskService {
     const newCompletedState = !task.completed;
     const today = this.formatDateString(new Date());
 
-    // Calculate new streak values
-    let updateData: any = { completed: newCompletedState };
-
     if (newCompletedState) {
-      // Completing the task
-      if (!task.lastCompletedDate) {
-        // First time completing
-        updateData.currentStreak = 1;
-        updateData.bestStreak = 1;
-        updateData.totalCompletions = task.totalCompletions + 1;
-        updateData.lastCompletedDate = today;
-        updateData.completedAt = new Date();
-      } else if (task.lastCompletedDate === today) {
-        // Already completed today - shouldn't happen, but handle gracefully
-        return task;
-      } else {
-        // Calculate gap
-        const daysDiff = this.calculateDaysDifference(task.lastCompletedDate, today);
-
-        let newStreak: number;
-        if (daysDiff === 1) {
-          // Consecutive day
-          newStreak = task.currentStreak + 1;
-        } else {
-          // Gap detected - reset
-          newStreak = 1;
-        }
-
-        updateData.currentStreak = newStreak;
-        updateData.bestStreak = Math.max(task.bestStreak, newStreak);
-        updateData.totalCompletions = task.totalCompletions + 1;
-        updateData.lastCompletedDate = today;
-        updateData.completedAt = new Date();
-      }
+      // Mark task as completed
+      await prisma.dailyTaskCompletion.upsert({
+        where: {
+          taskId_completionDate: {
+            taskId: taskId,
+            completionDate: today
+          }
+        },
+        create: {
+          taskId: taskId,
+          completionDate: today
+        },
+        update: {}
+      });
     } else {
-      // Uncompleting the task (same day only)
-      if (task.lastCompletedDate === today && task.completedAt) {
-        // Reverting today's completion
-        updateData.totalCompletions = Math.max(0, task.totalCompletions - 1);
-        updateData.completedAt = null;
-
-        // Try to restore previous streak (simplified: if we can't determine, set to 0)
-        // In production, you might want to recalculate from history
-        if (task.currentStreak > 1) {
-          updateData.currentStreak = task.currentStreak - 1;
-        } else {
-          updateData.currentStreak = 0;
+      // Mark task as incomplete - remove today's completion
+      await prisma.dailyTaskCompletion.deleteMany({
+        where: {
+          taskId: taskId,
+          completionDate: today
         }
-        // Don't change lastCompletedDate - we'll recalculate on next completion
-      }
+      });
     }
 
+    // Update the completed flag
     return prisma.dailyTask.update({
       where: { id: taskId },
-      data: updateData
+      data: { completed: newCompletedState }
     });
+  }
+
+  // Get completion dates for a specific task
+  async getTaskCompletionDates(taskId: bigint): Promise<string[]> {
+    const completions = await prisma.dailyTaskCompletion.findMany({
+      where: { taskId },
+      orderBy: { completionDate: 'desc' }
+    });
+
+    return completions.map(c => c.completionDate);
   }
 
   async deleteTask(taskId: bigint): Promise<void> {
@@ -178,7 +242,7 @@ export class DailyTaskService {
       });
     }
 
-    // Reset all tasks (preserve streak data)
+    // Reset all tasks
     await prisma.dailyTask.updateMany({
       where: { userId },
       data: {
@@ -210,15 +274,64 @@ export class DailyTaskService {
     }
   }
 
-  // Calculate stats for a specific task
-  async calculateTaskStats(taskId: bigint): Promise<TaskStats> {
+  // Get task with computed stats
+  async getTaskWithStats(taskId: bigint): Promise<DailyTaskWithStats> {
     const task = await prisma.dailyTask.findUnique({
-      where: { id: taskId }
+      where: { id: taskId },
+      include: {
+        completions: {
+          orderBy: { completionDate: 'desc' }
+        }
+      }
     });
 
     if (!task) {
       throw new Error('Task not found');
     }
+
+    const completionDates = task.completions.map(c => c.completionDate);
+    const { currentStreak, bestStreak } = this.calculateStreak(completionDates);
+
+    return {
+      ...task,
+      currentStreak,
+      bestStreak,
+      totalCompletions: completionDates.length,
+      lastCompletedDate: completionDates.length > 0 && completionDates[0] ? completionDates[0] : null
+    };
+  }
+
+  // Get all tasks with computed stats
+  async getUserTasksWithStats(userId: bigint): Promise<DailyTaskWithStats[]> {
+    const tasks = await prisma.dailyTask.findMany({
+      where: { userId },
+      include: {
+        completions: {
+          orderBy: { completionDate: 'desc' }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return tasks.map(task => {
+      const completionDates = task.completions.map(c => c.completionDate);
+      const { currentStreak, bestStreak } = this.calculateStreak(completionDates);
+
+      return {
+        ...task,
+        currentStreak,
+        bestStreak,
+        totalCompletions: completionDates.length,
+        lastCompletedDate: completionDates.length > 0 && completionDates[0] ? completionDates[0] : null
+      };
+    });
+  }
+
+  // Calculate stats for a specific task
+  async calculateTaskStats(taskId: bigint): Promise<TaskStats> {
+    const task = await this.getTaskWithStats(taskId);
+
+    const completionDates = await this.getTaskCompletionDates(taskId);
 
     const now = new Date();
     const weekAgo = new Date(now);
@@ -228,33 +341,9 @@ export class DailyTaskService {
     const yearAgo = new Date(now);
     yearAgo.setDate(yearAgo.getDate() - 365);
 
-    // Get completion records for this user
-    const records = await prisma.taskCompletionRecord.findMany({
-      where: {
-        userId: task.userId,
-        recordDate: {
-          gte: this.formatDateString(yearAgo)
-        }
-      },
-      orderBy: { recordDate: 'asc' }
-    });
-
-    // Calculate completion rates (simplified - assumes task existed for full period)
-    const weekRecords = records.filter(r => r.recordDate >= this.formatDateString(weekAgo));
-    const monthRecords = records.filter(r => r.recordDate >= this.formatDateString(monthAgo));
-    const yearRecords = records;
-
-    // For individual task rates, we'd ideally track per-task completion in records
-    // For now, use aggregate rates as approximation
-    const weekRate = weekRecords.length > 0
-      ? weekRecords.reduce((sum, r) => sum + r.completionRate, 0) / weekRecords.length
-      : 0;
-    const monthRate = monthRecords.length > 0
-      ? monthRecords.reduce((sum, r) => sum + r.completionRate, 0) / monthRecords.length
-      : 0;
-    const yearRate = yearRecords.length > 0
-      ? yearRecords.reduce((sum, r) => sum + r.completionRate, 0) / yearRecords.length
-      : 0;
+    const weekRate = this.calculateCompletionRate(completionDates, weekAgo, now);
+    const monthRate = this.calculateCompletionRate(completionDates, monthAgo, now);
+    const yearRate = this.calculateCompletionRate(completionDates, yearAgo, now);
 
     return {
       taskId: Number(task.id),
@@ -262,6 +351,7 @@ export class DailyTaskService {
       currentStreak: task.currentStreak,
       bestStreak: task.bestStreak,
       totalCompletions: task.totalCompletions,
+      lastCompletedDate: task.lastCompletedDate,
       weekRate,
       monthRate,
       yearRate

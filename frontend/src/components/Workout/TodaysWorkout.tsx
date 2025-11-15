@@ -182,7 +182,7 @@ const TodaysWorkout: React.FC = () => {
     try {
       console.log(`🔄 Syncing completion status for plan ${planId}`);
       const response = await fetch(
-        `https://workout-marcs-projects-3a713b55.vercel.app/api/plans/${planId}/sync-completion`,
+        `https://workout-mnmxl9sg9-marcs-projects-3a713b55.vercel.app/api/plans/${planId}/sync-completion`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' } }
       );
 

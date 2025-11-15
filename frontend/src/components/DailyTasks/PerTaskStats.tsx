@@ -1,13 +1,18 @@
 import React from 'react';
-import { IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonGrid, IonRow, IonCol } from '@ionic/react';
+import { IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonGrid, IonRow, IonCol, IonButton, IonIcon } from '@ionic/react';
+import { checkmarkCircle, checkmarkCircleOutline } from 'ionicons/icons';
 import { DailyTask } from '../../types/dailyTasks';
 import './PerTaskStats.css';
 
 interface PerTaskStatsProps {
   task: DailyTask;
+  onToggleTask: (taskId: number) => void;
 }
 
-const PerTaskStats: React.FC<PerTaskStatsProps> = ({ task }) => {
+const PerTaskStats: React.FC<PerTaskStatsProps> = ({ task, onToggleTask }) => {
+  const today = new Date().toISOString().split('T')[0];
+  const isCompletedToday = task.completed || task.lastCompletedDate === today;
+
   return (
     <IonCard className="per-task-stats-card">
       <IonCardHeader>
@@ -33,6 +38,18 @@ const PerTaskStats: React.FC<PerTaskStatsProps> = ({ task }) => {
                 <div className="stat-value">{task.totalCompletions}</div>
                 <div className="stat-label">Total</div>
               </div>
+            </IonCol>
+          </IonRow>
+          <IonRow>
+            <IonCol size="12" className="ion-text-center">
+              <IonButton
+                expand="block"
+                color={isCompletedToday ? "success" : "primary"}
+                onClick={() => onToggleTask(task.id)}
+              >
+                <IonIcon slot="start" icon={isCompletedToday ? checkmarkCircle : checkmarkCircleOutline} />
+                {isCompletedToday ? "Completed Today" : "Mark as Completed"}
+              </IonButton>
             </IonCol>
           </IonRow>
         </IonGrid>
