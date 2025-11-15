@@ -20,8 +20,7 @@ import {
 } from '@ionic/react';
 import { checkmarkCircle, refresh, copy, trashOutline } from 'ionicons/icons';
 import { useStore } from '../../store/useStore';
-import { chatApi } from '../../services/api_backend';
-import { workoutPlanApi } from '../../services/api';
+import { chatApi, workoutPlanApi } from '../../services/api_backend';
 import './ChatInterface.css';
 
 const ChatInterface: React.FC = () => {
@@ -99,24 +98,43 @@ const ChatInterface: React.FC = () => {
   };
 
   const applyPlanChanges = async () => {
-    if (!lastSuggestedPlan || !activeWorkoutPlan) return;
+    if (!lastSuggestedPlan || !user) return;
 
     setLoading(true);
     try {
       // Extract only the workout plan portion (remove conversational text)
       const cleanedPlan = extractWorkoutPlan(lastSuggestedPlan);
 
-      const updatedPlan = await workoutPlanApi.updatePlan(activeWorkoutPlan.id!, {
-        planDetails: cleanedPlan
-      });
+      let resultPlan;
 
-      setActiveWorkoutPlan(updatedPlan);
-      setToastMessage('Workout plan updated successfully! ✅');
+      if (activeWorkoutPlan) {
+        // Update existing plan
+        resultPlan = await workoutPlanApi.updatePlan(activeWorkoutPlan.id!, {
+          planDetails: cleanedPlan
+        });
+        setToastMessage('Workout plan updated successfully! ✅');
+      } else {
+        // Create new plan
+        const newPlan: any = {
+          userId: user.id!,
+          name: 'My Workout Plan',
+          description: 'AI-generated workout plan',
+          durationWeeks: 4,
+          daysPerWeek: 3,
+          planDetails: cleanedPlan,
+          difficultyLevel: 'intermediate',
+          isActive: true,
+        };
+        resultPlan = await workoutPlanApi.create(newPlan);
+        setToastMessage('Workout plan created successfully! ✅');
+      }
+
+      setActiveWorkoutPlan(resultPlan);
       setShowToast(true);
       setLastSuggestedPlan(null);
     } catch (error) {
-      console.error('Error updating plan:', error);
-      setToastMessage('Failed to update workout plan');
+      console.error('Error applying plan changes:', error);
+      setToastMessage('Failed to apply workout plan changes');
       setShowToast(true);
     } finally {
       setLoading(false);
