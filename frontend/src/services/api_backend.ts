@@ -65,6 +65,17 @@ export const workoutPlanApi = {
     });
     return response.data;
   },
+  regenerateIncomplete: async (planId: number, userId: number) => {
+    const response = await api.post<{
+      ok: boolean;
+      regeneratedDays: number[];
+      skippedDays: number[];
+      plan: WorkoutPlan;
+      error?: string;
+      message?: string;
+    }>(`/plans/${planId}/regenerate-incomplete`, { userId });
+    return response.data;
+  },
 };
 
 export const workoutApi = {

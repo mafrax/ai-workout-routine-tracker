@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/database';
 import { WorkoutGenerationService } from '../services/WorkoutGenerationService';
+import { ChatService } from '../services/ChatService';
 
 const router = Router();
+const chatService = new ChatService();
 
 // GET /api/plans/user/:userId - Get all workout plans for a user
 router.get('/user/:userId', async (req: Request, res: Response) => {
@@ -304,6 +306,231 @@ router.post('/:planId/update-exercise-weight', async (req: Request, res: Respons
   } catch (error) {
     console.error('Error updating exercise weight:', error);
     return res.status(500).json({ error: 'Failed to update exercise weight' });
+  }
+});
+
+/**
+ * POST /api/plans/:planId/regenerate-incomplete
+ *
+ * Regenerates every day of a plan that the user hasn't completed yet
+ * (no WorkoutSession rows for that day). The plan's existing completed
+ * day blocks are preserved verbatim; incomplete blocks are replaced by
+ * fresh AI output that respects the user's current profile, equipment,
+ * and bodyweight max-rep caps.
+ *
+ * Body: { userId: number }
+ *
+ * Returns: { ok, regeneratedDays, skippedDays, plan }
+ */
+router.post('/:planId/regenerate-incomplete', async (req: Request, res: Response) => {
+  try {
+    if (!req.params.planId) {
+      return res.status(400).json({ error: 'Plan ID is required' });
+    }
+    const planId = BigInt(req.params.planId);
+    const userId = req.body?.userId ? BigInt(req.body.userId) : null;
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required in the body' });
+    }
+
+    const [plan, user] = await Promise.all([
+      prisma.workoutPlan.findUnique({
+        where: { id: planId },
+        include: {
+          workouts: {
+            include: { workoutSessions: { select: { id: true } } },
+            orderBy: { day: 'asc' },
+          },
+        },
+      }),
+      prisma.user.findUnique({ where: { id: userId } }),
+    ]);
+
+    if (!plan) return res.status(404).json({ error: 'Plan not found' });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (plan.userId !== user.id) {
+      return res.status(403).json({ error: 'Plan does not belong to this user' });
+    }
+    if (!plan.planDetails) {
+      return res.status(400).json({ error: 'Plan has no planDetails to regenerate from' });
+    }
+
+    const completedDays = new Set(
+      plan.workouts.filter((w) => w.workoutSessions.length > 0).map((w) => w.day)
+    );
+
+    // Split planDetails into day blocks. Reuse the same header regex shape
+    // as WorkoutGenerationService so we treat the same set of lines as headers.
+    const dayHeader = /^\*{0,2}Day\s+(\d+)\*{0,2}\s*[:\-]\s*(.+?):?$/im;
+    const lines = plan.planDetails.split('\n');
+    const blocks: Array<{ day: number; focus: string; text: string }> = [];
+    let current: { day: number; focus: string; lines: string[] } | null = null;
+    const preamble: string[] = [];
+    for (const line of lines) {
+      const m = line.match(dayHeader);
+      if (m && m[1] && m[2]) {
+        if (current) blocks.push({ day: current.day, focus: current.focus, text: current.lines.join('\n').trim() });
+        current = { day: parseInt(m[1], 10), focus: m[2].trim().replace(/:$/, ''), lines: [line] };
+      } else if (current) {
+        current.lines.push(line);
+      } else {
+        preamble.push(line);
+      }
+    }
+    if (current) blocks.push({ day: current.day, focus: current.focus, text: current.lines.join('\n').trim() });
+
+    if (blocks.length === 0) {
+      return res.status(400).json({ error: 'Could not parse any days from planDetails' });
+    }
+
+    const incompleteBlocks = blocks.filter((b) => !completedDays.has(b.day));
+    if (incompleteBlocks.length === 0) {
+      return res.json({
+        ok: true,
+        regeneratedDays: [],
+        skippedDays: blocks.map((b) => b.day),
+        message: 'No incomplete days to regenerate',
+      });
+    }
+
+    // Parse user profile JSON columns
+    const parseArr = (v: string | null | undefined): any[] => {
+      if (!v) return [];
+      try {
+        const p = JSON.parse(v);
+        return Array.isArray(p) ? p : [];
+      } catch {
+        return [];
+      }
+    };
+    const bodyweight = parseArr(user.bodyweightExercises) as Array<{ name: string; maxReps: number }>;
+    const equipment = parseArr(user.availableEquipment) as string[];
+    const goals = parseArr(user.goals) as string[];
+
+    // Strict bodyweight constraint — make it a HARD cap, not a percentage.
+    const bodyweightCap = bodyweight
+      .filter((b) => typeof b?.name === 'string' && typeof b?.maxReps === 'number' && b.maxReps > 0)
+      .map((b) => `- ${b.name}: ABSOLUTE MAX ${b.maxReps} reps per set. Programming more than ${b.maxReps} reps for ${b.name} is FORBIDDEN.`)
+      .join('\n');
+
+    const regenerated: Array<{ day: number; text: string }> = [];
+
+    for (const blk of incompleteBlocks) {
+      const prompt = `Generate ONE workout block — Day ${blk.day} (${blk.focus}) — for an existing plan.
+
+USER PROFILE
+- Fitness level: ${user.fitnessLevel || 'intermediate'}
+- Goals: ${goals.join(', ') || 'general fitness'}
+- Available equipment: ${equipment.join(', ') || 'bodyweight only'}
+${bodyweightCap ? `\nBODYWEIGHT MAX REPS (HARD CAPS — DO NOT EXCEED):\n${bodyweightCap}` : ''}
+
+OUTPUT RULES
+- Output ONLY the workout block. No commentary, no preface, no closing remarks.
+- First line MUST be exactly: Day ${blk.day} - ${blk.focus}:
+- Then 5–7 numbered exercise lines in this exact format:
+  N. Exercise Name - SetsxReps @ Weight | RestBetweenSetsS | RestBeforeNextS
+- Reps must be a single integer, not a range (e.g. "4x8" not "4x6-8").
+- For bodyweight exercises, use "@ bodyweight" as the weight.
+- For dumbbell exercises, the weight after "@" is PER HAND. Include "(30° incline)" for inclines.
+- Use ONLY equipment from the available list above. If empty, bodyweight only.
+- NEVER schedule more reps for a bodyweight exercise than its hard cap above.
+
+CONTEXT
+Plan name: ${plan.name}
+Existing plan details (for tone/scheme reference, do NOT copy verbatim):
+${plan.planDetails.slice(0, 1500)}
+`;
+
+      const aiText = await chatService.chat(prompt, {
+        user: {
+          age: user.age,
+          weight: user.weight,
+          height: user.height,
+          fitnessLevel: user.fitnessLevel,
+          goals,
+          availableEquipment: equipment,
+          bodyweightExercises: bodyweight.map((b) => b.name),
+        },
+      });
+      const text = aiText.trim();
+
+      // Strip any prelude before the day header — some models add commentary.
+      const headerIdx = text.search(new RegExp(`^Day\\s*${blk.day}\\b`, 'mi'));
+      const cleaned = headerIdx > 0 ? text.slice(headerIdx).trim() : text;
+
+      // Verify at least one day parses out of the new block.
+      const preview = WorkoutGenerationService.previewParsedWorkouts(cleaned);
+      if (preview.length === 0) {
+        return res.status(502).json({
+          ok: false,
+          error: `AI output for Day ${blk.day} was unparseable`,
+          rawOutput: cleaned.slice(0, 500),
+        });
+      }
+
+      // Post-validate bodyweight caps: scan exercise lines for over-cap reps.
+      for (const line of cleaned.split('\n')) {
+        const m = line.match(/^\d+\.\s*(.+?)\s*-\s*(\d+)x(\d+)\b/i);
+        if (!m) continue;
+        const [, name, , repsStr] = m;
+        const reps = parseInt(repsStr ?? '0', 10);
+        const matchedBw = bodyweight.find(
+          (b) => b.name && name && name.toLowerCase().includes(b.name.toLowerCase())
+        );
+        if (matchedBw && reps > matchedBw.maxReps) {
+          return res.status(502).json({
+            ok: false,
+            error: `AI tried to program ${name?.trim()} at ${reps} reps but your max is ${matchedBw.maxReps}. Try again.`,
+          });
+        }
+      }
+
+      regenerated.push({ day: blk.day, text: cleaned });
+    }
+
+    // Rebuild planDetails preserving completed blocks; replace incomplete with new text.
+    const dayToText = new Map<number, string>();
+    for (const blk of blocks) dayToText.set(blk.day, blk.text);
+    for (const g of regenerated) dayToText.set(g.day, g.text);
+
+    const orderedDays = [...dayToText.keys()].sort((a, b) => a - b);
+    const newBody = orderedDays.map((d) => dayToText.get(d)!).join('\n\n');
+    const newPlanDetails = (preamble.join('\n').trim() ? preamble.join('\n').trim() + '\n\n' : '') + newBody;
+
+    // Sanity-check the full thing parses to at least the same set of days.
+    const fullPreview = WorkoutGenerationService.previewParsedWorkouts(newPlanDetails);
+    if (fullPreview.length === 0) {
+      return res.status(500).json({
+        ok: false,
+        error: 'Rebuilt planDetails could not be parsed — refusing to save.',
+      });
+    }
+
+    const updated = await prisma.workoutPlan.update({
+      where: { id: planId },
+      data: { planDetails: newPlanDetails },
+    });
+
+    // Refresh structured workout/exercise tables so the UI picks up new data.
+    await WorkoutGenerationService.generateWorkoutsFromPlanDetails(planId, newPlanDetails);
+
+    return res.json({
+      ok: true,
+      regeneratedDays: regenerated.map((g) => g.day),
+      skippedDays: [...completedDays],
+      plan: {
+        ...updated,
+        id: updated.id.toString(),
+        userId: updated.userId.toString(),
+      },
+    });
+  } catch (err: any) {
+    console.error('❌ regenerate-incomplete failed:', err?.message || err);
+    return res.status(500).json({
+      ok: false,
+      error: 'Failed to regenerate incomplete workouts',
+      message: process.env.NODE_ENV === 'development' ? err?.message : undefined,
+    });
   }
 });
 

@@ -287,129 +287,31 @@ const Profile: React.FC = () => {
 
     setIsRegenerating(true);
     try {
-      // Save equipment changes first
+      // Persist profile changes first so the backend reads up-to-date
+      // equipment / bodyweight / fitness level from the user row.
       await handleSaveProfile();
 
-      const parsedPlan = parseWorkoutPlan(activeWorkoutPlan.planDetails);
-      const completedWorkouts = activeWorkoutPlan.completedWorkouts || [];
-
-      console.log('Regenerating incomplete workouts with new equipment...');
-      console.log('Completed workouts:', completedWorkouts);
-
-      // Identify incomplete workouts
-      const incompleteWorkouts = parsedPlan.weeklyWorkouts.filter(
-        workout => !completedWorkouts.includes(workout.dayNumber)
+      // Backend does the heavy lifting: parses incomplete days, calls Claude
+      // with strict bodyweight caps, validates output, rebuilds planDetails
+      // preserving completed days, refreshes structured Workout/Exercise tables.
+      const result = await backendWorkoutPlanApi.regenerateIncomplete(
+        activeWorkoutPlan.id!,
+        user.id
       );
 
-      console.log(`Regenerating ${incompleteWorkouts.length} incomplete workouts`);
-
-      // Build new plan with only completed workouts
-      let newPlanDetails = `Name: ${activeWorkoutPlan.name}
-Duration: ${activeWorkoutPlan.durationWeeks} weeks
-Days Per Week: ${activeWorkoutPlan.daysPerWeek}
-Difficulty: ${activeWorkoutPlan.difficultyLevel}
-Description: ${activeWorkoutPlan.description}
-
-Weekly Structure - Week 1:
-
-`;
-
-      // Add completed workouts first
-      const completedWorkoutDetails = parsedPlan.weeklyWorkouts
-        .filter(workout => completedWorkouts.includes(workout.dayNumber))
-        .sort((a, b) => a.dayNumber - b.dayNumber);
-
-      for (const workout of completedWorkoutDetails) {
-        // Find original workout text from plan details
-        const workoutRegex = new RegExp(
-          `Day ${workout.dayNumber} - ${workout.focus.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:([\\s\\S]*?)(?=Day \\d+|$)`,
-          'i'
-        );
-        const match = activeWorkoutPlan.planDetails.match(workoutRegex);
-        if (match) {
-          newPlanDetails += `Day ${workout.dayNumber} - ${workout.focus}:${match[1]}\n`;
-        }
+      if (result.plan) setActiveWorkoutPlan(result.plan);
+      if (result.regeneratedDays && result.regeneratedDays.length > 0) {
+        setToastMessage(`Regenerated ${result.regeneratedDays.length} workout(s).`);
+      } else {
+        setToastMessage(result.message || 'No incomplete workouts to regenerate.');
       }
-
-      // Generate new workouts for incomplete ones
-      for (const incompleteWorkout of incompleteWorkouts) {
-        console.log(`Generating Day ${incompleteWorkout.dayNumber} - ${incompleteWorkout.focus}`);
-
-        // Build bodyweight exercises info
-        const bodyweightInfo = bodyweightExercises.length > 0
-          ? `
-BODYWEIGHT EXERCISES (with max reps):
-${bodyweightExercises.map(ex => `- ${ex.name}: Max ${ex.maxReps} reps`).join('\n')}
-
-IMPORTANT: When programming bodyweight exercises, use the max reps to calculate appropriate rep ranges:
-- For strength: 40-60% of max reps
-- For hypertrophy: 60-80% of max reps
-- For endurance: 80-100% of max reps
-- For example, if max Pull-ups is 10 reps, program 4-6 reps for strength, 6-8 reps for hypertrophy.
-`
-          : '';
-
-        const bodyweightRequirement = bodyweightExercises.length > 0
-          ? `\n\nCRITICAL: You MUST incorporate at least ${Math.min(2, bodyweightExercises.length)} bodyweight exercises into EVERY workout. Mix them with equipment exercises to create balanced, effective workouts.`
-          : '';
-
-        const prompt = `You are a professional fitness coach. Generate a workout for Day ${incompleteWorkout.dayNumber}.
-
-USER PROFILE:
-- Fitness Level: ${fitnessLevel}
-- Goals: ${goals.join(', ')}
-- Available Equipment: ${availableEquipment.join(', ')}
-${bodyweightInfo}${bodyweightRequirement}
-
-WORKOUT REQUIREMENTS:
-- Day ${incompleteWorkout.dayNumber} - ${incompleteWorkout.focus}
-- Use ONLY equipment from the available equipment list above
-- ${bodyweightExercises.length > 0 ? 'MANDATORY: Include AT LEAST ' + Math.min(2, bodyweightExercises.length) + ' bodyweight exercises in this workout' : 'Use equipment-based exercises'}
-- If using bodyweight exercises, RESPECT the max reps limitations and program accordingly
-- Program bodyweight exercises based on max reps (strength: 40-60%, hypertrophy: 60-80%, endurance: 80-100%)
-- Mix bodyweight exercises with equipment exercises strategically throughout the workout
-- Follow the EXACT format below
-- Include complete exercise details with sets, reps, weight, and rest times
-- For bodyweight exercises, use "bodyweight" as the weight
-
-REQUIRED FORMAT:
-
-Day ${incompleteWorkout.dayNumber} - ${incompleteWorkout.focus}:
-1. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
-2. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
-3. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
-4. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
-5. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next]s
-
-EXAMPLE WITH BODYWEIGHT:
-Day 1 - Chest & Triceps:
-1. Push-ups - 3x12 @ bodyweight | 60s | 90s
-2. Technogym Chest Press - 3x12 @ 47-57kg | 90s | 120s
-3. Dips - 3x8 @ bodyweight | 60s | 90s
-4. Cable Flyes - 3x15 @ 13kg | 60s | 90s
-5. Diamond Push-ups - 3x10 @ bodyweight | 60s | 90s
-
-Return ONLY the workout content, no extra text.`;
-
-        const response = await aiService.chat(prompt, {});
-        const cleanedResponse = response.trim();
-        newPlanDetails += '\n' + cleanedResponse + '\n';
-      }
-
-      // Update the workout plan
-      const updatedPlan = await backendWorkoutPlanApi.updatePlan(activeWorkoutPlan.id!, {
-        planDetails: newPlanDetails,
-        // Keep the completed workouts array
-        completedWorkouts: activeWorkoutPlan.completedWorkouts,
-      });
-
-      setActiveWorkoutPlan(updatedPlan);
-      setToastMessage('Incomplete workouts regenerated with new equipment!');
       setShowToast(true);
-      console.log('Workouts regenerated successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error regenerating workouts:', error);
-      setToastMessage('Failed to regenerate workouts');
+      const serverMessage = error?.response?.data?.error || error?.message;
+      setToastMessage(
+        serverMessage ? `Regenerate failed: ${serverMessage}` : 'Failed to regenerate workouts'
+      );
       setShowToast(true);
     } finally {
       setIsRegenerating(false);
