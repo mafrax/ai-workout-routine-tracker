@@ -4,6 +4,46 @@
 
 An AI-powered workout tracking application with integrated Telegram reminders, built with React/Ionic frontend and Node.js/TypeScript backend.
 
+## Engineering Principles (read this first)
+
+These are the rules Claude applies to every change in this repo. They override personal preference and unspoken conventions. If a request conflicts with one of them, surface the conflict before acting.
+
+### DRY — Don't Repeat Yourself
+- **Look before you write.** Before adding a function, hook, service, or type, grep for an existing one with the same job. The codebase has `useCurrentUser`, `useStartPlanCreation`, `WorkoutGenerationService`, `parseExerciseAttributes`, etc. — reuse them.
+- **Three identical lines is a smell, not a pattern.** Extract.
+- **One source of truth per piece of data.** User profile lives in `useCurrentUser` (react-query cache). Active plan lives in Zustand. Don't fork them into local component state — read directly.
+- **Don't have two ways to do the same thing.** The codebase had `aiService.chat` (frontend → backend chat endpoint) AND `chatService.chat` (backend internal) duplicating prompt construction. Pick one path, route everything through it.
+
+### KISS / STUPID — Keep It Simple
+- **Default to no abstraction.** Helpers earn their keep by having ≥3 real callers. A "future-proof" interface with one caller is dead weight.
+- **No premature feature flags, fallbacks, or compatibility shims.** Change the code.
+- **No defensive try/catch for things that can't fail.** Trust your types and framework guarantees. Only validate at system boundaries (HTTP body, AI output, file uploads).
+- **Don't paper over bugs.** If a parser fails on a real input, fix the parser — don't add a fallback that silently masks the failure (see the `parseWorkoutPlan` text-fallback regression we shipped earlier).
+
+### SOLID (the practical bits)
+- **Single Responsibility:** a route handles HTTP. A service handles business logic. A hook handles React lifecycle. Don't let services import `axios` for HTTP-to-self calls — call the function directly.
+- **Open/Closed:** when adding a new exercise attribute kind (dumbbells, incline, cable…), extend the discriminated union and add a renderer in `AttributeStrip.tsx`. Don't fork a parallel pipeline.
+- **Dependency direction:** UI → hooks → services → routes/db. Never bottom-up. A service must not import from `pages/` or `components/`.
+- **Interface Segregation:** don't pass a 30-field "anyData" object to functions that need three fields. Pass the three fields.
+
+### YAGNI — You Aren't Gonna Need It
+- **Don't write for hypothetical futures.** No "we might want to support multiple users", no "this could be extended to support X". Ship the concrete need.
+- **No dead code.** If a component isn't imported anywhere (`PlanCreationChat.tsx` was a recent example), delete it. Git remembers.
+- **No commented-out blocks.** Delete or rewrite.
+- **No `// TODO: someday` markers.** Either do it now, file an issue, or accept it and move on.
+
+### Boundaries & data shape
+- **One canonical type per concept.** `ExerciseAttributes` is defined in both `src/types/exercise.ts` and `frontend/src/types/workout.ts` because Node and Vite don't share a build. Keep them in lock-step — when you change one, update the other in the same commit.
+- **Validate at the seam.** HTTP bodies → Zod. AI output → Zod + post-checks. Anything reading from `JSON` Prisma columns → safe parse with a typed return.
+- **Don't leak internal types across the wire.** `BigInt` IDs become strings in responses; arrays come back as arrays, not JSON strings; Json-null is `null`, not `Prisma.JsonNull`.
+
+### Workflow rules for Claude in this repo
+- **Verify before recommending.** When suggesting a file/function exists, grep first. Memory of "I wrote it last session" is not proof.
+- **Prefer editing existing files over creating new ones.** Especially `CLAUDE.md` (this file), `package.json`, `schema.prisma`.
+- **Test what you change.** Type-check both ends after every meaningful edit (`npm run build` in root for backend; `npx tsc --noEmit` in `frontend/`). Run Playwright MCP for UI changes.
+- **Surface failure modes.** When wiring AI calls, always have a clear error path that reaches the UI as an actionable toast — never a silent log.
+- **Commit messages describe the why.** Title states what changed. Body explains the reason (a missing constraint, a user-reported bug, a phase of work).
+
 ## Visual Development & Testing
 
 
