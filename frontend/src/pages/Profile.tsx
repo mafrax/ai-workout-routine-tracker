@@ -20,6 +20,7 @@ import {
   IonButtons,
   IonToast,
   IonAlert,
+  IonSpinner,
 } from '@ionic/react';
 import { Preferences } from '@capacitor/preferences';
 import {
@@ -33,6 +34,7 @@ import {
   logoWhatsapp,
   send,
   cloudUploadOutline,
+  refresh,
 } from 'ionicons/icons';
 import { useStore, REQUIRED_PROFILE_FIELDS } from '../store/useStore';
 import { useCurrentUser, userKeys } from '../hooks/useUserQuery';
@@ -642,6 +644,33 @@ Return ONLY the workout content, no extra text.`;
               </div>
             </IonCardContent>
           </IonCard>
+
+          {activeWorkoutPlan && (
+            <IonCard color="light" style={{ marginBottom: 12 }}>
+              <IonCardContent>
+                <strong>
+                  <IonIcon icon={refresh} /> Apply equipment / bodyweight changes
+                </strong>
+                <p style={{ margin: '6px 0 10px', fontSize: 14 }}>
+                  Regenerate the workouts you haven't done yet so they match your latest setup.
+                </p>
+                <IonButton
+                  expand="block"
+                  onClick={regenerateIncompleteWorkouts}
+                  disabled={isRegenerating}
+                >
+                  {isRegenerating ? (
+                    <>
+                      <IonSpinner name="dots" />
+                      &nbsp;Regenerating…
+                    </>
+                  ) : (
+                    'Regenerate incomplete workouts now'
+                  )}
+                </IonButton>
+              </IonCardContent>
+            </IonCard>
+          )}
 
           <IonCard className="bodyweight-card">
             <IonCardContent>
