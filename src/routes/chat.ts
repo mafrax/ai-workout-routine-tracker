@@ -28,6 +28,34 @@ router.post('/', async (req, res) => {
 
     console.log('💬 Chat history length:', chatHistory?.length || 0);
 
+    // Get user's profile (drives the AI's tailoring)
+    let userRow: any = null;
+    try {
+      userRow = await prisma.user.findUnique({ where: { id: BigInt(userId) } });
+    } catch (error) {
+      console.error('❌ Could not fetch user profile:', error);
+    }
+    const parseJsonArray = (v: string | null | undefined): string[] | null => {
+      if (!v) return null;
+      try {
+        const parsed = JSON.parse(v);
+        return Array.isArray(parsed) ? parsed : null;
+      } catch {
+        return null;
+      }
+    };
+    const userProfile = userRow
+      ? {
+          age: userRow.age,
+          weight: userRow.weight,
+          height: userRow.height,
+          fitnessLevel: userRow.fitnessLevel,
+          goals: parseJsonArray(userRow.goals),
+          availableEquipment: parseJsonArray(userRow.availableEquipment),
+          bodyweightExercises: parseJsonArray(userRow.bodyweightExercises),
+        }
+      : undefined;
+
     // Get user's active plan
     let activePlan = null;
     try {
@@ -69,6 +97,7 @@ router.post('/', async (req, res) => {
     console.log('🤖 Calling AI service...');
     // Call the AI service
     const response = await chatService.chat(message, {
+      user: userProfile,
       activePlan: activePlan ? {
         name: activePlan.name,
         planDetails: activePlan.planDetails,

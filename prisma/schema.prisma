@@ -107,6 +107,12 @@ model Exercise {
   isBodyweight  Boolean  @default(false) @map("is_bodyweight")
   restTime      Int?     @map("rest_time")
   notes         String?
+  /// Equipment-specific attributes — discriminated union, validated at the
+  /// API layer (ExerciseAttributes type in src/types/exercise.ts). Examples:
+  ///   { kind: "dumbbells", weightPerHandKg: 22.5 }
+  ///   { kind: "incline-bench", angleDeg: 30 }
+  /// NULL for plain bodyweight / barbell exercises with no extras to track.
+  attributes    Json?
   createdAt     DateTime @default(now()) @map("created_at")
   workout       Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
 

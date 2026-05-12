@@ -23,6 +23,7 @@ import {
 } from '@ionic/react';
 import { play, pause, checkmarkCircle, time, barbell, fitness, create, close, arrowBack, chevronBack, informationCircleOutline, reorderThreeOutline, arrowUp, arrowDown, searchOutline } from 'ionicons/icons';
 import { KeepAwake } from '@capacitor-community/keep-awake';
+import { Browser } from '@capacitor/browser';
 import type { DailyWorkout, Exercise } from '../../types/workout';
 import { useStore } from '../../store/useStore';
 import { workoutPlanApi } from '../../services/api_backend';
@@ -30,6 +31,7 @@ import { getExerciseInstruction } from '../../data/exerciseInstructions';
 import { aiService } from '../../services/aiService';
 import { telegramService } from '../../services/telegramService';
 import { useCreateWorkoutSession } from '../../hooks/useWorkoutQueries';
+import AttributeStrip from './AttributeStrip';
 import './WorkoutExecution.css';
 
 interface WorkoutExecutionProps {
@@ -688,6 +690,8 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
                   </div>
                 </div>
 
+                <AttributeStrip attributes={currentExercise.attributes} />
+
                 <div className="sets-tracker">
                   <p className="sets-label">Sets Progress:</p>
                   <div className="sets-dots">
@@ -807,7 +811,11 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
                         maxWidth: '280px',
                         cursor: 'pointer'
                       }}
-                      onClick={() => window.open(`https://www.youtube.com/watch?v=${video.id}`, '_blank')}
+                      onClick={() => {
+                        // Open inside the in-app system browser overlay so the
+                        // host webview is not backgrounded and workout state survives.
+                        Browser.open({ url: `https://www.youtube.com/watch?v=${video.id}` });
+                      }}
                     >
                       <div style={{
                         position: 'relative',

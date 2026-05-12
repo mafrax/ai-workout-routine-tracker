@@ -34,10 +34,14 @@ import {
   send,
   cloudUploadOutline,
 } from 'ionicons/icons';
-import { useStore } from '../store/useStore';
+import { useStore, REQUIRED_PROFILE_FIELDS } from '../store/useStore';
+import { useCurrentUser, userKeys } from '../hooks/useUserQuery';
+import { useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { workoutPlanApi as localWorkoutPlanApi } from '../services/api';
 import { userApi as backendUserApi, workoutPlanApi as backendWorkoutPlanApi } from '../services/api_backend';
 import { parseWorkoutPlan } from '../types/workout';
+import EquipmentPhotoCapture from '../components/Equipment/EquipmentPhotoCapture';
 import { aiService } from '../services/aiService';
 import { telegramService } from '../services/telegramService';
 import { dailyRecapService } from '../services/dailyRecapService';
@@ -102,6 +106,22 @@ const EQUIPMENT_OPTIONS = [
 
 const Profile: React.FC = () => {
   const { user, setUser, activeWorkoutPlan, setActiveWorkoutPlan } = useStore();
+  // Cached backend profile — single source of truth across the app.
+  const userQuery = useCurrentUser();
+  const location = useLocation();
+  // When we land here via the plan-creation gate (?reason=plan-prerequisites)
+  // surface the banner listing which fields still need filling.
+  const gateParams = React.useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('reason') !== 'plan-prerequisites') return null;
+    const missingRaw = params.get('missing') || '';
+    const missing = missingRaw
+      .split(',')
+      .filter((f): f is typeof REQUIRED_PROFILE_FIELDS[number] =>
+        (REQUIRED_PROFILE_FIELDS as readonly string[]).includes(f)
+      );
+    return missing.length ? missing : null;
+  }, [location.search]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [age, setAge] = useState<number>(0);
@@ -111,6 +131,8 @@ const Profile: React.FC = () => {
   const [goals, setGoals] = useState<string[]>([]);
   const [availableEquipment, setAvailableEquipment] = useState<string[]>([]);
   const [showEquipmentModal, setShowEquipmentModal] = useState(false);
+  const [showPhotoCaptureModal, setShowPhotoCaptureModal] = useState(false);
+  const queryClient = useQueryClient();
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -128,41 +150,27 @@ const Profile: React.FC = () => {
   const [testingTelegram, setTestingTelegram] = useState(false);
   const [sendingRecap, setSendingRecap] = useState(false);
 
+  // Hydrate the form whenever the cached profile changes. Using the cached
+  // query (instead of a fetch effect) means revisiting the tab shows the
+  // last known values immediately while react-query refreshes in the
+  // background — eliminates the "blank for a few seconds" flicker.
   useEffect(() => {
-    if (user?.id) {
-      loadUserProfile();
-      loadTelegramConfig();
-    }
+    const userData = userQuery.data;
+    if (!userData) return;
+    setName(userData.name || '');
+    setEmail(userData.email || '');
+    setAge(userData.age || 0);
+    setWeight(userData.weight || 0);
+    setHeight(userData.height || 0);
+    setFitnessLevel(userData.fitnessLevel || '');
+    setGoals(userData.goals || []);
+    setAvailableEquipment(userData.availableEquipment || []);
+    setBodyweightExercises(userData.bodyweightExercises || []);
+  }, [userQuery.data]);
+
+  useEffect(() => {
+    if (user?.id) loadTelegramConfig();
   }, [user?.id]);
-
-  const loadUserProfile = async () => {
-    if (!user?.id) return;
-
-    try {
-      const userData = await backendUserApi.getById(user.id);
-      setName(userData.name || '');
-      setEmail(userData.email || '');
-      setAge(userData.age || 0);
-      setWeight(userData.weight || 0);
-      setHeight(userData.height || 0);
-      setFitnessLevel(userData.fitnessLevel || '');
-      setGoals(userData.goals || []);
-      setAvailableEquipment(userData.availableEquipment || []);
-      setBodyweightExercises(userData.bodyweightExercises || []);
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-      // Fallback to current user state if backend fails
-      setName(user.name || '');
-      setEmail(user.email || '');
-      setAge(user.age || 0);
-      setWeight(user.weight || 0);
-      setHeight(user.height || 0);
-      setFitnessLevel(user.fitnessLevel || '');
-      setGoals(user.goals || []);
-      setAvailableEquipment(user.availableEquipment || []);
-      setBodyweightExercises(user.bodyweightExercises || []);
-    }
-  };
 
   const loadTelegramConfig = async () => {
     if (!user?.id) return;
@@ -478,12 +486,20 @@ Return ONLY the workout content, no extra text.`;
         </IonHeader>
         <IonContent>
           <div className="no-user-container">
-            <p>No user profile found</p>
+            <p>{userQuery.isLoading ? 'Loading profile…' : 'No user profile found'}</p>
           </div>
         </IonContent>
       </IonPage>
     );
   }
+
+  const FIELD_LABELS: Record<typeof REQUIRED_PROFILE_FIELDS[number], string> = {
+    age: 'Age',
+    weight: 'Weight',
+    height: 'Height',
+    fitnessLevel: 'Fitness level',
+    goals: 'Goals',
+  };
 
   return (
     <IonPage>
@@ -495,6 +511,25 @@ Return ONLY the workout content, no extra text.`;
 
       <IonContent>
         <div className="profile-container">
+          {gateParams && (
+            <IonCard
+              className="profile-gate-banner"
+              color="warning"
+              style={{ marginBottom: 12 }}
+            >
+              <IonCardContent>
+                <strong>Finish your profile to create a workout plan.</strong>
+                <p style={{ marginTop: 8, marginBottom: 0 }}>
+                  The AI coach needs the following to tailor your plan:
+                </p>
+                <ul style={{ marginTop: 4 }}>
+                  {gateParams.map((f) => (
+                    <li key={f}>{FIELD_LABELS[f]}</li>
+                  ))}
+                </ul>
+              </IonCardContent>
+            </IonCard>
+          )}
           <IonCard className="profile-card">
             <IonCardContent>
               <h2 className="section-title">
@@ -572,13 +607,22 @@ Return ONLY the workout content, no extra text.`;
                 <h2 className="section-title">
                   <IonIcon icon={barbell} /> Available Equipment
                 </h2>
-                <IonButton
-                  fill="clear"
-                  onClick={() => setShowEquipmentModal(true)}
-                >
-                  <IonIcon icon={addCircle} slot="start" />
-                  Add Equipment
-                </IonButton>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <IonButton
+                    fill="clear"
+                    onClick={() => setShowPhotoCaptureModal(true)}
+                  >
+                    <IonIcon icon={cloudUploadOutline} slot="start" />
+                    Detect from photo
+                  </IonButton>
+                  <IonButton
+                    fill="clear"
+                    onClick={() => setShowEquipmentModal(true)}
+                  >
+                    <IonIcon icon={addCircle} slot="start" />
+                    Add Equipment
+                  </IonButton>
+                </div>
               </div>
 
               <div className="equipment-chips">
@@ -749,6 +793,30 @@ Return ONLY the workout content, no extra text.`;
             Save Profile
           </IonButton>
         </div>
+
+        <EquipmentPhotoCapture
+          isOpen={showPhotoCaptureModal}
+          existingEquipment={availableEquipment}
+          onConfirm={async (equipment) => {
+            // Save to backend so the change persists across sessions, and
+            // invalidate the cached profile so the rest of the app picks it up.
+            setAvailableEquipment(equipment);
+            setShowPhotoCaptureModal(false);
+            try {
+              if (user?.id) {
+                await backendUserApi.update(user.id, { availableEquipment: equipment });
+                queryClient.invalidateQueries({ queryKey: userKeys.byId(user.id) });
+              }
+              setToastMessage('Equipment updated from photo.');
+              setShowToast(true);
+            } catch (e) {
+              console.error('Failed to persist equipment:', e);
+              setToastMessage('Saved locally, but failed to sync to server.');
+              setShowToast(true);
+            }
+          }}
+          onClose={() => setShowPhotoCaptureModal(false)}
+        />
 
         <IonModal
           isOpen={showEquipmentModal}

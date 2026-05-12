@@ -32,8 +32,9 @@ export class WorkoutParserService {
       const workouts: ParsedWorkout[] = [];
 
       // Split by day headers (Day 1, Day 2, etc.)
-      // Match patterns: "Day 1", "Day 1:", "Day 1 -", "**Day 1**"
-      const dayPattern = /(?:^|\n)(?:\*\*)?\s*Day\s+(\d+)\s*(?:\*\*)?\s*[-:]\s*([^\n]+)/gi;
+      // Match patterns: "Day 1", "Day 1:", "Day 1 -", "**Day 1**", "**Day 1 -", "Day 1:**"
+      // Handle markdown formatting at start, end, or both
+      const dayPattern = /(?:^|\n)\*{0,2}\s*Day\s+(\d+)\s*[-:]\s*([^\n*]+)/gi;
       const matches = [...planText.matchAll(dayPattern)];
 
       console.log('📝 Found day headers:', matches.length);

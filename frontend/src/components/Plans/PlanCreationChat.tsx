@@ -7,9 +7,16 @@ import {
   IonButton,
   IonIcon,
   IonSpinner,
+  IonCard,
+  IonCardContent,
 } from '@ionic/react';
-import { send, sparkles } from 'ionicons/icons';
+import { useHistory } from 'react-router-dom';
+import { send, sparkles, camera, barbell, close } from 'ionicons/icons';
 import { aiService } from '../../services/aiService';
+import { userApi as backendUserApi } from '../../services/api_backend';
+import { useQueryClient } from '@tanstack/react-query';
+import { userKeys } from '../../hooks/useUserQuery';
+import EquipmentPhotoCapture from '../Equipment/EquipmentPhotoCapture';
 import type { User } from '../../types';
 import './PlanCreationChat.css';
 
@@ -35,7 +42,14 @@ const PlanCreationChat: React.FC<PlanCreationChatProps> = ({ user, onPlanGenerat
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationComplete, setConversationComplete] = useState(false);
+  // The equipment-onboarding banner appears at the start of the conversation
+  // and offers the user three explicit paths: photo / manual / skip. Once any
+  // path is taken (or skipped) the banner stays dismissed for the session.
+  const [equipmentPromptDismissed, setEquipmentPromptDismissed] = useState(false);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const contentRef = useRef<HTMLIonContentElement>(null);
+  const history = useHistory();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Start conversation
@@ -207,10 +221,79 @@ Generating your personalized workout plan now...`
     }
   };
 
+  /**
+   * Persist the equipment list from the photo flow to the user's profile, then
+   * surface a confirmation in the chat so the AI sees the new context on its
+   * next turn (we inline the equipment list into the system prompt every send).
+   */
+  const handlePhotoConfirm = async (equipment: string[]) => {
+    setPhotoModalOpen(false);
+    setEquipmentPromptDismissed(true);
+    try {
+      await backendUserApi.update(user.id!, { availableEquipment: equipment });
+      // Invalidate the cached user so the rest of the app sees the new list.
+      queryClient.invalidateQueries({ queryKey: userKeys.byId(user.id!) });
+      // Mutate the prop locally for the in-flight chat — sendMessage embeds
+      // user.availableEquipment directly into the AI prompt.
+      (user as any).availableEquipment = equipment;
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `Got it — saved ${equipment.length} item${equipment.length === 1 ? '' : 's'} to your equipment list. I'll use that when building your plan. Now back to the plan…`,
+        },
+      ]);
+    } catch (err) {
+      console.error('Failed to save equipment:', err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: "I couldn't save the equipment list to your profile, but I'll still use it for this plan.",
+        },
+      ]);
+    }
+  };
+
   return (
     <>
       <IonContent ref={contentRef} className="plan-chat-content" scrollEvents={true}>
         <div className="plan-chat-messages">
+          {!equipmentPromptDismissed && messages.length > 0 && (
+            <IonCard color="light" style={{ margin: '8px 0 16px' }}>
+              <IonCardContent>
+                <strong>Quick step — what equipment do you have?</strong>
+                <p style={{ marginTop: 6, marginBottom: 10, fontSize: 14 }}>
+                  Telling me up front lets me build a plan that uses what you actually own.
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <IonButton size="small" onClick={() => setPhotoModalOpen(true)}>
+                    <IonIcon icon={camera} slot="start" />
+                    Use photo
+                  </IonButton>
+                  <IonButton
+                    size="small"
+                    fill="outline"
+                    onClick={() => {
+                      setEquipmentPromptDismissed(true);
+                      history.push('/profile');
+                    }}
+                  >
+                    <IonIcon icon={barbell} slot="start" />
+                    Add manually
+                  </IonButton>
+                  <IonButton
+                    size="small"
+                    fill="clear"
+                    onClick={() => setEquipmentPromptDismissed(true)}
+                  >
+                    <IonIcon icon={close} slot="start" />
+                    Skip for now
+                  </IonButton>
+                </div>
+              </IonCardContent>
+            </IonCard>
+          )}
           {messages.map((message, index) => (
             <div
               key={index}
@@ -239,6 +322,13 @@ Generating your personalized workout plan now...`
           )}
         </div>
       </IonContent>
+
+      <EquipmentPhotoCapture
+        isOpen={photoModalOpen}
+        existingEquipment={user.availableEquipment || []}
+        onConfirm={handlePhotoConfirm}
+        onClose={() => setPhotoModalOpen(false)}
+      />
 
       {!conversationComplete && (
         <IonFooter className="plan-chat-footer">

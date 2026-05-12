@@ -25,12 +25,15 @@ import { add, archive, barbell, calendar, checkmarkCircle, checkmarkCircleOutlin
 import React, { useEffect, useRef, useState } from 'react';
 import { workoutPlanApi as backendWorkoutPlanApi, workoutSessionApi, workoutApi } from '../../services/api_backend';
 import { useStore } from '../../store/useStore';
+import { useStartPlanCreation } from '../../hooks/useStartPlanCreation';
 import { parseWorkoutPlan, type DailyWorkout } from '../../types/workout';
 import './TodaysWorkout.css';
 import WorkoutExecution from './WorkoutExecution';
 
 const TodaysWorkout: React.FC = () => {
   const { user, activeWorkoutPlan, setActiveWorkoutPlan } = useStore();
+  const authReady = useStore((s) => s.authReady);
+  const { startPlanCreation, canCreatePlan, isCheckingProfile } = useStartPlanCreation();
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [workoutInProgress, setWorkoutInProgress] = useState(false);
@@ -110,17 +113,29 @@ const TodaysWorkout: React.FC = () => {
       if (response && Array.isArray(response) && response.length > 0) {
         console.log('✅ Using structured workout data from API:', response.length, 'workouts');
 
-        // Transform API response to DailyWorkout format
+        // Transform API response to DailyWorkout format.
+        // The API stores numberOfReps as a JSON array where length == set count
+        // and each entry == reps for that set. The Exercise type expects a
+        // numeric sets count and a string reps value, so we collapse the array.
         const transformedWorkouts: DailyWorkout[] = response.map((w: any) => ({
           dayNumber: w.day,
           focus: w.muscleGroup,
-          exercises: w.exercises.map((ex: any) => ({
-            name: ex.exerciseTitle,
-            sets: ex.numberOfReps, // This is an array from API
-            weight: ex.isBodyweight ? 'bodyweight' : `${ex.weight}kg`,
-            restBetweenSets: ex.restTime ? `${ex.restTime}s` : undefined,
-            notes: ex.notes || undefined
-          }))
+          exercises: w.exercises.map((ex: any) => {
+            const repsArray: any[] = Array.isArray(ex.numberOfReps) ? ex.numberOfReps : [];
+            const setsCount = repsArray.length || 1;
+            const repsValue = repsArray.length > 0 ? String(repsArray[0]) : '';
+            return {
+              name: ex.exerciseTitle,
+              sets: setsCount,
+              reps: repsValue,
+              weight: ex.isBodyweight ? 'bodyweight' : `${ex.weight}kg`,
+              restBetweenSets: typeof ex.restTime === 'number' ? ex.restTime : 60,
+              restBeforeNext: typeof ex.restTime === 'number' ? ex.restTime : 90,
+              // Pass-through: backend already validated this; if it's there it
+              // matches the ExerciseAttributes union, otherwise null.
+              attributes: ex.attributes ?? null,
+            };
+          })
         }));
 
         setWorkouts(transformedWorkouts);
@@ -128,6 +143,10 @@ const TodaysWorkout: React.FC = () => {
       }
     } catch (error) {
       console.warn('⚠️ Failed to fetch structured workouts, falling back to plan_details parsing:', error);
+      // Surface the failure so it's not invisible to the user; the text-parse
+      // fallback below is best-effort and may render approximate values.
+      setToastMessage('Could not load full workout data — showing best guess from text.');
+      setShowToast(true);
     }
 
     // 2. Fallback: parse plan_details text
@@ -140,6 +159,8 @@ const TodaysWorkout: React.FC = () => {
       }
     } catch (parseError) {
       console.error('❌ Failed to parse plan_details:', parseError);
+      setToastMessage('Could not parse this plan — please reopen the chat to regenerate.');
+      setShowToast(true);
     }
 
     setWorkouts([]);
@@ -148,6 +169,10 @@ const TodaysWorkout: React.FC = () => {
 
 
   useEffect(() => {
+    // Wait for the auth bootstrap to finish before touching the network — this
+    // is the gate that fixes the "empty for a few seconds" flicker.
+    if (!authReady) return;
+
     const initializeData = async () => {
       // If no user, try loading from API
       if (!user) {
@@ -178,7 +203,7 @@ const TodaysWorkout: React.FC = () => {
     };
 
     initializeData();
-  }, [user, activeWorkoutPlan, hasCheckedGeneration]);
+  }, [authReady, user, activeWorkoutPlan, hasCheckedGeneration]);
 
   // Reload all plans (active and archived) whenever the activeWorkoutPlan changes
   useEffect(() => {
@@ -567,7 +592,9 @@ const TodaysWorkout: React.FC = () => {
           <div className="no-plan-container">
             <h2>No Active Plans</h2>
             <p>You don't have any active workout plans yet.</p>
-            <IonButton routerLink="/chat">Create a Plan</IonButton>
+            <IonButton onClick={startPlanCreation} disabled={isCheckingProfile}>
+              {canCreatePlan ? 'Create a Plan' : 'Finish profile to create a plan'}
+            </IonButton>
           </div>
         </IonContent>
       </IonPage>
@@ -593,9 +620,9 @@ const TodaysWorkout: React.FC = () => {
         <IonToolbar>
           <IonTitle>Today's Workout</IonTitle>
           <IonButtons slot="end">
-            <IonButton routerLink="/chat">
+            <IonButton onClick={startPlanCreation} disabled={isCheckingProfile}>
               <IonIcon icon={add} slot="start" />
-              New Plan
+              {canCreatePlan ? 'New Plan' : 'Profile'}
             </IonButton>
           </IonButtons>
         </IonToolbar>

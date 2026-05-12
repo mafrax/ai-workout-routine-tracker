@@ -102,6 +102,20 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const { userId, name, planDetails, isActive, daysPerWeek, durationWeeks, description } = req.body;
 
+    // Validate up-front: if planDetails is supplied, it MUST parse into at
+    // least one workout. We refuse to persist plans whose structured form
+    // would be empty — that's exactly how phantom "Day 1 / 0 exercises"
+    // cards leaked into the UI before.
+    if (planDetails) {
+      const preview = WorkoutGenerationService.previewParsedWorkouts(planDetails);
+      if (preview.length === 0) {
+        return res.status(400).json({
+          error: 'Plan rejected: no parseable workouts in planDetails',
+          hint: 'Each day must use "Day N - Focus:" or "Day N: Focus" headers, with numbered exercise lines like "1. Name - 4x8 @ 60kg | 90s | 120s".'
+        });
+      }
+    }
+
     const plan = await prisma.workoutPlan.create({
       data: {
         userId: BigInt(userId),
@@ -155,6 +169,17 @@ router.put('/:planId', async (req: Request, res: Response) => {
     // Convert userId to BigInt if it exists in the updates
     if (validUpdates.userId) {
       validUpdates.userId = BigInt(validUpdates.userId);
+    }
+
+    // Reject updates that would replace planDetails with text we can't parse.
+    if (typeof validUpdates.planDetails === 'string' && validUpdates.planDetails.trim().length > 0) {
+      const preview = WorkoutGenerationService.previewParsedWorkouts(validUpdates.planDetails);
+      if (preview.length === 0) {
+        return res.status(400).json({
+          error: 'Plan update rejected: no parseable workouts in planDetails',
+          hint: 'Each day must use "Day N - Focus:" or "Day N: Focus" headers, with numbered exercise lines like "1. Name - 4x8 @ 60kg | 90s | 120s".'
+        });
+      }
     }
 
     const plan = await prisma.workoutPlan.update({

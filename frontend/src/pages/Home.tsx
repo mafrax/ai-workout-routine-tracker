@@ -10,12 +10,24 @@ import './Home.css';
 
 const Home: React.FC = () => {
   const { user, setUser, activeWorkoutPlan, setActiveWorkoutPlan } = useStore();
+  const authReady = useStore((s) => s.authReady);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  // Wait for the auth bootstrap (App.tsx) to settle before triggering any
+  // user-scoped fetch. Doing it earlier is exactly the race the user reported
+  // — "data appears after a few seconds, or not at all".
   useEffect(() => {
+    if (!authReady) return;
     loadUser();
-    loadActivePlan();
-  }, []);
+  }, [authReady]);
+
+  // Whenever user.id appears (either from the bootstrap or post-login),
+  // load the active plan. Re-firing on user.id change keeps this in sync
+  // when the user logs in mid-session.
+  useEffect(() => {
+    if (!authReady || !user?.id) return;
+    loadActivePlanForUser(user.id);
+  }, [authReady, user?.id]);
 
   const loadUser = async () => {
     try {
@@ -30,8 +42,6 @@ const Home: React.FC = () => {
             email: oauthUser.email,
             name: oauthUser.name
           });
-          // Load workout plans after setting user
-          await loadActivePlanForUser(userId);
           return;
         }
       }
@@ -39,11 +49,6 @@ const Home: React.FC = () => {
     } catch (error) {
       console.error('Error loading user:', error);
     }
-  };
-
-  const loadActivePlan = async () => {
-    if (!user?.id) return;
-    await loadActivePlanForUser(user.id);
   };
 
   const loadActivePlanForUser = async (userId: number) => {

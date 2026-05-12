@@ -18,6 +18,7 @@ import userRoutes from './routes/users';
 import chatRoutes from './routes/chat';
 import youtubeRoutes from './routes/youtube';
 import fastingRoutes from './routes/fasting';
+import equipmentRoutes from './routes/equipment';
 
 // Load environment variables
 dotenv.config();
@@ -57,6 +58,7 @@ app.use('/api/workouts', workoutRoutes);
 app.use('/api/telegram-config', telegramConfigRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/youtube', youtubeRoutes);
+app.use('/api/equipment', equipmentRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -37,3 +37,7 @@ Thumbs.db
 *.log
 backend/src/main/resources/application-local.properties
 .vercel
+
+# Test / dev artefacts
+.playwright-mcp/
+phase*.png

@@ -18,9 +18,13 @@ import {
   IonIcon,
   IonToast,
 } from '@ionic/react';
-import { checkmarkCircle, refresh, copy, trashOutline } from 'ionicons/icons';
+import { checkmarkCircle, refresh, copy, trashOutline, camera, barbell, close } from 'ionicons/icons';
+import { useHistory } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useStore } from '../../store/useStore';
-import { chatApi, workoutPlanApi } from '../../services/api_backend';
+import { chatApi, workoutPlanApi, userApi as backendUserApi } from '../../services/api_backend';
+import { userKeys, useCurrentUser } from '../../hooks/useUserQuery';
+import EquipmentPhotoCapture from '../Equipment/EquipmentPhotoCapture';
 import './ChatInterface.css';
 
 const ChatInterface: React.FC = () => {
@@ -30,6 +34,30 @@ const ChatInterface: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [lastSuggestedPlan, setLastSuggestedPlan] = useState<string | null>(null);
+  // Equipment-onboarding banner: only on a fresh conversation. Once any of
+  // the three options is taken (or dismissed) it stays gone for this session.
+  const [equipmentBannerDismissed, setEquipmentBannerDismissed] = useState(false);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const history = useHistory();
+  const queryClient = useQueryClient();
+  const { data: fullUser } = useCurrentUser();
+
+  const handleEquipmentFromPhoto = async (equipment: string[]) => {
+    setPhotoModalOpen(false);
+    setEquipmentBannerDismissed(true);
+    try {
+      if (user?.id) {
+        await backendUserApi.update(user.id, { availableEquipment: equipment });
+        queryClient.invalidateQueries({ queryKey: userKeys.byId(user.id) });
+      }
+      setToastMessage(`Saved ${equipment.length} item${equipment.length === 1 ? '' : 's'} to your equipment.`);
+      setShowToast(true);
+    } catch (err) {
+      console.error('Failed to persist equipment from photo:', err);
+      setToastMessage('Failed to save equipment list. Try again from Profile.');
+      setShowToast(true);
+    }
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -60,13 +88,11 @@ const ChatInterface: React.FC = () => {
       // Add assistant response to chat
       addChatMessage({ role: 'assistant', content: response.message });
 
-      // Check if the response contains a complete workout plan (Day 1, Day 2, Day 3, Day 4)
+      // Check if the response contains a complete workout plan (Day 1 and at least Day 2)
       const hasDay1 = response.message.includes('Day 1');
       const hasDay2 = response.message.includes('Day 2');
-      const hasDay3 = response.message.includes('Day 3');
-      const hasDay4 = response.message.includes('Day 4');
 
-      if (hasDay1 && hasDay2 && hasDay3 && hasDay4) {
+      if (hasDay1 && hasDay2) {
         setLastSuggestedPlan(response.message);
         // Auto-scroll to show the Apply Changes button
         setTimeout(() => scrollToBottom(), 300);
@@ -105,32 +131,30 @@ const ChatInterface: React.FC = () => {
       // Extract only the workout plan portion (remove conversational text)
       const cleanedPlan = extractWorkoutPlan(lastSuggestedPlan);
 
-      let resultPlan;
-
+      // Always create a new plan when AI suggests a complete workout
+      // Deactivate all existing plans first
       if (activeWorkoutPlan) {
-        // Update existing plan
-        resultPlan = await workoutPlanApi.updatePlan(activeWorkoutPlan.id!, {
-          planDetails: cleanedPlan
+        await workoutPlanApi.updatePlan(activeWorkoutPlan.id!, {
+          isActive: false
         });
-        setToastMessage('Workout plan updated successfully! ✅');
-      } else {
-        // Create new plan
-        const newPlan: any = {
-          userId: user.id!,
-          name: 'My Workout Plan',
-          description: 'AI-generated workout plan',
-          durationWeeks: 4,
-          daysPerWeek: 3,
-          planDetails: cleanedPlan,
-          difficultyLevel: 'intermediate',
-          isActive: true,
-        };
-        resultPlan = await workoutPlanApi.create(newPlan);
-        setToastMessage('Workout plan created successfully! ✅');
       }
+
+      // Create new plan
+      const newPlan: any = {
+        userId: user.id!,
+        name: 'My Workout Plan',
+        description: 'AI-generated workout plan',
+        durationWeeks: 4,
+        daysPerWeek: 3,
+        planDetails: cleanedPlan,
+        difficultyLevel: 'intermediate',
+        isActive: true,
+      };
+      const resultPlan = await workoutPlanApi.create(newPlan);
 
       setActiveWorkoutPlan(resultPlan);
       setShowToast(true);
+      setToastMessage('New workout plan created successfully! ✅');
       setLastSuggestedPlan(null);
     } catch (error) {
       console.error('Error applying plan changes:', error);
@@ -188,6 +212,37 @@ const ChatInterface: React.FC = () => {
       </IonHeader>
 
       <IonContent ref={contentRef} className="chat-content">
+        {chatHistory.length === 0 && !equipmentBannerDismissed && (
+          <IonCard color="light" style={{ margin: '12px' }}>
+            <IonCardContent>
+              <strong>Before we start — what equipment do you have?</strong>
+              <p style={{ margin: '6px 0 10px', fontSize: 14 }}>
+                Telling me up front means I'll only suggest exercises that fit your setup.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <IonButton size="small" onClick={() => setPhotoModalOpen(true)}>
+                  <IonIcon icon={camera} slot="start" />
+                  Use photo
+                </IonButton>
+                <IonButton
+                  size="small"
+                  fill="outline"
+                  onClick={() => {
+                    setEquipmentBannerDismissed(true);
+                    history.push('/profile');
+                  }}
+                >
+                  <IonIcon icon={barbell} slot="start" />
+                  Add manually
+                </IonButton>
+                <IonButton size="small" fill="clear" onClick={() => setEquipmentBannerDismissed(true)}>
+                  <IonIcon icon={close} slot="start" />
+                  Skip for now
+                </IonButton>
+              </div>
+            </IonCardContent>
+          </IonCard>
+        )}
         <IonList>
           {chatHistory.map((msg, index) => (
             <IonItem
@@ -237,6 +292,13 @@ const ChatInterface: React.FC = () => {
           position="top"
         />
       </IonContent>
+
+      <EquipmentPhotoCapture
+        isOpen={photoModalOpen}
+        existingEquipment={fullUser?.availableEquipment || []}
+        onConfirm={handleEquipmentFromPhoto}
+        onClose={() => setPhotoModalOpen(false)}
+      />
 
       <IonFooter>
         <IonToolbar>

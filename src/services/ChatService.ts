@@ -4,15 +4,49 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+interface UserProfile {
+  age?: number | null;
+  weight?: number | null;
+  height?: number | null;
+  fitnessLevel?: string | null;
+  goals?: string[] | null;
+  availableEquipment?: string[] | null;
+  bodyweightExercises?: string[] | null;
+}
+
 interface ChatContext {
+  user?: UserProfile;
   activePlan?: any;
   recentSessions?: any[];
   chatHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
+function renderUserProfile(user?: UserProfile): string {
+  if (!user) return '';
+  const lines: string[] = ['User Profile:'];
+  if (user.age != null) lines.push(`- Age: ${user.age}`);
+  if (user.weight != null) lines.push(`- Weight: ${user.weight} kg`);
+  if (user.height != null) lines.push(`- Height: ${user.height} cm`);
+  if (user.fitnessLevel) lines.push(`- Fitness level: ${user.fitnessLevel}`);
+  if (user.goals && user.goals.length > 0) lines.push(`- Goals: ${user.goals.join(', ')}`);
+  if (user.availableEquipment && user.availableEquipment.length > 0) {
+    lines.push(`- Available equipment: ${user.availableEquipment.join(', ')}`);
+  } else {
+    lines.push(`- Available equipment: bodyweight only`);
+  }
+  if (user.bodyweightExercises && user.bodyweightExercises.length > 0) {
+    lines.push(`- Comfortable bodyweight movements: ${user.bodyweightExercises.join(', ')}`);
+  }
+  return lines.join('\n');
+}
+
 export class ChatService {
   async chat(message: string, context: ChatContext): Promise<string> {
+    const profileBlock = renderUserProfile(context.user);
+
     const systemPrompt = `You are an expert AI fitness coach. Help users adjust their workout plans.
+
+${profileBlock}
 
 ${context.activePlan ? `Current Active Plan: ${context.activePlan.name}\n${context.activePlan.planDetails}` : ''}
 
@@ -28,7 +62,42 @@ CRITICAL RULES FOR WORKOUT MODIFICATIONS:
    - End with: 'The updated plan is ready. Click "Apply Changes" to save it.'
 3. Safety guardrails:
    - NEVER increase weights by more than 20% in a single change
-   - NEVER recommend exercises not in available equipment`;
+   - NEVER recommend exercises not in available equipment
+   - Tailor volume, intensity, and exercise selection to the User Profile above (age, weight, fitness level, goals). If a section is missing, infer conservatively.
+
+MANDATORY EXERCISE FORMAT:
+Each workout day MUST follow this EXACT format:
+
+Day [number] - [Muscle Group/Focus]:
+1. [Exercise Name] - [Sets]x[Reps] @ [Weight]kg | [Rest between sets]s | [Rest before next exercise]s
+2. [Exercise Name] - [Sets]x[Reps] @ bodyweight | [Rest between sets]s | [Rest before next exercise]s
+
+EXAMPLES:
+Day 1 - Push (Chest, Shoulders, Triceps):
+1. Bench Press - 4x8 @ 60kg | 90s | 120s
+2. Incline Dumbbell Press - 3x10 @ 22.5kg (30° incline) | 75s | 90s
+3. Push-ups - 3x12 @ bodyweight | 60s | 90s
+
+Day 2 - Pull (Back, Biceps):
+1. Pull-ups - 4x6 @ bodyweight | 90s | 120s
+2. Barbell Rows - 4x8 @ 50kg | 90s | 120s
+
+EQUIPMENT-SPECIFIC ATTRIBUTES (use when relevant):
+- Dumbbell exercises: the weight after "@" is PER HAND (one dumbbell), not total.
+- Incline / decline bench: include the angle in parentheses, e.g. "(30° incline)" or "(-15° decline)".
+- These details are parsed automatically — emit them whenever they're meaningful, so the app can surface them in the workout UI.
+
+CRITICAL:
+- Use numbered lists (1. 2. 3.) NOT bullet points or markdown formatting
+- Include exact format: [Exercise] - [SetsxReps] @ [Weight] | [Rest] | [Rest]
+- Reps must be a single number, NOT a range. Use "4x8" not "4x6-8".
+- For bodyweight exercises, use "@ bodyweight" NOT "@ BW" or variations
+- Always include rest times in seconds (e.g., "90s")
+- Do NOT use markdown bold (**Day 1**) - use plain text "Day 1 - Focus:"
+- NEVER write the substring "Day N" anywhere except as a real day header
+  (e.g., do NOT write narrative like "Day 1 and Day 2" or
+  "Rotate through Day 1, Day 2, Day 3" — the parser would mis-detect it).
+  If you must reference scheduling, use words: "first session", "second session".`;
 
     const messages: Anthropic.MessageParam[] = [
       ...(context.chatHistory || []).map(msg => ({

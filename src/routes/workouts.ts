@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import prisma from '../lib/database';
 import { ChatService } from '../services/ChatService';
 import { WorkoutGenerationService } from '../services/WorkoutGenerationService';
+import { Prisma } from '@prisma/client';
+import { parseExerciseAttributes } from '../types/exercise';
 
 const router = Router();
 const chatService = new ChatService();
@@ -44,6 +46,7 @@ router.get('/plan/:planId', async (req: Request, res: Response) => {
         isBodyweight: exercise.isBodyweight,
         restTime: exercise.restTime,
         notes: exercise.notes,
+        attributes: parseExerciseAttributes((exercise as any).attributes),
         createdAt: exercise.createdAt
       }))
     }));
@@ -95,6 +98,7 @@ router.get('/:workoutId', async (req: Request, res: Response) => {
         isBodyweight: exercise.isBodyweight,
         restTime: exercise.restTime,
         notes: exercise.notes,
+        attributes: parseExerciseAttributes((exercise as any).attributes),
         createdAt: exercise.createdAt
       }))
     };
@@ -120,7 +124,10 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
-    // Create workout and exercises in a transaction
+    // Create workout and exercises in a transaction.
+    // `attributes` is validated against the discriminated union — invalid
+    // payloads are stored as NULL rather than rejecting the whole write,
+    // so legacy callers that don't know about attributes still work.
     const workout = await prisma.workout.create({
       data: {
         planId: BigInt(planId),
@@ -134,7 +141,8 @@ router.post('/', async (req: Request, res: Response) => {
             weight: exercise.weight,
             isBodyweight: exercise.isBodyweight || false,
             restTime: exercise.restTime,
-            notes: exercise.notes
+            notes: exercise.notes,
+            attributes: parseExerciseAttributes(exercise.attributes) ?? Prisma.JsonNull,
           }))
         }
       },
@@ -161,6 +169,7 @@ router.post('/', async (req: Request, res: Response) => {
         isBodyweight: exercise.isBodyweight,
         restTime: exercise.restTime,
         notes: exercise.notes,
+        attributes: parseExerciseAttributes((exercise as any).attributes),
         createdAt: exercise.createdAt
       }))
     };
@@ -210,6 +219,7 @@ router.put('/:workoutId', async (req: Request, res: Response) => {
         isBodyweight: exercise.isBodyweight,
         restTime: exercise.restTime,
         notes: exercise.notes,
+        attributes: parseExerciseAttributes((exercise as any).attributes),
         createdAt: exercise.createdAt
       }))
     };
@@ -546,6 +556,7 @@ NOW GENERATE:`;
         isBodyweight: exercise.isBodyweight,
         restTime: exercise.restTime,
         notes: exercise.notes,
+        attributes: parseExerciseAttributes((exercise as any).attributes),
         createdAt: exercise.createdAt
       }))
     } : null;

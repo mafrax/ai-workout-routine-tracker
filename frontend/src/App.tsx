@@ -66,24 +66,31 @@ const queryClient = new QueryClient({
 
 const AppContent: React.FC = () => {
   const history = useHistory();
-  const { setUser } = useStore();
+  const setUser = useStore((s) => s.setUser);
+  const setAuthReady = useStore((s) => s.setAuthReady);
 
-  // Load user on app startup
+  // Load user on app startup.
+  // authReady must flip to true exactly once, AFTER we've decided whether a
+  // user exists. Downstream pages gate their fetches on authReady so they
+  // never run before the auth state has been read from localStorage.
   useEffect(() => {
-    if (authService.isAuthenticated()) {
-      const oauthUser = authService.getCurrentUser();
-      if (oauthUser) {
-        console.log('🔄 App: Loading user from auth service:', oauthUser.email);
-        // For dev user, use ID 1, otherwise parse the OAuth ID
-        const userId = oauthUser.id === 'dev-user-123' ? 1 : parseInt(oauthUser.id);
-        setUser({
-          id: userId,
-          email: oauthUser.email,
-          name: oauthUser.name
-        });
+    try {
+      if (authService.isAuthenticated()) {
+        const oauthUser = authService.getCurrentUser();
+        if (oauthUser) {
+          console.log('🔄 App: Loading user from auth service:', oauthUser.email);
+          const userId = oauthUser.id === 'dev-user-123' ? 1 : parseInt(oauthUser.id);
+          setUser({
+            id: userId,
+            email: oauthUser.email,
+            name: oauthUser.name
+          });
+        }
       }
+    } finally {
+      setAuthReady(true);
     }
-  }, [setUser]);
+  }, [setUser, setAuthReady]);
 
   useEffect(() => {
     let listenerHandle: any;

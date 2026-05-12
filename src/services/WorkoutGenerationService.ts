@@ -4,8 +4,10 @@
  * Now uses WorkoutParserService for consistent parsing logic
  */
 
+import { Prisma } from '@prisma/client';
 import prisma from '../lib/database';
 import { workoutParserService } from './WorkoutParserService';
+import type { ExerciseAttributes } from '../types/exercise';
 
 interface ExerciseDetails {
   restTime?: number;
@@ -14,6 +16,15 @@ interface ExerciseDetails {
 }
 
 export class WorkoutGenerationService {
+  // Day-header regex: requires "Day N - X" or "Day N: X". Optional
+  // markdown bold around "Day N". Trailing colon optional. Rejects narrative
+  // text like "Day 1 and Day 2" because it lacks ':' or '-' after the number.
+  private static readonly DAY_HEADER_RE = /^\*{0,2}Day\s+(\d+)\*{0,2}\s*[:\-]\s*(.+?):?$/i;
+
+  // Exercise regex: accepts "4x8" and ranges "4x6-8". Captures sets, reps (string), weight.
+  private static readonly EXERCISE_LINE_RE =
+    /^\d+\.\s*(.+?)\s*-\s*(\d+)x(\d+(?:-\d+)?)\s*@\s*(.+)/i;
+
   /**
    * Parse plan_details to extract muscle groups for each day
    */
@@ -22,7 +33,7 @@ export class WorkoutGenerationService {
     const lines = planDetails.split('\n');
 
     for (const line of lines) {
-      const dayMatch = line.match(/^Day (\d+)\s*-\s*(.+):?$/i);
+      const dayMatch = line.match(this.DAY_HEADER_RE);
       if (dayMatch && dayMatch[1] && dayMatch[2]) {
         muscleGroups[parseInt(dayMatch[1])] = dayMatch[2].trim().replace(/:$/, '');
       }
@@ -39,8 +50,8 @@ export class WorkoutGenerationService {
     const lines = planDetails.split('\n');
 
     for (const line of lines) {
-      // Match exercise line: "1. Exercise Name - details"
-      const exerciseMatch = line.match(/^\d+\.\s*(.+)\s+-\s+(\d+x\d+.+)$/);
+      // Match exercise line: "1. Exercise Name - details" (accepts rep ranges)
+      const exerciseMatch = line.match(/^\d+\.\s*(.+?)\s+-\s+(\d+x\d+(?:-\d+)?.+)$/);
       if (exerciseMatch && exerciseMatch[1] && exerciseMatch[2]) {
         const exerciseName = exerciseMatch[1].trim();
         const details = exerciseMatch[2].trim();
@@ -73,7 +84,10 @@ export class WorkoutGenerationService {
   }
 
   /**
-   * Parse exercise line to extract sets, reps, weight, and name
+   * Parse exercise line to extract sets, reps, weight, and name.
+   * Accepts both "4x8" and rep ranges "4x6-8". Ranges are reduced to the
+   * lower bound (the most demanding floor) because downstream frontend
+   * code expects a single integer rep count per set.
    */
   private static parseExerciseLine(line: string): {
     name: string;
@@ -81,19 +95,115 @@ export class WorkoutGenerationService {
     reps: number;
     weight?: number;
     isBodyweight: boolean;
+    attributes: ExerciseAttributes | null;
   } | null {
-    const match = line.match(/^\d+\.\s*(.+?)\s*-\s*(\d+)x(\d+)\s*@\s*(.+)/);
+    const match = line.match(this.EXERCISE_LINE_RE);
     if (!match || !match[1] || !match[2] || !match[3] || !match[4]) return null;
 
     const name = match[1].trim();
     const sets = parseInt(match[2]);
-    const reps = parseInt(match[3]);
-    const weightStr = match[4].trim();
 
-    const isBodyweight = weightStr.toLowerCase() === 'bodyweight';
-    const weight = isBodyweight ? undefined : parseFloat(weightStr);
+    // "6-8" -> 6 (lower bound), "8" -> 8
+    const repsToken = match[3];
+    const reps = parseInt(repsToken.split('-')[0] ?? repsToken, 10);
+    if (isNaN(reps)) return null;
 
-    return { name, sets, reps, weight, isBodyweight };
+    // weight token may include trailing "kg", "| 90s", "(notes)" etc — strip them
+    const weightToken = match[4].split(/[|(]/)[0]?.trim() ?? '';
+    const isBodyweight = /bodyweight|body\s+weight|^bw$/i.test(weightToken);
+    const numericWeight = parseFloat(weightToken.replace(/kg/i, ''));
+    const weight = isBodyweight || isNaN(numericWeight) ? undefined : numericWeight;
+
+    // Equipment-specific attributes from the exercise name + the tail of the
+    // weight token (which carries free-form notes like "(30° incline)" or
+    // "per hand" cues). Best-effort — never block parsing on detection.
+    const attributes = this.detectAttributes(name, match[4], weight);
+
+    return { name, sets, reps, weight, isBodyweight, attributes };
+  }
+
+  /**
+   * Infer ExerciseAttributes from the exercise title + raw tail of the line.
+   * Returns null when no specific equipment signature is detected — most
+   * exercises (bench press, push-ups, squats) carry no extras and stay NULL.
+   */
+  private static detectAttributes(
+    name: string,
+    rawTail: string,
+    weightKg: number | undefined
+  ): ExerciseAttributes | null {
+    const lower = name.toLowerCase();
+    const tailLower = rawTail.toLowerCase();
+
+    // Incline bench detection takes precedence over dumbbells because an
+    // "Incline Dumbbell Press" should track the angle (the dumbbells variant
+    // is the muscle work — we surface incline since it's the rarer signal).
+    const angleMatch =
+      tailLower.match(/(\-?\d{1,2})\s*(?:°|deg(?:rees)?|degree)/i) ||
+      tailLower.match(/(?:incline|decline)[^\d]{0,8}(\-?\d{1,2})/i);
+    if (lower.includes('incline') || lower.includes('decline')) {
+      const raw = angleMatch?.[1];
+      const angle = raw ? parseInt(raw, 10) : lower.includes('decline') ? -15 : 30;
+      if (!isNaN(angle) && angle >= -30 && angle <= 90) {
+        return { kind: 'incline-bench', angleDeg: angle };
+      }
+    }
+
+    // Dumbbells — title has "dumbbell" / "DB" and we have a numeric weight.
+    // The number we parsed is the per-hand weight by convention in this app.
+    if (/\b(dumbbell|dumbbells|db)\b/i.test(name) && typeof weightKg === 'number') {
+      const grip = /neutral|hammer/i.test(name)
+        ? ('neutral' as const)
+        : /reverse|supinated|underhand/i.test(name)
+        ? ('supinated' as const)
+        : undefined;
+      return { kind: 'dumbbells', weightPerHandKg: weightKg, ...(grip ? { grip } : {}) };
+    }
+
+    // Cable — pulley height inferred from common cable exercise prefixes.
+    if (/\bcable\b/i.test(name)) {
+      const pulleyHeight =
+        /\b(pulldown|high\s*pull|high\s*row|face\s*pull|tricep[s]?\s*pushdown)\b/i.test(name)
+          ? 'high'
+          : /\brow|pull-?through|kickback|low\s*pull\b/i.test(name)
+          ? 'low'
+          : 'mid';
+      return { kind: 'cable', pulleyHeight };
+    }
+
+    // Resistance bands — usually only have a resistance level, no specific weight.
+    if (/\bband[s]?\b/i.test(name)) {
+      const resistance = /heavy/i.test(rawTail) ? 'heavy' : /light/i.test(rawTail) ? 'light' : 'medium';
+      return { kind: 'band', resistance };
+    }
+
+    return null;
+  }
+
+  /**
+   * Dry-run parse of plan_details — returns the days that would be created.
+   * Used by routes to reject plans that would produce zero structured workouts.
+   */
+  static previewParsedWorkouts(planDetails: string): Array<{ day: number; exerciseCount: number }> {
+    const lines = planDetails.split('\n');
+    const days = new Map<number, number>();
+    let currentDay: number | null = null;
+
+    for (const line of lines) {
+      const dayMatch = line.match(this.DAY_HEADER_RE);
+      if (dayMatch && dayMatch[1]) {
+        currentDay = parseInt(dayMatch[1]);
+        if (!days.has(currentDay)) days.set(currentDay, 0);
+        continue;
+      }
+      if (currentDay !== null && this.parseExerciseLine(line)) {
+        days.set(currentDay, (days.get(currentDay) || 0) + 1);
+      }
+    }
+
+    return [...days.entries()]
+      .filter(([, count]) => count > 0)
+      .map(([day, exerciseCount]) => ({ day, exerciseCount }));
   }
 
   /**
@@ -120,11 +230,12 @@ export class WorkoutGenerationService {
       reps: number;
       weight?: number;
       isBodyweight: boolean;
+      attributes: ExerciseAttributes | null;
     }> = [];
 
     for (const line of lines) {
       // Check for day header
-      const dayMatch = line.match(/^Day (\d+)\s*-\s*(.+):?$/i);
+      const dayMatch = line.match(WorkoutGenerationService.DAY_HEADER_RE);
       if (dayMatch && dayMatch[1]) {
         // Save previous day's workout if exists
         if (currentDay !== null && currentExercises.length > 0) {
@@ -183,6 +294,7 @@ export class WorkoutGenerationService {
       reps: number;
       weight?: number;
       isBodyweight: boolean;
+      attributes: ExerciseAttributes | null;
     }>,
     exerciseDetailsMap: Map<string, ExerciseDetails>
   ): Promise<'created' | 'updated'> {
@@ -205,7 +317,9 @@ export class WorkoutGenerationService {
         weight: details.weight || ex.weight || null,
         isBodyweight: ex.isBodyweight,
         restTime: details.restTime || null,
-        notes: details.notes || null
+        notes: details.notes || null,
+        // Prisma rejects raw `null` for JSON columns — must use JsonNull sentinel.
+        attributes: ex.attributes ?? Prisma.JsonNull,
       };
     });
 

@@ -1,3 +1,18 @@
+/**
+ * Equipment-specific attributes for an exercise. Discriminated by `kind`.
+ *
+ * Backed by the `attributes` JSON column on the `exercises` table (added in
+ * the 20260511_add_exercise_attributes migration). NULL on the wire means
+ * no extras to track. Keep this union in sync with src/types/exercise.ts —
+ * the backend validates writes against the Zod version of the same type.
+ */
+export type ExerciseAttributes =
+  | { kind: 'dumbbells'; weightPerHandKg: number; grip?: 'neutral' | 'pronated' | 'supinated' }
+  | { kind: 'incline-bench'; angleDeg: number }
+  | { kind: 'cable'; pulleyHeight: 'low' | 'mid' | 'high'; attachment?: string }
+  | { kind: 'band'; resistance: 'light' | 'medium' | 'heavy' | 'extra-heavy' }
+  | { kind: 'machine'; settings?: Record<string, string | number> };
+
 export interface Exercise {
   name: string;
   sets: number;
@@ -5,6 +20,7 @@ export interface Exercise {
   weight: string;
   restBetweenSets: number; // in seconds
   restBeforeNext: number; // in seconds
+  attributes?: ExerciseAttributes | null;
 }
 
 export interface DailyWorkout {
@@ -29,9 +45,13 @@ export function parseWorkoutPlan(planDetails: string): ParsedWorkoutPlan {
     if (!trimmed) continue;
 
     // Match "Day X - Focus" or "Day X: Focus" or "**Day X** - Focus"
-    const dayMatch = trimmed.match(/^[\*]*Day (\d+)[\*]*[\s:-]+(.+)/i);
+    // Requires explicit ':' or '-' separator so narrative text like
+    // "Day 1 and Day 2" is NOT treated as a header.
+    const dayMatch = trimmed.match(/^\*{0,2}Day\s+(\d+)\*{0,2}\s*[:\-]\s*(.+)/i);
     if (dayMatch) {
-      if (currentDay) {
+      // Only push the previous day if it actually had exercises; this
+      // discards phantom day headers that the AI may emit accidentally.
+      if (currentDay && currentDay.exercises.length > 0) {
         workouts.push(currentDay);
       }
       currentDay = {
@@ -98,7 +118,7 @@ export function parseWorkoutPlan(planDetails: string): ParsedWorkoutPlan {
     }
   }
 
-  if (currentDay) {
+  if (currentDay && currentDay.exercises.length > 0) {
     workouts.push(currentDay);
   }
 
