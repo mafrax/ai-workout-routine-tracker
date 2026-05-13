@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { User, ChatMessage, ProgressSummary, WorkoutPlan } from '../types';
-import { chatStorage } from '../services/localStorage';
 
 interface AppState {
   user: User | null;
@@ -37,7 +36,6 @@ export const useStore = create<AppState>((set) => ({
     chatHistory: [...state.chatHistory, message]
   })),
   clearChatHistory: () => {
-    chatStorage.clear();
     set({ chatHistory: [], sessionId: null });
   },
   setProgress: (progress) => set({ progress }),

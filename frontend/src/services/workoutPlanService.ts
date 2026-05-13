@@ -1,5 +1,4 @@
-import { workoutPlanApi } from './api';
-import { chatApi } from './api_backend';
+import { workoutPlanApi, chatApi } from './api_backend';
 import { aiService } from './aiService';
 import type { User } from '../types';
 

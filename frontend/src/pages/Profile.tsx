@@ -40,7 +40,6 @@ import { useStore, REQUIRED_PROFILE_FIELDS } from '../store/useStore';
 import { useCurrentUser, userKeys } from '../hooks/useUserQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
-import { workoutPlanApi as localWorkoutPlanApi } from '../services/api';
 import { userApi as backendUserApi, workoutPlanApi as backendWorkoutPlanApi } from '../services/api_backend';
 import { parseWorkoutPlan } from '../types/workout';
 import EquipmentPhotoCapture from '../components/Equipment/EquipmentPhotoCapture';

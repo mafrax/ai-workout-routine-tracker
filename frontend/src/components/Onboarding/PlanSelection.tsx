@@ -17,7 +17,7 @@ import {
 import { checkmarkCircle, calendar, fitness, barbell } from 'ionicons/icons';
 import type { GeneratedPlan } from '../../services/workoutPlanService';
 import { saveWorkoutPlan } from '../../services/workoutPlanService';
-import { workoutPlanApi } from '../../services/api';
+import { workoutPlanApi } from '../../services/api_backend';
 import { useStore } from '../../store/useStore';
 import './PlanSelection.css';
 

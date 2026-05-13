@@ -19,7 +19,7 @@ import {
   IonCardContent,
 } from '@ionic/react';
 import { useStore } from '../../store/useStore';
-import { workoutSessionApi } from '../../services/api';
+import { workoutSessionApi } from '../../services/api_backend';
 import type { WorkoutSession } from '../../types';
 import './WorkoutLog.css';
 

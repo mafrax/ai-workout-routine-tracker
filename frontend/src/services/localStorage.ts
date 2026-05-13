@@ -184,27 +184,6 @@ export const workoutSessionStorage = {
   },
 };
 
-// Chat History operations
-export const chatStorage = {
-  async getHistory(): Promise<any[]> {
-    const { value } = await Preferences.get({ key: KEYS.CHAT_HISTORY });
-    return value ? JSON.parse(value) : [];
-  },
-
-  async saveMessage(message: any): Promise<void> {
-    const history = await this.getHistory();
-    history.push(message);
-    await Preferences.set({
-      key: KEYS.CHAT_HISTORY,
-      value: JSON.stringify(history),
-    });
-  },
-
-  async clear(): Promise<void> {
-    await Preferences.remove({ key: KEYS.CHAT_HISTORY });
-  },
-};
-
 // Clear all data (for testing/reset)
 export const clearAllStorage = async (): Promise<void> => {
   await Preferences.clear();

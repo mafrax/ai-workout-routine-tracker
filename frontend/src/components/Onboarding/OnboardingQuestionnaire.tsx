@@ -22,7 +22,7 @@ import {
   IonSpinner,
 } from '@ionic/react';
 import { useStore } from '../../store/useStore';
-import { userApi } from '../../services/api';
+import { userApi } from '../../services/api_backend';
 import { generateWorkoutPlans, type GeneratedPlan } from '../../services/workoutPlanService';
 import PlanSelection from './PlanSelection';
 import type { User } from '../../types';
@@ -84,7 +84,7 @@ const FITNESS_GOALS = [
 ];
 
 const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onComplete }) => {
-  const { setUser } = useStore();
+  const { setUser, user } = useStore();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [generatedPlans, setGeneratedPlans] = useState<GeneratedPlan[] | null>(null);
@@ -123,31 +123,34 @@ const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   const handleSubmit = async () => {
+    if (!user?.id) {
+      alert('You must be signed in to complete onboarding.');
+      return;
+    }
     setLoading(true);
     try {
-      const userData: User = {
+      // Update the existing (OAuth-created) user with the questionnaire data.
+      // We don't create users client-side any more — they're created on first
+      // Google sign-in by the backend.
+      const updatedUser = await userApi.update(user.id, {
         name,
         email,
         age,
-        gender,
         weight,
         height,
         fitnessLevel,
         goals,
         availableEquipment: equipment,
-      };
-
-      // Create the user
-      const newUser = await userApi.create(userData);
-      setUser(newUser);
-      setCreatedUser(newUser);
+      });
+      setUser(updatedUser);
+      setCreatedUser(updatedUser);
 
       // Generate workout plans using the LLM
-      const plans = await generateWorkoutPlans(newUser);
+      const plans = await generateWorkoutPlans(updatedUser);
       setGeneratedPlans(plans);
     } catch (error) {
-      console.error('Error creating profile or generating plans:', error);
-      alert('Error creating profile. Please try again.');
+      console.error('Error saving profile or generating plans:', error);
+      alert('Error saving profile. Please try again.');
       setLoading(false);
     }
   };

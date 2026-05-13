@@ -174,17 +174,9 @@ const TodaysWorkout: React.FC = () => {
     if (!authReady) return;
 
     const initializeData = async () => {
-      // If no user, try loading from API
+      // No user post-bootstrap means the user is not signed in — auth gate
+      // handles redirect; nothing to load here.
       if (!user) {
-        try {
-          const users = await (await import('../../services/api')).userApi.getAll();
-          if (users.length > 0) {
-            useStore.getState().setUser(users[0]);
-            return; // Will trigger re-render
-          }
-        } catch (error) {
-          console.error('Error loading user:', error);
-        }
         setLoading(false);
         return;
       }
