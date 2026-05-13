@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { youtubeService } from '../services/YouTubeService';
+import { isDev } from '../config/env';
 
 const router = express.Router();
 
@@ -40,7 +41,7 @@ router.post('/search-exercise', async (req: Request, res: Response) => {
     console.error('❌ Error in YouTube search endpoint:', error);
     return res.status(500).json({
       error: 'Failed to search for exercise videos',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      details: isDev ? error.message : undefined,
     });
   }
 });

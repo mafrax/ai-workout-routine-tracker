@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { env } from '../config/env';
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: env.ANTHROPIC_API_KEY,
 });
 
 interface UserProfile {
@@ -113,8 +114,8 @@ CRITICAL:
     try {
       console.log('🤖 Sending chat request to Claude API...');
       console.log('📝 Message history length:', messages.length);
-      console.log('🔑 API Key present:', !!process.env.ANTHROPIC_API_KEY);
-      console.log('🔑 API Key prefix:', process.env.ANTHROPIC_API_KEY?.substring(0, 10) + '...');
+      console.log('🔑 API Key present:', !!env.ANTHROPIC_API_KEY);
+      console.log('🔑 API Key prefix:', env.ANTHROPIC_API_KEY?.substring(0, 10) + '...');
 
       const response = await anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
@@ -145,7 +146,7 @@ CRITICAL:
         status: error.status,
         type: error.type,
         name: error.name,
-        hasApiKey: !!process.env.ANTHROPIC_API_KEY,
+        hasApiKey: !!env.ANTHROPIC_API_KEY,
         timestamp: new Date().toISOString()
       });
 

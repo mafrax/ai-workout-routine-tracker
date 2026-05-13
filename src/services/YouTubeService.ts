@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { env } from '../config/env';
 
 export interface YouTubeVideo {
   id: string;
@@ -13,9 +14,9 @@ export class YouTubeService {
   private baseUrl = 'https://www.googleapis.com/youtube/v3';
 
   constructor() {
-    this.apiKey = process.env.YOUTUBE_API_KEY || '';
+    this.apiKey = env.YOUTUBE_API_KEY || '';
     if (!this.apiKey) {
-      console.warn('⚠️ YOUTUBE_API_KEY not found in environment variables');
+      console.warn('⚠️ YOUTUBE_API_KEY not configured — /api/youtube/* endpoints will 503');
     }
   }
 

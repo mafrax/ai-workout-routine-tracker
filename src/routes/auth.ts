@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import passport from '../config/passport';
+import { env, isDev } from '../config/env';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ export const isAuthenticated = (req: express.Request, res: express.Response, nex
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
@@ -43,7 +44,7 @@ router.get('/google/callback',
   (req: express.Request, res: express.Response, next: express.NextFunction) => {
     passport.authenticate('google', {
       session: false,
-      failureRedirect: process.env.FRONTEND_URL + '/login?error=auth_failed'
+      failureRedirect: env.FRONTEND_URL + '/login?error=auth_failed'
     }, (err: any, user: any, info: any) => {
       console.log('📝 OAuth callback received');
       console.log('Error:', err);
@@ -54,13 +55,13 @@ router.get('/google/callback',
         console.error('❌ Error in passport authentication:', err);
         return res.status(500).json({
           error: 'Authentication error',
-          details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+          details: isDev ? err.message : undefined,
         });
       }
 
       if (!user) {
         console.error('❌ No user returned from OAuth');
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=no_user`);
+        return res.redirect(`${env.FRONTEND_URL}/login?error=no_user`);
       }
 
       try {
@@ -72,7 +73,7 @@ router.get('/google/callback',
             email: user.email,
             name: user.name
           },
-          process.env.JWT_SECRET || 'your-secret-key',
+          env.JWT_SECRET,
           { expiresIn: '30d' }
         );
 
@@ -88,7 +89,7 @@ router.get('/google/callback',
           console.log('📱 Redirecting to mobile app:', redirectUrl);
         } else {
           // Use web URL for browser
-          redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback?token=${token}`;
+          redirectUrl = `${env.FRONTEND_URL}/auth/callback?token=${token}`;
           console.log('🌐 Redirecting to web:', redirectUrl);
         }
 
@@ -97,7 +98,7 @@ router.get('/google/callback',
         console.error('❌ Error generating token or redirecting:', error);
         return res.status(500).json({
           error: 'Token generation error',
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+          details: isDev ? error.message : undefined,
         });
       }
     })(req, res, next);

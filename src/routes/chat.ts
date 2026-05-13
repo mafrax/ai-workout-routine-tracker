@@ -1,6 +1,7 @@
 import express from 'express';
 import { ChatService } from '../services/ChatService';
 import { PrismaClient } from '@prisma/client';
+import { isDev } from '../config/env';
 
 const router = express.Router();
 const chatService = new ChatService();
@@ -125,7 +126,7 @@ router.post('/', async (req, res) => {
     });
     return res.status(500).json({
       error: error.message || 'Failed to process chat request',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      details: isDev ? error.stack : undefined,
     });
   }
 });

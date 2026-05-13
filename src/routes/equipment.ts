@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import { analyzeEquipmentImage, SUPPORTED_IMAGE_MIME } from '../services/EquipmentVisionService';
+import { isDev } from '../config/env';
 
 const router = express.Router();
 
@@ -50,7 +51,7 @@ router.post('/analyze', async (req: Request, res: Response) => {
     console.error('❌ Equipment vision failed:', err?.message || err);
     return res.status(500).json({
       error: 'Vision service unavailable',
-      details: process.env.NODE_ENV === 'development' ? err?.message : undefined,
+      details: isDev ? err?.message : undefined,
     });
   }
 });

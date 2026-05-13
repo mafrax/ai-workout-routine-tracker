@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import prisma from '../lib/database';
 import { WorkoutGenerationService } from '../services/WorkoutGenerationService';
 import { ChatService } from '../services/ChatService';
+import { isDev } from '../config/env';
 
 const router = Router();
 const chatService = new ChatService();
@@ -523,7 +524,7 @@ ${plan.planDetails.slice(0, 1500)}
     console.error('❌ regenerate-incomplete failed:', err?.message || err);
     return res.status(500).json({
       error: 'Failed to regenerate incomplete workouts',
-      details: process.env.NODE_ENV === 'development' ? err?.message : undefined,
+      details: isDev ? err?.message : undefined,
     });
   }
 });

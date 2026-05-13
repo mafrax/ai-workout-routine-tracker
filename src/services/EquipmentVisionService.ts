@@ -1,8 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
+import { env } from '../config/env';
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: env.ANTHROPIC_API_KEY,
 });
 
 const SUPPORTED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
