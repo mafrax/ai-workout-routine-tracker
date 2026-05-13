@@ -38,6 +38,7 @@ import {
 } from 'ionicons/icons';
 import { useStore, REQUIRED_PROFILE_FIELDS } from '../store/useStore';
 import { useCurrentUser, userKeys } from '../hooks/useUserQuery';
+import { useActivePlan, useUpdateActivePlan } from '../hooks/useActivePlan';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 import { userApi as backendUserApi, workoutPlanApi as backendWorkoutPlanApi } from '../services/api_backend';
@@ -106,7 +107,9 @@ const EQUIPMENT_OPTIONS = [
 ];
 
 const Profile: React.FC = () => {
-  const { user, setUser, activeWorkoutPlan, setActiveWorkoutPlan } = useStore();
+  const { user, setUser } = useStore();
+  const { data: activeWorkoutPlan } = useActivePlan();
+  const { setActivePlan: setActiveWorkoutPlan } = useUpdateActivePlan();
   // Cached backend profile — single source of truth across the app.
   const userQuery = useCurrentUser();
   const location = useLocation();

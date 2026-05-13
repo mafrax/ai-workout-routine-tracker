@@ -24,12 +24,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useStore } from '../../store/useStore';
 import { chatApi, workoutPlanApi, userApi as backendUserApi } from '../../services/api_backend';
 import { userKeys, useCurrentUser } from '../../hooks/useUserQuery';
+import { useActivePlan, useUpdateActivePlan } from '../../hooks/useActivePlan';
 import EquipmentPhotoCapture from '../Equipment/EquipmentPhotoCapture';
 import './ChatInterface.css';
 
 const ChatInterface: React.FC = () => {
   const [message, setMessage] = useState('');
-  const { user, sessionId, chatHistory, isLoading, setSessionId, addChatMessage, clearChatHistory, setLoading, activeWorkoutPlan, setActiveWorkoutPlan } = useStore();
+  const { user, sessionId, chatHistory, isLoading, setSessionId, addChatMessage, clearChatHistory, setLoading } = useStore();
+  const { data: activeWorkoutPlan } = useActivePlan();
+  const { setActivePlan: setActiveWorkoutPlan } = useUpdateActivePlan();
   const contentRef = useRef<HTMLIonContentElement>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');

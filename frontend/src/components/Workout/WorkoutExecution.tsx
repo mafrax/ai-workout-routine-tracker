@@ -26,6 +26,7 @@ import { KeepAwake } from '@capacitor-community/keep-awake';
 import { Browser } from '@capacitor/browser';
 import type { DailyWorkout, Exercise } from '../../types/workout';
 import { useStore } from '../../store/useStore';
+import { useActivePlan, useUpdateActivePlan } from '../../hooks/useActivePlan';
 import { workoutPlanApi } from '../../services/api_backend';
 import { getExerciseInstruction } from '../../data/exerciseInstructions';
 import { aiService } from '../../services/aiService';
@@ -41,8 +42,8 @@ interface WorkoutExecutionProps {
 
 const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete }) => {
   const user = useStore((state) => state.user);
-  const activeWorkoutPlan = useStore((state) => state.activeWorkoutPlan);
-  const setActiveWorkoutPlan = useStore((state) => state.setActiveWorkoutPlan);
+  const { data: activeWorkoutPlan } = useActivePlan();
+  const { setActivePlan: setActiveWorkoutPlan } = useUpdateActivePlan();
   const createWorkoutSession = useCreateWorkoutSession();
 
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);

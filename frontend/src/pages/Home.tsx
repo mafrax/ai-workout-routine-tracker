@@ -1,7 +1,7 @@
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonList, IonItem, IonLabel, IonIcon, IonButton, IonGrid, IonRow, IonCol } from '@ionic/react';
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { workoutPlanApi as backendWorkoutPlanApi } from '../services/api_backend';
+import { useActivePlan, useUpdateActivePlan } from '../hooks/useActivePlan';
 import { authService } from '../services/authService';
 import OnboardingQuestionnaire from '../components/Onboarding/OnboardingQuestionnaire';
 import { chatbubbles, barChart, fitness, today, personCircle, trophy, calendar, trash } from 'ionicons/icons';
@@ -9,25 +9,21 @@ import { clearAllData } from '../services/localStorage';
 import './Home.css';
 
 const Home: React.FC = () => {
-  const { user, setUser, activeWorkoutPlan, setActiveWorkoutPlan } = useStore();
+  const { user, setUser } = useStore();
   const authReady = useStore((s) => s.authReady);
+  const { data: activeWorkoutPlan } = useActivePlan();
+  const { setActivePlan, invalidateActivePlan } = useUpdateActivePlan();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Wait for the auth bootstrap (App.tsx) to settle before triggering any
   // user-scoped fetch. Doing it earlier is exactly the race the user reported
   // — "data appears after a few seconds, or not at all".
+  // useActivePlan internally gates on authReady && user?.id, so we don't need
+  // a separate effect to load the active plan; just the user.
   useEffect(() => {
     if (!authReady) return;
     loadUser();
   }, [authReady]);
-
-  // Whenever user.id appears (either from the bootstrap or post-login),
-  // load the active plan. Re-firing on user.id change keeps this in sync
-  // when the user logs in mid-session.
-  useEffect(() => {
-    if (!authReady || !user?.id) return;
-    loadActivePlanForUser(user.id);
-  }, [authReady, user?.id]);
 
   const loadUser = async () => {
     try {
@@ -51,36 +47,17 @@ const Home: React.FC = () => {
     }
   };
 
-  const loadActivePlanForUser = async (userId: number) => {
-    try {
-      console.log('🔄 Loading workout plans for user:', userId);
-      const plans = await backendWorkoutPlanApi.getUserPlans(userId);
-      console.log('📦 Loaded plans:', plans);
-      const active = plans.find((p: any) => p.isActive);
-      if (active) {
-        console.log('✅ Found active plan:', active);
-        setActiveWorkoutPlan(active);
-      } else {
-        console.log('⚠️ No active plan found');
-      }
-    } catch (error) {
-      console.error('❌ Error loading workout plans:', error);
-    }
-  };
-
-  const handleOnboardingComplete = async () => {
+  const handleOnboardingComplete = () => {
     setShowOnboarding(false);
-    // Reload user and active plan after onboarding
-    if (user?.id) {
-      await loadActivePlanForUser(user.id);
-    }
+    // Onboarding may have generated a new plan; force a refetch of the cache.
+    invalidateActivePlan();
   };
 
   const handleResetApp = async () => {
     if (window.confirm('Are you sure you want to delete all data and start over? This cannot be undone.')) {
       await clearAllData();
       setUser(null);
-      setActiveWorkoutPlan(null);
+      setActivePlan(null);
       window.location.reload();
     }
   };

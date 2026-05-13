@@ -18,7 +18,7 @@ import { checkmarkCircle, calendar, fitness, barbell } from 'ionicons/icons';
 import type { GeneratedPlan } from '../../services/workoutPlanService';
 import { saveWorkoutPlan } from '../../services/workoutPlanService';
 import { workoutPlanApi } from '../../services/api_backend';
-import { useStore } from '../../store/useStore';
+import { useUpdateActivePlan } from '../../hooks/useActivePlan';
 import './PlanSelection.css';
 
 interface PlanSelectionProps {
@@ -28,7 +28,7 @@ interface PlanSelectionProps {
 }
 
 const PlanSelection: React.FC<PlanSelectionProps> = ({ plans, userId, onComplete }) => {
-  const setActiveWorkoutPlan = useStore((state) => state.setActiveWorkoutPlan);
+  const { setActivePlan: setActiveWorkoutPlan } = useUpdateActivePlan();
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 

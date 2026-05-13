@@ -26,13 +26,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import { workoutPlanApi as backendWorkoutPlanApi, workoutSessionApi, workoutApi } from '../../services/api_backend';
 import { useStore } from '../../store/useStore';
 import { useStartPlanCreation } from '../../hooks/useStartPlanCreation';
+import { useActivePlan, useUpdateActivePlan } from '../../hooks/useActivePlan';
 import { parseWorkoutPlan, type DailyWorkout } from '../../types/workout';
 import './TodaysWorkout.css';
 import WorkoutExecution from './WorkoutExecution';
 
 const TodaysWorkout: React.FC = () => {
-  const { user, activeWorkoutPlan, setActiveWorkoutPlan } = useStore();
+  const { user } = useStore();
   const authReady = useStore((s) => s.authReady);
+  const { data: activeWorkoutPlan } = useActivePlan();
+  const { setActivePlan: setActiveWorkoutPlan } = useUpdateActivePlan();
   const { startPlanCreation, canCreatePlan, isCheckingProfile } = useStartPlanCreation();
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
