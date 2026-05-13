@@ -101,26 +101,7 @@ export const useWorkoutPlans = (userId: number | undefined) => {
     queryKey: workoutKeys.plans(userId!),
     queryFn: async () => {
       if (!userId) throw new Error('User ID is required');
-
-      // Check for mock data first
-      const mockPlansData = localStorage.getItem('mock_workout_plans');
-      if (mockPlansData) {
-        try {
-          const mockPlans = JSON.parse(mockPlansData);
-          console.log('🎭 Using mock workout plans:', mockPlans.length);
-          return mockPlans.filter((p: any) => p.userId === userId);
-        } catch (error) {
-          console.error('Failed to parse mock workout plans:', error);
-        }
-      }
-
-      try {
-        const allPlans = await backendWorkoutPlanApi.getUserPlans(userId);
-        return allPlans;
-      } catch (error) {
-        console.error('❌ Error loading plans from backend:', error);
-        throw error;
-      }
+      return await backendWorkoutPlanApi.getUserPlans(userId);
     },
     enabled: !!userId,
     staleTime: 3 * 60 * 1000, // 3 minutes - plans change even less frequently
