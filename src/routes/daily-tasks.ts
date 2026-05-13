@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { DailyTaskService } from '../services/DailyTaskService';
-import { DailyTaskDto, CreateDailyTaskRequest, ApiResponse } from '../types';
+import { DailyTaskDto, CreateDailyTaskRequest } from '../types';
 
 const router = Router();
 const dailyTaskService = new DailyTaskService();
@@ -66,7 +66,7 @@ router.get('/user/:userId/history', async (req: Request, res: Response) => {
 });
 
 // GET /api/daily-tasks/user/:userId/incomplete
-router.get('/user/:userId/incomplete', async (req: Request, res: Response<DailyTaskDto[]>) => {
+router.get('/user/:userId/incomplete', async (req: Request, res: Response) => {
   try {
     const userId = userIdSchema.parse(req.params.userId);
     const tasks = await dailyTaskService.getIncompleteTasks(userId);
@@ -75,12 +75,12 @@ router.get('/user/:userId/incomplete', async (req: Request, res: Response<DailyT
     return res.json(taskDtos);
   } catch (error) {
     console.error('Error getting incomplete tasks:', error);
-    return res.status(500).json({ error: 'Internal server error' } as any);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // GET /api/daily-tasks/user/:userId
-router.get('/user/:userId', async (req: Request, res: Response<DailyTaskDto[]>) => {
+router.get('/user/:userId', async (req: Request, res: Response) => {
   try {
     const userId = userIdSchema.parse(req.params.userId);
 
@@ -93,12 +93,12 @@ router.get('/user/:userId', async (req: Request, res: Response<DailyTaskDto[]>) 
     return res.json(taskDtos);
   } catch (error) {
     console.error('Error getting user tasks:', error);
-    return res.status(500).json({ error: 'Internal server error' } as any);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // POST /api/daily-tasks/user/:userId
-router.post('/user/:userId', async (req: Request, res: Response<DailyTaskDto>) => {
+router.post('/user/:userId', async (req: Request, res: Response) => {
   try {
     const userId = userIdSchema.parse(req.params.userId);
     const { title } = createTaskSchema.parse(req.body);
@@ -110,15 +110,15 @@ router.post('/user/:userId', async (req: Request, res: Response<DailyTaskDto>) =
   } catch (error) {
     console.error('Error creating task:', error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid request data' } as any);
+      return res.status(400).json({ error: 'Invalid request data' });
     } else {
-      return res.status(500).json({ error: 'Internal server error' } as any);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 });
 
 // PUT /api/daily-tasks/:taskId/toggle
-router.put('/:taskId/toggle', async (req: Request, res: Response<DailyTaskDto>) => {
+router.put('/:taskId/toggle', async (req: Request, res: Response) => {
   try {
     const taskId = taskIdSchema.parse(req.params.taskId);
     const task = await dailyTaskService.toggleTask(taskId);
@@ -127,33 +127,33 @@ router.put('/:taskId/toggle', async (req: Request, res: Response<DailyTaskDto>) 
     return res.json(taskDto);
   } catch (error) {
     console.error('Error toggling task:', error);
-    return res.status(500).json({ error: 'Internal server error' } as any);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // DELETE /api/daily-tasks/:taskId
-router.delete('/:taskId', async (req: Request, res: Response<ApiResponse>) => {
+router.delete('/:taskId', async (req: Request, res: Response) => {
   try {
     const taskId = taskIdSchema.parse(req.params.taskId);
     await dailyTaskService.deleteTask(taskId);
     
-    res.json({ success: true });
+    res.json({ message: 'Task deleted' });
   } catch (error) {
     console.error('Error deleting task:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // POST /api/daily-tasks/user/:userId/reset
-router.post('/user/:userId/reset', async (req: Request, res: Response<ApiResponse>) => {
+router.post('/user/:userId/reset', async (req: Request, res: Response) => {
   try {
     const userId = userIdSchema.parse(req.params.userId);
     await dailyTaskService.resetAllTasks(userId);
 
-    res.json({ success: true });
+    res.json({ message: 'Tasks reset' });
   } catch (error) {
     console.error('Error resetting tasks:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

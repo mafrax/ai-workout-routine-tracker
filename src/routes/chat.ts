@@ -21,7 +21,6 @@ router.post('/', async (req, res) => {
     if (!userId || !message) {
       console.error('❌ Missing required fields:', { userId, hasMessage: !!message });
       return res.status(400).json({
-        success: false,
         error: 'Missing required fields: userId and message are required',
       });
     }
@@ -113,7 +112,6 @@ router.post('/', async (req, res) => {
     console.log('✅ Chat response received, length:', response.length);
 
     return res.json({
-      success: true,
       message: response,
       sessionId: sessionId || 'session-' + Date.now(),
     });
@@ -126,9 +124,8 @@ router.post('/', async (req, res) => {
       timestamp: new Date().toISOString()
     });
     return res.status(500).json({
-      success: false,
       error: error.message || 'Failed to process chat request',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 });

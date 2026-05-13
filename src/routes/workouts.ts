@@ -246,7 +246,7 @@ router.delete('/:workoutId', async (req: Request, res: Response) => {
       where: { id: workoutId }
     });
 
-    return res.json({ success: true, message: 'Workout deleted successfully' });
+    return res.json({ message: 'Workout deleted successfully' });
   } catch (error) {
     console.error('Error deleting workout:', error);
     return res.status(500).json({ error: 'Failed to delete workout' });
@@ -368,7 +368,7 @@ router.delete('/exercises/:exerciseId', async (req: Request, res: Response) => {
       where: { id: exerciseId }
     });
 
-    return res.json({ success: true, message: 'Exercise deleted successfully' });
+    return res.json({ message: 'Exercise deleted successfully' });
   } catch (error) {
     console.error('Error deleting exercise:', error);
     return res.status(500).json({ error: 'Failed to delete exercise' });
@@ -562,7 +562,6 @@ NOW GENERATE:`;
     } : null;
 
     return res.json({
-      success: true,
       workout: serializedWorkout,
       generatedText,
       workoutsGenerated

@@ -150,7 +150,6 @@ router.delete('/:id', async (req: Request, res: Response) => {
     if (isNaN(Number(idParam))) {
       console.log(`⚠️  Skipping deletion of mock session: ${idParam}`);
       return res.json({
-        success: true,
         message: 'Mock session deletion acknowledged',
         id: idParam
       });
@@ -163,7 +162,6 @@ router.delete('/:id', async (req: Request, res: Response) => {
     });
 
     return res.json({
-      success: true,
       message: 'Workout session deleted successfully',
       id: Number(session.id)
     });
@@ -187,7 +185,6 @@ router.delete('/workout/:workoutId', async (req: Request, res: Response) => {
     });
 
     return res.json({
-      success: true,
       message: `Deleted ${result.count} workout session(s)`,
       count: result.count
     });
@@ -224,7 +221,6 @@ router.delete('/plan/:planId/day/:day', async (req: Request, res: Response) => {
     });
 
     return res.json({
-      success: true,
       message: `Deleted ${result.count} workout session(s) for day ${day}`,
       count: result.count
     });

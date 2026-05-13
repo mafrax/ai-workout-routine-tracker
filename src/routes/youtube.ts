@@ -15,7 +15,6 @@ router.post('/search-exercise', async (req: Request, res: Response) => {
 
     if (!exerciseName || typeof exerciseName !== 'string') {
       return res.status(400).json({
-        success: false,
         error: 'Exercise name is required and must be a string',
       });
     }
@@ -25,7 +24,6 @@ router.post('/search-exercise', async (req: Request, res: Response) => {
     // Check if YouTube service is configured
     if (!youtubeService.isConfigured()) {
       return res.status(503).json({
-        success: false,
         error: 'YouTube API is not configured. Please add YOUTUBE_API_KEY to environment variables.',
       });
     }
@@ -35,16 +33,14 @@ router.post('/search-exercise', async (req: Request, res: Response) => {
     console.log(`✅ Found ${videos.length} videos for ${exerciseName}`);
 
     return res.status(200).json({
-      success: true,
       videos,
       count: videos.length,
     });
   } catch (error: any) {
     console.error('❌ Error in YouTube search endpoint:', error);
     return res.status(500).json({
-      success: false,
       error: 'Failed to search for exercise videos',
-      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
@@ -56,7 +52,6 @@ router.post('/search-exercise', async (req: Request, res: Response) => {
 router.get('/health', (req: Request, res: Response) => {
   const isConfigured = youtubeService.isConfigured();
   return res.status(200).json({
-    success: true,
     configured: isConfigured,
     message: isConfigured
       ? 'YouTube API is configured'

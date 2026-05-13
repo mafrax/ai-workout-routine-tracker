@@ -89,13 +89,6 @@ export interface MigrationRequest {
   } | null;
 }
 
-export interface ApiResponse<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
 export interface HealthResponse {
   status: string;
   timestamp: string;

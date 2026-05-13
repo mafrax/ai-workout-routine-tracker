@@ -386,7 +386,6 @@ router.post('/:planId/regenerate-incomplete', async (req: Request, res: Response
     const incompleteBlocks = blocks.filter((b) => !completedDays.has(b.day));
     if (incompleteBlocks.length === 0) {
       return res.json({
-        ok: true,
         regeneratedDays: [],
         skippedDays: blocks.map((b) => b.day),
         message: 'No incomplete days to regenerate',
@@ -462,9 +461,8 @@ ${plan.planDetails.slice(0, 1500)}
       const preview = WorkoutGenerationService.previewParsedWorkouts(cleaned);
       if (preview.length === 0) {
         return res.status(502).json({
-          ok: false,
           error: `AI output for Day ${blk.day} was unparseable`,
-          rawOutput: cleaned.slice(0, 500),
+          details: { rawOutput: cleaned.slice(0, 500) },
         });
       }
 
@@ -479,7 +477,6 @@ ${plan.planDetails.slice(0, 1500)}
         );
         if (matchedBw && reps > matchedBw.maxReps) {
           return res.status(502).json({
-            ok: false,
             error: `AI tried to program ${name?.trim()} at ${reps} reps but your max is ${matchedBw.maxReps}. Try again.`,
           });
         }
@@ -501,7 +498,6 @@ ${plan.planDetails.slice(0, 1500)}
     const fullPreview = WorkoutGenerationService.previewParsedWorkouts(newPlanDetails);
     if (fullPreview.length === 0) {
       return res.status(500).json({
-        ok: false,
         error: 'Rebuilt planDetails could not be parsed — refusing to save.',
       });
     }
@@ -515,7 +511,6 @@ ${plan.planDetails.slice(0, 1500)}
     await WorkoutGenerationService.generateWorkoutsFromPlanDetails(planId, newPlanDetails);
 
     return res.json({
-      ok: true,
       regeneratedDays: regenerated.map((g) => g.day),
       skippedDays: [...completedDays],
       plan: {
@@ -527,9 +522,8 @@ ${plan.planDetails.slice(0, 1500)}
   } catch (err: any) {
     console.error('❌ regenerate-incomplete failed:', err?.message || err);
     return res.status(500).json({
-      ok: false,
       error: 'Failed to regenerate incomplete workouts',
-      message: process.env.NODE_ENV === 'development' ? err?.message : undefined,
+      details: process.env.NODE_ENV === 'development' ? err?.message : undefined,
     });
   }
 });

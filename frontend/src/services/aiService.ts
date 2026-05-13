@@ -139,7 +139,7 @@ Provide 3 complete plans separated by "---PLAN---"`;
 
       const data = await response.json();
 
-      if (!data.success || !data.message) {
+      if (!data.message) {
         console.error('❌ Invalid response structure:', data);
         throw new Error('Invalid response from backend - no message returned');
       }
@@ -192,7 +192,7 @@ Provide 3 complete plans separated by "---PLAN---"`;
 
       const data = await response.json();
 
-      if (!data.success || !data.videos) {
+      if (!data.videos) {
         console.error('❌ Invalid response structure:', data);
         throw new Error('Invalid response from backend - no videos returned');
       }

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { MigrationService } from '../services/MigrationService';
-import { MigrationRequest, ApiResponse } from '../types';
+import { MigrationRequest } from '../types';
 
 const router = Router();
 const migrationService = new MigrationService();
@@ -50,66 +50,50 @@ const migrationSchema = z.object({
 });
 
 // POST /api/migration/save
-router.post('/save', async (req: Request, res: Response<ApiResponse>) => {
+router.post('/save', async (req: Request, res: Response) => {
   try {
     const migrationData = migrationSchema.parse(req.body);
-    
+
     await migrationService.migrateUserData(migrationData);
-    
-    res.json({ 
-      success: true, 
-      message: 'Migration completed successfully' 
-    });
+
+    res.json({ message: 'Migration completed successfully' });
   } catch (error) {
     console.error('Error during migration:', error);
     if (error instanceof z.ZodError) {
-      res.status(400).json({ 
-        success: false, 
+      res.status(400).json({
         error: 'Invalid migration data',
-        message: error.errors.map(e => e.message).join(', ')
+        details: error.errors.map((e) => e.message).join(', '),
       });
     } else {
-      res.status(500).json({ 
-        success: false, 
-        error: 'Internal server error' 
-      });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 });
 
 // POST /api/migration/merge-users
-router.post('/merge-users', async (req: Request, res: Response<ApiResponse>) => {
+router.post('/merge-users', async (req: Request, res: Response) => {
   try {
     const result = await migrationService.mergeUsers();
-    res.json({
-      success: true,
-      message: 'Users merged successfully',
-      data: result
-    });
+    res.json({ message: 'Users merged successfully', data: result });
   } catch (error) {
     console.error('Error merging users:', error);
     res.status(500).json({
-      success: false,
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
 
 // POST /api/migration/run-schema-migration
-router.post('/run-schema-migration', async (req: Request, res: Response<ApiResponse>) => {
+router.post('/run-schema-migration', async (req: Request, res: Response) => {
   try {
     await migrationService.runSchemaMigration();
-    res.json({
-      success: true,
-      message: 'Schema migration completed successfully'
-    });
+    res.json({ message: 'Schema migration completed successfully' });
   } catch (error) {
     console.error('Error running schema migration:', error);
     res.status(500).json({
-      success: false,
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });

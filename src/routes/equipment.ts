@@ -15,8 +15,10 @@ const analyzeBodySchema = z.object({
  *
  * Body: { image: <base64 or data URL>, mimeType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" }
  *
- * Returns: { ok: true, equipment: string[], confidence: "high"|"medium"|"low", notes?: string }
- * or       { ok: false, error: string, rawText?: string }
+ * 200 -> { equipment: string[], confidence: "high"|"medium"|"low", notes?: string }
+ * 400 -> { error, details } (validation)
+ * 422 -> { error, details: { rawText? } } (model output unparseable)
+ * 500 -> { error, details? }
  *
  * The image is forwarded to Claude vision inline and never persisted server-side.
  */
@@ -24,7 +26,6 @@ router.post('/analyze', async (req: Request, res: Response) => {
   const parsed = analyzeBodySchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
-      ok: false,
       error: 'Invalid request body',
       details: parsed.error.flatten(),
     });
@@ -38,16 +39,18 @@ router.post('/analyze', async (req: Request, res: Response) => {
     const result = await analyzeEquipmentImage({ imageBase64: base64, mimeType });
     if (!result.ok) {
       // 422: we understood the request but the model output was unusable.
-      return res.status(422).json(result);
+      return res.status(422).json({
+        error: result.error,
+        details: result.rawText ? { rawText: result.rawText } : undefined,
+      });
     }
-    return res.json({ ok: true, ...result.data });
+    return res.json(result.data);
   } catch (err: any) {
     // Don't echo the base64 in error responses — keep them minimal.
     console.error('❌ Equipment vision failed:', err?.message || err);
     return res.status(500).json({
-      ok: false,
       error: 'Vision service unavailable',
-      message: process.env.NODE_ENV === 'development' ? err?.message : undefined,
+      details: process.env.NODE_ENV === 'development' ? err?.message : undefined,
     });
   }
 });

@@ -9,7 +9,7 @@ export const isAuthenticated = (req: express.Request, res: express.Response, nex
   const token = req.headers.authorization?.replace('Bearer ', '');
 
   if (!token) {
-    res.status(401).json({ success: false, error: 'No token provided' });
+    res.status(401).json({ error: 'No token provided' });
     return;
   }
 
@@ -18,7 +18,7 @@ export const isAuthenticated = (req: express.Request, res: express.Response, nex
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(401).json({ success: false, error: 'Invalid token' });
+    res.status(401).json({ error: 'Invalid token' });
     return;
   }
 };
@@ -53,10 +53,8 @@ router.get('/google/callback',
       if (err) {
         console.error('❌ Error in passport authentication:', err);
         return res.status(500).json({
-          success: false,
           error: 'Authentication error',
-          message: err.message,
-          details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+          details: process.env.NODE_ENV === 'development' ? err.message : undefined,
         });
       }
 
@@ -98,10 +96,8 @@ router.get('/google/callback',
       } catch (error: any) {
         console.error('❌ Error generating token or redirecting:', error);
         return res.status(500).json({
-          success: false,
           error: 'Token generation error',
-          message: error.message,
-          details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
         });
       }
     })(req, res, next);
@@ -110,18 +106,12 @@ router.get('/google/callback',
 
 // Get current user
 router.get('/me', isAuthenticated, (req: express.Request, res: express.Response) => {
-  res.json({
-    success: true,
-    user: req.user
-  });
+  res.json({ user: req.user });
 });
 
 // Logout
 router.post('/logout', (req: express.Request, res: express.Response) => {
-  res.json({
-    success: true,
-    message: 'Logged out successfully'
-  });
+  res.json({ message: 'Logged out successfully' });
 });
 
 export default router;
