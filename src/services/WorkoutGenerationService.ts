@@ -1,12 +1,16 @@
 /**
  * WorkoutGenerationService
- * Automatically generates Workout and Exercise records from workout plan details
- * Now uses WorkoutParserService for consistent parsing logic
+ * Automatically generates Workout and Exercise records from workout plan details.
+ *
+ * The canonical day-header and exercise-line regexes for the backend live on
+ * this class (DAY_HEADER_RE, EXERCISE_LINE_RE). The frontend has its own
+ * text-fallback parser in `frontend/src/types/workout.ts` that runs only
+ * when the API returns no structured workouts; keep its regex shape in
+ * sync if you ever change the canonical format.
  */
 
 import { Prisma } from '@prisma/client';
 import prisma from '../lib/database';
-import { workoutParserService } from './WorkoutParserService';
 import type { ExerciseAttributes } from '../types/exercise';
 
 interface ExerciseDetails {
