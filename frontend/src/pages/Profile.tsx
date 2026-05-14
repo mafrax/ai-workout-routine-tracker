@@ -27,7 +27,9 @@ import ProfileEquipment from '../components/Profile/ProfileEquipment';
 import ProfileBodyweight from '../components/Profile/ProfileBodyweight';
 import ProfileGoals from '../components/Profile/ProfileGoals';
 import ProfileTelegram from '../components/Profile/ProfileTelegram';
-import ProfileMigration from '../components/Profile/ProfileMigration';
+// ProfileMigration removed from Profile UI in Phase E — the route at
+// /migration still exists for admin / one-shot use.
+// import ProfileMigration from '../components/Profile/ProfileMigration';
 import ProfileRegenerateBanner from '../components/Profile/ProfileRegenerateBanner';
 import './Profile.css';
 
@@ -261,8 +263,6 @@ const Profile: React.FC = () => {
           <ProfileGoals goals={goals} onChange={setGoals} />
 
           <ProfileTelegram userId={user.id!} onToast={handleToast} />
-
-          <ProfileMigration />
 
           <IonButton expand="block" className="save-button" onClick={handleSaveProfile}>
             Save Profile

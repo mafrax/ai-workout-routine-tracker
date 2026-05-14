@@ -112,15 +112,24 @@
   margin-top: 0.25rem;
 }
 
+/* Keep the start label on ONE line inside the circle. On the smallest
+   phones (375px) the prior 2rem was wrapping "START FAST" onto two
+   rows and the Goal label was overlapping the right edge. */
 .timer-start-text {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: bold;
   margin-bottom: 0.5rem;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .timer-goal {
-  font-size: 1.125rem;
+  font-size: 0.9rem;
   opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* Refined badge animations */

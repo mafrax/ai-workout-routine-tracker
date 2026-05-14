@@ -102,20 +102,20 @@ const ProfileEquipment: React.FC<Props> = ({ availableEquipment, onChange }) => 
     <>
       <IonCard className="equipment-card">
         <IonCardContent>
-          <div className="equipment-header">
-            <h2 className="section-title">
-              <IonIcon icon={barbell} /> Available Equipment
-            </h2>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <IonButton fill="clear" onClick={() => setShowPhotoModal(true)}>
-                <IonIcon icon={cloudUploadOutline} slot="start" />
-                Detect from photo
-              </IonButton>
-              <IonButton fill="clear" onClick={() => setShowAddModal(true)}>
-                <IonIcon icon={addCircle} slot="start" />
-                Add Equipment
-              </IonButton>
-            </div>
+          <h2 className="section-title" style={{ margin: '0 0 8px' }}>
+            <IonIcon icon={barbell} /> Available Equipment
+          </h2>
+          {/* Stack the two actions full-width below the title so they
+              never clip on narrow screens. */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+            <IonButton size="small" fill="outline" onClick={() => setShowPhotoModal(true)} style={{ flex: 1 }}>
+              <IonIcon icon={cloudUploadOutline} slot="start" />
+              Photo
+            </IonButton>
+            <IonButton size="small" onClick={() => setShowAddModal(true)} style={{ flex: 1 }}>
+              <IonIcon icon={addCircle} slot="start" />
+              Add manually
+            </IonButton>
           </div>
 
           <div className="equipment-chips">

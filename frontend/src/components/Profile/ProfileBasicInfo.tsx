@@ -69,7 +69,7 @@ const ProfileBasicInfo: React.FC<Props> = ({
           <IonLabel position="stacked">Age</IonLabel>
           <IonInput
             type="number"
-            value={age}
+            value={age || ''}
             onIonInput={(e) => onAgeChange(parseInt(e.detail.value!) || 0)}
             placeholder="25"
           />
@@ -78,7 +78,7 @@ const ProfileBasicInfo: React.FC<Props> = ({
           <IonLabel position="stacked">Weight (kg)</IonLabel>
           <IonInput
             type="number"
-            value={weight}
+            value={weight || ''}
             onIonInput={(e) => onWeightChange(parseInt(e.detail.value!) || 0)}
             placeholder="70"
           />
@@ -87,7 +87,7 @@ const ProfileBasicInfo: React.FC<Props> = ({
           <IonLabel position="stacked">Height (cm)</IonLabel>
           <IonInput
             type="number"
-            value={height}
+            value={height || ''}
             onIonInput={(e) => onHeightChange(parseInt(e.detail.value!) || 0)}
             placeholder="175"
           />

@@ -33,6 +33,7 @@ import './DailyTasks.css';
 
 const DailyTasks: React.FC = () => {
   const { user } = useStore();
+  const authReady = useStore((s) => s.authReady);
   const {
     tasks,
     stats,
@@ -61,12 +62,13 @@ const DailyTasks: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
-  // Load data on mount
+  // Load data once auth bootstrap has settled AND we know which user.
+  // Firing earlier is what left the stat boxes blank on cold-load.
   useEffect(() => {
-    if (user?.id) {
-      loadInitialData();
-    }
-  }, [user]);
+    if (!authReady || !user?.id) return;
+    loadInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authReady, user?.id]);
 
   // Load completion dates when task is selected
   useEffect(() => {

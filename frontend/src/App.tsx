@@ -124,12 +124,64 @@ const AppContent: React.FC = () => {
   return null;
 };
 
+/**
+ * Inside-tabs shell. Renders the bottom tab bar plus every signed-in
+ * route. The /login and /auth/callback routes are outside this shell
+ * so they don't get the tab bar.
+ */
+const TabsShell: React.FC = () => (
+  <IonTabs>
+    <IonRouterOutlet>
+      <PrivateRoute exact path="/home" component={Home} />
+      <PrivateRoute exact path="/today" component={TodaysWorkout} />
+      <PrivateRoute exact path="/chat" component={ChatInterface} />
+      <PrivateRoute exact path="/workout" component={WorkoutLog} />
+      <PrivateRoute exact path="/progress" component={Progress} />
+      <PrivateRoute exact path="/profile" component={Profile} />
+      <PrivateRoute exact path="/plans/new" component={NewPlanWizard} />
+      <PrivateRoute exact path="/plans/:planId/refine" component={PlanRefine} />
+      <PrivateRoute exact path="/tasks" component={DailyTasks} />
+      <PrivateRoute exact path="/fasting" component={Fasting} />
+      <PrivateRoute exact path="/migration" component={Migration} />
+      <Route exact path="/">
+        <Redirect to="/home" />
+      </Route>
+    </IonRouterOutlet>
+
+    <IonTabBar slot="bottom">
+      <IonTabButton tab="home" href="/home">
+        <IonIcon icon={home} />
+        <IonLabel>Home</IonLabel>
+      </IonTabButton>
+      <IonTabButton tab="today" href="/today">
+        <IonIcon icon={today} />
+        <IonLabel>Today</IonLabel>
+      </IonTabButton>
+      <IonTabButton tab="tasks" href="/tasks">
+        <IonIcon icon={checkmarkDoneCircle} />
+        <IonLabel>Tasks</IonLabel>
+      </IonTabButton>
+      <IonTabButton tab="fasting" href="/fasting">
+        <IonIcon icon={timer} />
+        <IonLabel>Fasting</IonLabel>
+      </IonTabButton>
+      <IonTabButton tab="progress" href="/progress">
+        <IonIcon icon={barChart} />
+        <IonLabel>Progress</IonLabel>
+      </IonTabButton>
+      <IonTabButton tab="profile" href="/profile">
+        <IonIcon icon={person} />
+        <IonLabel>Profile</IonLabel>
+      </IonTabButton>
+    </IonTabBar>
+  </IonTabs>
+);
+
 const App: React.FC = () => (
   <QueryClientProvider client={queryClient}>
     <IonApp>
       <IonReactRouter>
         <AppContent />
-        <IonTabs>
         <IonRouterOutlet>
           <Route exact path="/login">
             <Login />
@@ -137,51 +189,11 @@ const App: React.FC = () => (
           <Route exact path="/auth/callback">
             <AuthCallback />
           </Route>
-          <PrivateRoute exact path="/home" component={Home} />
-          <PrivateRoute exact path="/today" component={TodaysWorkout} />
-          <PrivateRoute exact path="/chat" component={ChatInterface} />
-          <PrivateRoute exact path="/workout" component={WorkoutLog} />
-          <PrivateRoute exact path="/progress" component={Progress} />
-          <PrivateRoute exact path="/profile" component={Profile} />
-          <PrivateRoute exact path="/plans/new" component={NewPlanWizard} />
-          <PrivateRoute exact path="/plans/:planId/refine" component={PlanRefine} />
-          <PrivateRoute exact path="/tasks" component={DailyTasks} />
-          <PrivateRoute exact path="/fasting" component={Fasting} />
-          <PrivateRoute exact path="/migration" component={Migration} />
-          <Route exact path="/">
-            <Redirect to="/home" />
-          </Route>
+          {/* Everything else lives inside the tab shell. */}
+          <Route component={TabsShell} />
         </IonRouterOutlet>
-
-        <IonTabBar slot="bottom">
-          <IonTabButton tab="home" href="/home">
-            <IonIcon icon={home} />
-            <IonLabel>Home</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="today" href="/today">
-            <IonIcon icon={today} />
-            <IonLabel>Today</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="tasks" href="/tasks">
-            <IonIcon icon={checkmarkDoneCircle} />
-            <IonLabel>Tasks</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="fasting" href="/fasting">
-            <IonIcon icon={timer} />
-            <IonLabel>Fasting</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="progress" href="/progress">
-            <IonIcon icon={barChart} />
-            <IonLabel>Progress</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="profile" href="/profile">
-            <IonIcon icon={person} />
-            <IonLabel>Profile</IonLabel>
-          </IonTabButton>
-        </IonTabBar>
-      </IonTabs>
-    </IonReactRouter>
-  </IonApp>
+      </IonReactRouter>
+    </IonApp>
   </QueryClientProvider>
 );
 
