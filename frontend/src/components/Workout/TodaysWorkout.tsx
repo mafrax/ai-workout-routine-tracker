@@ -22,7 +22,7 @@ import {
   IonToolbar
 } from '@ionic/react';
 import { add, archive, barbell, calendar, checkmarkCircle, checkmarkCircleOutline, close, copy, eye, eyeOff, fitness, pause, send, time } from 'ionicons/icons';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { workoutPlanApi as backendWorkoutPlanApi, workoutSessionApi, workoutApi } from '../../services/api_backend';
 import { useStore } from '../../store/useStore';
 import { useStartPlanCreation } from '../../hooks/useStartPlanCreation';
@@ -30,6 +30,9 @@ import { useActivePlan, useUpdateActivePlan } from '../../hooks/useActivePlan';
 import { parseWorkoutPlan, type DailyWorkout } from '../../types/workout';
 import './TodaysWorkout.css';
 import WorkoutExecution from './WorkoutExecution';
+import PlanCarousel from './PlanCarousel';
+import PlanDetailsModal from './PlanDetailsModal';
+import WorkoutDayCard from './WorkoutDayCard';
 
 const TodaysWorkout: React.FC = () => {
   const { user } = useStore();
@@ -44,54 +47,12 @@ const TodaysWorkout: React.FC = () => {
   const [activeWorkoutPlans, setActiveWorkoutPlans] = useState<any[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const [hideCompleted, setHideCompleted] = useState(true);
-  const [currentPlanIndex, setCurrentPlanIndex] = useState(0);
-  const carouselRef = useRef<HTMLDivElement>(null);
   const [showPlanDetailsModal, setShowPlanDetailsModal] = useState(false);
   const [viewingPlan, setViewingPlan] = useState<any | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [workouts, setWorkouts] = useState<DailyWorkout[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
-
-  // Touch handling for carousel
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe && currentPlanIndex < activeWorkoutPlans.length - 1) {
-      const newIndex = currentPlanIndex + 1;
-      setCurrentPlanIndex(newIndex);
-      const newPlan = activeWorkoutPlans[newIndex];
-      if (newPlan) {
-        handlePlanSelect(newPlan.id);
-      }
-    }
-    if (isRightSwipe && currentPlanIndex > 0) {
-      const newIndex = currentPlanIndex - 1;
-      setCurrentPlanIndex(newIndex);
-      const newPlan = activeWorkoutPlans[newIndex];
-      if (newPlan) {
-        handlePlanSelect(newPlan.id);
-      }
-    }
-  };
 
   const toggleHideCompleted = async () => {
     const newValue = !hideCompleted;
@@ -280,15 +241,8 @@ const TodaysWorkout: React.FC = () => {
     }
   };
 
-  // Sync carousel index with selected plan
-  useEffect(() => {
-    if (selectedPlanId && activeWorkoutPlans.length > 0) {
-      const index = activeWorkoutPlans.findIndex(p => p.id === selectedPlanId);
-      if (index !== -1 && index !== currentPlanIndex) {
-        setCurrentPlanIndex(index);
-      }
-    }
-  }, [selectedPlanId, activeWorkoutPlans, currentPlanIndex]);
+  // PlanCarousel manages its own index internally and syncs to
+  // selectedPlanId via a prop — no parent-side mirroring needed.
 
   const handlePlanSelect = async (planId: number) => {
     const plan = activeWorkoutPlans.find(p => p.id == planId);
@@ -625,144 +579,14 @@ const TodaysWorkout: React.FC = () => {
 
       <IonContent>
         <div className="todays-workout-container">
-          {activeWorkoutPlans.length > 0 && (
-            <div className="plans-mobile-carousel">
-              <div
-                className="carousel-container"
-                ref={carouselRef}
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
-              >
-                <div
-                  className="carousel-track"
-                  style={{
-                    transform: `translateX(-${currentPlanIndex * (100 / activeWorkoutPlans.length)}%)`,
-                    width: `${activeWorkoutPlans.length * 100}%`
-                  }}
-                >
-                  {activeWorkoutPlans.map((plan) => (
-                    <div key={plan.id} className="carousel-slide" style={{ width: `${100 / activeWorkoutPlans.length}%` }}>
-                      <IonCard
-                        className={`plan-card ${plan.isArchived ? 'archived' : ''}`}
-                        style={{
-                          borderLeft: `6px solid ${plan.color || '#667eea'}`,
-                          cursor: 'pointer',
-                          margin: '0 8px',
-                          opacity: plan.isArchived ? 0.7 : 1
-                        }}
-                        onClick={() => handlePlanSelect(plan.id)}
-                      >
-                        <IonCardHeader>
-                          <div className="plan-header">
-                            <IonCardTitle style={{ color: 'var(--text-primary)' }}>{plan.name}</IonCardTitle>
-                            {plan.isArchived ? (
-                              <IonChip color="medium">
-                                <IonIcon icon={archive} />
-                                <IonLabel>Archived</IonLabel>
-                              </IonChip>
-                            ) : plan.id === selectedPlanId ? (
-                              <IonChip color="success">
-                                <IonIcon icon={checkmarkCircle} />
-                                <IonLabel>Active</IonLabel>
-                              </IonChip>
-                            ) : plan.isActive ? (
-                              <IonChip color="primary">
-                                <IonIcon icon={checkmarkCircle} />
-                                <IonLabel>Active</IonLabel>
-                              </IonChip>
-                            ) : (
-                              <IonChip color="medium">
-                                <IonIcon icon={pause} />
-                                <IonLabel>Paused</IonLabel>
-                              </IonChip>
-                            )}
-                          </div>
-                        </IonCardHeader>
-
-                        <IonCardContent>
-                          <p className="plan-description" style={{ color: 'var(--text-secondary)' }}>{plan.description}</p>
-
-                          <div className="plan-stats">
-                            <div className="stat-item">
-                              <IonIcon icon={calendar} />
-                              <span>{plan.daysPerWeek} days/week</span>
-                            </div>
-                            <div className="stat-item">
-                              <IonIcon icon={fitness} />
-                              <span>{plan.durationWeeks} weeks</span>
-                            </div>
-                          </div>
-
-                          <div className="plan-progress">
-                            <IonBadge color="primary">
-                              {plan.completedWorkouts?.length || 0} workouts completed
-                            </IonBadge>
-                          </div>
-
-                          <div className="plan-actions" onClick={(e) => e.stopPropagation()}>
-                            <IonButton
-                              size="small"
-                              fill="solid"
-                              onClick={() => handleViewPlanDetails(plan)}
-                            >
-                              View Details
-                            </IonButton>
-
-                            <IonButton
-                              size="small"
-                              fill={plan.isActive ? "outline" : "solid"}
-                              color={plan.isActive ? "medium" : "primary"}
-                              onClick={() => handleTogglePlanActive(plan)}
-                            >
-                              <IonIcon icon={plan.isActive ? pause : checkmarkCircle} slot="start" />
-                              {plan.isActive ? 'Pause' : 'Activate'}
-                            </IonButton>
-
-                            {!plan.isArchived && (
-                              <IonButton
-                                size="small"
-                                fill="outline"
-                                color="warning"
-                                onClick={() => handleArchivePlan(plan)}
-                              >
-                                <IonIcon icon={archive} slot="start" />
-                                Archive
-                              </IonButton>
-                            )}
-                          </div>
-                        </IonCardContent>
-                      </IonCard>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Carousel indicators and navigation */}
-              {activeWorkoutPlans.length > 1 && (
-                <>
-                  <div className="carousel-indicators">
-                    {activeWorkoutPlans.map((_: any, index: number) => (
-                      <div
-                        key={index}
-                        className={`indicator ${index === currentPlanIndex ? 'active' : ''}`}
-                        onClick={() => {
-                          setCurrentPlanIndex(index);
-                          const plan = activeWorkoutPlans[index];
-                          if (plan) {
-                            handlePlanSelect(plan.id);
-                          }
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <div className="carousel-counter">
-                    {currentPlanIndex + 1} of {activeWorkoutPlans.length}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+          <PlanCarousel
+            plans={activeWorkoutPlans}
+            selectedPlanId={selectedPlanId}
+            onSelectPlan={(id) => handlePlanSelect(id as number)}
+            onViewDetails={handleViewPlanDetails}
+            onToggleActive={handleTogglePlanActive}
+            onArchive={handleArchivePlan}
+          />
 
           <div style={{ padding: '0 16px', marginBottom: '16px' }}>
             <h2 className="section-title" style={{ display: 'inline-block', marginRight: '12px' }}>Select Your Workout</h2>
@@ -777,227 +601,37 @@ const TodaysWorkout: React.FC = () => {
           </div>
 
           <div className="workouts-grid">
-            {workouts.filter((workout: DailyWorkout) => {
-              const isCompleted = currentPlan?.completedWorkouts?.includes(workout.dayNumber) || false;
-              // Default behavior: hide completed workouts unless explicitly showing them
-              return hideCompleted ? !isCompleted : true;
-            }).map((workout: DailyWorkout) => {
-              const isCompleted = currentPlan?.completedWorkouts?.includes(workout.dayNumber) || false;
-              return (
-                <IonCard
-                  key={workout.dayNumber}
-                  className={`workout-day-card ${isCompleted ? 'completed' : ''}`}
-                >
-                  <IonCardContent>
-                    <div className="day-header">
-                      <h3>Day {workout.dayNumber}</h3>
-                      {isCompleted ? (
-                        <IonIcon icon={checkmarkCircleOutline} className="day-icon completed-icon" color="success" />
-                      ) : (
-                        <IonIcon icon={barbell} className="day-icon" />
-                      )}
-                    </div>
-                    <p className="focus-text">{workout.focus}</p>
-                    <div className="workout-meta">
-                      <span className="exercise-count">{workout.exercises.length} exercises</span>
-                      <span className="set-count">
-                        {workout.exercises.reduce((sum: number, ex: any) => {
-                          const sets = Array.isArray(ex.sets) ? ex.sets.length : (typeof ex.sets === 'number' ? ex.sets : 0);
-                          return sum + sets;
-                        }, 0)} sets
-                      </span>
-                    </div>
-                    {isCompleted ? (
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                        <IonButton expand="block" className="start-btn completed-btn" onClick={() => startWorkout(workout.dayNumber)}>
-                          Do Again
-                        </IonButton>
-                        <IonButton
-                          expand="block"
-                          fill="outline"
-                          color="medium"
-                          onClick={() => markWorkoutIncomplete(workout.dayNumber)}
-                        >
-                          Mark Incomplete
-                        </IonButton>
-                      </div>
-                    ) : (
-                      <IonButton expand="block" className="start-btn" onClick={() => startWorkout(workout.dayNumber)}>
-                        Start Workout
-                      </IonButton>
-                    )}
-                  </IonCardContent>
-                </IonCard>
-              );
-            })}
+            {workouts
+              .filter((w) => {
+                const isCompleted = currentPlan?.completedWorkouts?.includes(w.dayNumber) || false;
+                return hideCompleted ? !isCompleted : true;
+              })
+              .map((w) => (
+                <WorkoutDayCard
+                  key={w.dayNumber}
+                  workout={w}
+                  isCompleted={currentPlan?.completedWorkouts?.includes(w.dayNumber) || false}
+                  onStart={startWorkout}
+                  onMarkIncomplete={markWorkoutIncomplete}
+                />
+              ))}
           </div>
         </div>
       </IonContent>
 
-      <IonModal
+      <PlanDetailsModal
         isOpen={showPlanDetailsModal}
-        onDidDismiss={() => {
+        plan={viewingPlan}
+        parseNextWorkouts={parseNextWorkouts}
+        onCopyDetails={handleCopyPlanDetails}
+        onSendWorkoutPreview={handleSendWorkoutPreview}
+        onUpdateTelegramHour={handleUpdateTelegramHour}
+        onUpdateReminderTime={handleUpdateReminderTime}
+        onClose={() => {
           setShowPlanDetailsModal(false);
           setViewingPlan(null);
         }}
-      >
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>{viewingPlan?.name}</IonTitle>
-            <IonButtons slot="end">
-              {viewingPlan && (
-                <IonButton onClick={() => handleCopyPlanDetails(viewingPlan)}>
-                  <IonIcon icon={copy} />
-                </IonButton>
-              )}
-              <IonButton onClick={() => setShowPlanDetailsModal(false)}>
-                <IonIcon icon={close} />
-              </IonButton>
-            </IonButtons>
-          </IonToolbar>
-        </IonHeader>
-        <IonContent>
-          {viewingPlan && (
-            <div style={{ padding: '20px' }}>
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ marginBottom: '8px', color: 'var(--brand-primary)' }}>Description</h3>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>{viewingPlan.description}</p>
-              </div>
-
-              <div style={{ marginBottom: '20px', display: 'flex', gap: '12px' }}>
-                <IonChip color="primary">
-                  <IonIcon icon={calendar} />
-                  <IonLabel>{viewingPlan.daysPerWeek} days/week</IonLabel>
-                </IonChip>
-                <IonChip color="primary">
-                  <IonIcon icon={fitness} />
-                  <IonLabel>{viewingPlan.durationWeeks} weeks</IonLabel>
-                </IonChip>
-                {viewingPlan.isActive && (
-                  <IonChip color="success">
-                    <IonIcon icon={checkmarkCircle} />
-                    <IonLabel>Active</IonLabel>
-                  </IonChip>
-                )}
-              </div>
-
-              <IonCard color="secondary" style={{ marginBottom: '20px' }}>
-                <IonCardContent>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <IonIcon icon={send} style={{ fontSize: '20px' }} />
-                      <strong>Telegram Workout Preview</strong>
-                    </div>
-                    <IonButton
-                      size="small"
-                      fill="solid"
-                      onClick={() => handleSendWorkoutPreview(viewingPlan)}
-                    >
-                      <IonIcon icon={send} slot="start" />
-                      Send Now
-                    </IonButton>
-                  </div>
-                  <p style={{ fontSize: '14px', marginBottom: '12px', opacity: 0.9 }}>
-                    Get your next workout details sent directly to Telegram
-                  </p>
-                  <div style={{ marginTop: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <IonIcon icon={time} />
-                      <span style={{ fontSize: '14px', fontWeight: '500' }}>Daily preview time:</span>
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {[6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].map((hour) => (
-                        <IonButton
-                          key={hour}
-                          size="small"
-                          fill={viewingPlan.telegramPreviewHour === hour ? 'solid' : 'outline'}
-                          color={viewingPlan.telegramPreviewHour === hour ? 'primary' : 'medium'}
-                          onClick={() => handleUpdateTelegramHour(viewingPlan, hour)}
-                        >
-                          {hour}:00
-                        </IonButton>
-                      ))}
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>
-                    Note: Scheduled messages require a backend service. Use "Send Now" for manual previews.
-                  </p>
-                </IonCardContent>
-              </IonCard>
-
-              <IonCard color="secondary" style={{ marginBottom: '20px' }}>
-                <IonCardContent>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                    <IonIcon icon={time} style={{ fontSize: '20px' }} />
-                    <strong>Workout Reminder Time</strong>
-                  </div>
-                  <p style={{ fontSize: '14px', marginBottom: '12px', opacity: 0.9 }}>
-                    Set a daily reminder time for this workout plan
-                  </p>
-                  <IonItem>
-                    <IonInput
-                      type="time"
-                      value={viewingPlan.reminderTime || ''}
-                      placeholder="Select time"
-                      onIonChange={(e) => {
-                        if (e.detail.value) {
-                          handleUpdateReminderTime(viewingPlan, e.detail.value);
-                        }
-                      }}
-                    />
-                  </IonItem>
-                  <p style={{ fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>
-                    {viewingPlan.reminderTime
-                      ? `Daily reminder set for ${viewingPlan.reminderTime}`
-                      : 'No reminder time set'}
-                  </p>
-                </IonCardContent>
-              </IonCard>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3 style={{ margin: 0, color: 'var(--brand-primary)' }}>Next 4 Workouts</h3>
-                </div>
-                {(() => {
-                  const workouts = parseNextWorkouts(viewingPlan.planDetails || '');
-                  const hasNoExercises = workouts.length === 0 || workouts.every(w => w.exercises.length === 0);
-                  return hasNoExercises ? (
-                    <IonCard>
-                      <IonCardContent>
-                        <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
-                          No exercises found. This plan may be in an old format.
-                        </p>
-                      </IonCardContent>
-                    </IonCard>
-                  ) : (
-                    parseNextWorkouts(viewingPlan.planDetails || '').map((workout, idx) => (
-                      <IonCard key={idx} style={{ marginBottom: '12px' }}>
-                        <IonCardHeader>
-                          <IonCardTitle style={{ fontSize: '16px' }}>{workout.day}</IonCardTitle>
-                        </IonCardHeader>
-                        <IonCardContent>
-                          <div style={{ fontSize: '14px', lineHeight: '1.8' }}>
-                            {workout.exercises.slice(0, 5).map((exercise, exIdx) => (
-                              <div key={exIdx} style={{ marginBottom: '4px', color: 'var(--text-secondary)' }}>
-                                {exercise}
-                              </div>
-                            ))}
-                            {workout.exercises.length > 5 && (
-                              <div style={{ marginTop: '8px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                +{workout.exercises.length - 5} more exercises...
-                              </div>
-                            )}
-                          </div>
-                        </IonCardContent>
-                      </IonCard>
-                    ))
-                  );
-                })()}
-              </div>
-            </div>
-          )}
-        </IonContent>
-      </IonModal>
+      />
 
       <IonToast
         isOpen={showToast}
