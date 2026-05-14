@@ -15,15 +15,10 @@ import {
   IonItem,
   IonLabel,
   IonToast,
-  IonModal,
   IonButtons,
-  IonInput,
-  IonText,
-  IonSpinner,
 } from '@ionic/react';
-import { play, pause, checkmarkCircle, time, barbell, fitness, create, close, arrowBack, chevronBack, informationCircleOutline, reorderThreeOutline, arrowUp, arrowDown, searchOutline } from 'ionicons/icons';
+import { play, pause, checkmarkCircle, time, barbell, fitness, create, close, chevronBack, informationCircleOutline, reorderThreeOutline } from 'ionicons/icons';
 import { KeepAwake } from '@capacitor-community/keep-awake';
-import { Browser } from '@capacitor/browser';
 import type { DailyWorkout, Exercise } from '../../types/workout';
 import { useStore } from '../../store/useStore';
 import { useActivePlan, useUpdateActivePlan } from '../../hooks/useActivePlan';
@@ -33,6 +28,10 @@ import { aiService } from '../../services/aiService';
 import { telegramService } from '../../services/telegramService';
 import { useCreateWorkoutSession } from '../../hooks/useWorkoutQueries';
 import AttributeStrip from './AttributeStrip';
+import ExerciseVideosCard from './ExerciseVideosCard';
+import ReorderExercisesModal from './ReorderExercisesModal';
+import WeightAdjustModal from './WeightAdjustModal';
+import WorkoutStartScreen from './WorkoutStartScreen';
 import './WorkoutExecution.css';
 
 interface WorkoutExecutionProps {
@@ -537,68 +536,14 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
 
   if (!workoutStarted) {
     return (
-      <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonButtons slot="start">
-              <IonButton onClick={onComplete}>
-                <IonIcon icon={arrowBack} />
-              </IonButton>
-            </IonButtons>
-            <IonTitle>{workout.focus}</IonTitle>
-            <IonButtons slot="end">
-              <IonButton onClick={() => setShowReorderModal(true)} fill="clear">
-                <IonIcon icon={reorderThreeOutline} />
-              </IonButton>
-            </IonButtons>
-          </IonToolbar>
-        </IonHeader>
-        <IonContent className="ion-padding">
-          <div className="workout-start-screen">
-            <h1>Ready to Start?</h1>
-            <IonCard>
-              <IonCardContent>
-                <h2>{workout.focus}</h2>
-                <p className="workout-summary">
-                  {totalExercises} exercises • {reorderedExercises.reduce((sum, ex) => sum + ex.sets, 0)} total sets
-                </p>
-
-                <IonList>
-                  {reorderedExercises.map((exercise, idx) => (
-                    <IonItem key={idx} lines="inset">
-                      <IonLabel className="ion-text-wrap">
-                        <h3>{exercise.name}</h3>
-                        <p>{exercise.sets}x{exercise.reps} @ {exercise.weight}</p>
-                        <p className="exercise-instruction">
-                          <IonIcon icon={informationCircleOutline} style={{ fontSize: '14px', marginRight: '4px' }} />
-                          {getExerciseInstruction(exercise.name)}
-                        </p>
-                      </IonLabel>
-                    </IonItem>
-                  ))}
-                </IonList>
-
-                <IonButton expand="block" size="large" onClick={startWorkout} className="start-workout-btn">
-                  <IonIcon icon={play} slot="start" />
-                  Start Workout
-                </IonButton>
-                <IonButton
-                  expand="block"
-                  size="large"
-                  onClick={handleMarkAsComplete}
-                  fill="outline"
-                  color="success"
-                  className="mark-complete-btn"
-                  style={{ marginTop: '12px' }}
-                >
-                  <IonIcon icon={checkmarkCircle} slot="start" />
-                  Mark as Complete
-                </IonButton>
-              </IonCardContent>
-            </IonCard>
-          </div>
-        </IonContent>
-      </IonPage>
+      <WorkoutStartScreen
+        focus={workout.focus}
+        exercises={reorderedExercises}
+        onStart={startWorkout}
+        onMarkComplete={handleMarkAsComplete}
+        onBack={onComplete}
+        onOpenReorder={() => setShowReorderModal(true)}
+      />
     );
   }
 
@@ -776,120 +721,12 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
             </IonCardContent>
           </IonCard>
 
-          <IonCard className="exercise-info-card">
-            <IonCardContent>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>Exercise Videos</h3>
-                <IonButton
-                  size="small"
-                  onClick={() => searchExerciseVideos(currentExercise.name)}
-                  disabled={loadingExerciseVideos}
-                  fill="solid"
-                  color="primary"
-                >
-                  <IonIcon icon={searchOutline} slot="start" />
-                  {exerciseVideos.length > 0 ? 'Refresh' : 'Load Videos'}
-                </IonButton>
-              </div>
-
-              {loadingExerciseVideos ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                  <IonSpinner name="crescent" color="primary" />
-                  <p style={{ marginTop: '16px', color: '#667eea', fontSize: '15px', fontWeight: '500' }}>Searching for exercise videos...</p>
-                </div>
-              ) : exerciseVideos.length > 0 ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '20px',
-                  alignItems: 'center'
-                }}>
-                  {exerciseVideos.map((video) => (
-                    <div
-                      key={video.id}
-                      style={{
-                        width: '100%',
-                        maxWidth: '280px',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => {
-                        // Open inside the in-app system browser overlay so the
-                        // host webview is not backgrounded and workout state survives.
-                        Browser.open({ url: `https://www.youtube.com/watch?v=${video.id}` });
-                      }}
-                    >
-                      <div style={{
-                        position: 'relative',
-                        paddingBottom: '177.78%', // 9:16 aspect ratio for vertical video
-                        height: 0,
-                        overflow: 'hidden',
-                        borderRadius: '16px',
-                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
-                        marginBottom: '12px',
-                        backgroundColor: '#000',
-                        backgroundImage: `url(${video.thumbnailUrl})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center'
-                      }}>
-                        <div style={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          width: '60px',
-                          height: '60px',
-                          backgroundColor: 'rgba(255, 0, 0, 0.9)',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          zIndex: 1
-                        }}>
-                          <div style={{
-                            width: 0,
-                            height: 0,
-                            borderLeft: '20px solid white',
-                            borderTop: '12px solid transparent',
-                            borderBottom: '12px solid transparent',
-                            marginLeft: '4px'
-                          }} />
-                        </div>
-                      </div>
-                      <p style={{
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#1a1a1a',
-                        lineHeight: '1.3',
-                        textAlign: 'center',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}>
-                        {video.title}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                  <IonIcon
-                    icon={searchOutline}
-                    style={{ fontSize: '48px', color: '#dee2e6', marginBottom: '16px' }}
-                  />
-                  <p style={{
-                    color: '#6c757d',
-                    fontSize: '15px',
-                    lineHeight: '1.6',
-                    maxWidth: '300px',
-                    margin: '0 auto'
-                  }}>
-                    Tap "Load Videos" to watch exercise demonstration videos showing proper form and technique.
-                  </p>
-                </div>
-              )}
-            </IonCardContent>
-          </IonCard>
+          <ExerciseVideosCard
+            exerciseName={currentExercise.name}
+            videos={exerciseVideos}
+            loading={loadingExerciseVideos}
+            onLoad={searchExerciseVideos}
+          />
         </div>
         <IonToast
           isOpen={showToast}
@@ -899,129 +736,26 @@ const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ workout, onComplete
           position="top"
         />
 
-        <IonModal isOpen={showReorderModal} onDidDismiss={() => setShowReorderModal(false)}>
-          <IonHeader>
-            <IonToolbar>
-              <IonTitle>Reorder Exercises</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={() => setShowReorderModal(false)}>
-                  <IonIcon icon={close} />
-                </IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="ion-padding">
-            <IonCard>
-              <IonCardContent>
-                <p style={{ color: '#666', marginBottom: '20px' }}>
-                  Reorder exercises to work around occupied equipment. Your progress will be preserved.
-                </p>
-                <IonList>
-                  {reorderedExercises.map((exercise, idx) => (
-                    <IonItem key={idx} lines="inset">
-                      <IonLabel className="ion-text-wrap">
-                        <h3>{exercise.name}</h3>
-                        <p>{exercise.sets}x{exercise.reps} @ {exercise.weight}</p>
-                        {idx === currentExerciseIndex && (
-                          <IonBadge color="primary" style={{ marginTop: '4px' }}>Current Exercise</IonBadge>
-                        )}
-                      </IonLabel>
-                      <IonButton
-                        fill="clear"
-                        slot="end"
-                        onClick={() => moveExerciseUp(idx)}
-                        disabled={idx === 0}
-                        size="small"
-                      >
-                        <IonIcon icon={arrowUp} slot="icon-only" />
-                      </IonButton>
-                      <IonButton
-                        fill="clear"
-                        slot="end"
-                        onClick={() => moveExerciseDown(idx)}
-                        disabled={idx === reorderedExercises.length - 1}
-                        size="small"
-                      >
-                        <IonIcon icon={arrowDown} slot="icon-only" />
-                      </IonButton>
-                    </IonItem>
-                  ))}
-                </IonList>
-              </IonCardContent>
-            </IonCard>
-          </IonContent>
-        </IonModal>
+        <ReorderExercisesModal
+          isOpen={showReorderModal}
+          exercises={reorderedExercises}
+          currentIndex={currentExerciseIndex}
+          onMoveUp={moveExerciseUp}
+          onMoveDown={moveExerciseDown}
+          onClose={() => setShowReorderModal(false)}
+        />
 
-        <IonModal isOpen={showWeightModal} onDidDismiss={() => setShowWeightModal(false)}>
-          <IonHeader>
-            <IonToolbar>
-              <IonTitle>Adjust Weight</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={() => setShowWeightModal(false)}>
-                  <IonIcon icon={close} />
-                </IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="ion-padding">
-            <IonCard>
-              <IonCardContent>
-                <h2>{currentExercise.name}</h2>
-                <p style={{ color: '#666' }}>Current: {currentExercise.weight}</p>
-
-                <div style={{ marginTop: '20px' }}>
-                  <h3>Quick Select</h3>
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                    <IonButton
-                      expand="block"
-                      color="success"
-                      onClick={() => updateExerciseWeight(getWeightSuggestions(currentExercise.weight).easy)}
-                    >
-                      Easy<br/>{getWeightSuggestions(currentExercise.weight).easy}kg
-                    </IonButton>
-                    <IonButton
-                      expand="block"
-                      color="warning"
-                      onClick={() => updateExerciseWeight(getWeightSuggestions(currentExercise.weight).medium)}
-                    >
-                      Medium<br/>{getWeightSuggestions(currentExercise.weight).medium}kg
-                    </IonButton>
-                    <IonButton
-                      expand="block"
-                      color="danger"
-                      onClick={() => updateExerciseWeight(getWeightSuggestions(currentExercise.weight).hard)}
-                    >
-                      Hard<br/>{getWeightSuggestions(currentExercise.weight).hard}kg
-                    </IonButton>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: '30px' }}>
-                  <h3>Custom Weight</h3>
-                  <IonInput
-                    type="number"
-                    placeholder="Enter weight in kg"
-                    value={customWeight}
-                    onIonInput={(e) => setCustomWeight(e.detail.value!)}
-                    style={{ border: '1px solid #ccc', borderRadius: '4px', marginTop: '10px' }}
-                  />
-                  <IonButton
-                    expand="block"
-                    style={{ marginTop: '10px' }}
-                    disabled={!customWeight || parseFloat(customWeight) <= 0}
-                    onClick={() => updateExerciseWeight(parseFloat(customWeight))}
-                  >
-                    Apply Custom Weight
-                  </IonButton>
-                </div>
-
-                <IonText color="medium" style={{ display: 'block', marginTop: '20px', fontSize: '14px' }}>
-                  <p>💡 This weight will be saved and applied to "{currentExercise.name}" across all future workouts.</p>
-                </IonText>
-              </IonCardContent>
-            </IonCard>
-          </IonContent>
-        </IonModal>
+        <WeightAdjustModal
+          isOpen={showWeightModal}
+          exerciseName={currentExercise.name}
+          currentWeight={currentExercise.weight}
+          suggestions={getWeightSuggestions(currentExercise.weight)}
+          onApply={(w) => {
+            updateExerciseWeight(w);
+            setShowWeightModal(false);
+          }}
+          onClose={() => setShowWeightModal(false)}
+        />
       </IonContent>
     </IonPage>
   );
