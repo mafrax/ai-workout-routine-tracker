@@ -19,6 +19,8 @@ import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import PrivateRoute from './components/Auth/PrivateRoute';
 import Fasting from './pages/Fasting';
+import NewPlanWizard from './pages/NewPlanWizard';
+import PlanRefine from './pages/PlanRefine';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -141,6 +143,8 @@ const App: React.FC = () => (
           <PrivateRoute exact path="/workout" component={WorkoutLog} />
           <PrivateRoute exact path="/progress" component={Progress} />
           <PrivateRoute exact path="/profile" component={Profile} />
+          <PrivateRoute exact path="/plans/new" component={NewPlanWizard} />
+          <PrivateRoute exact path="/plans/:planId/refine" component={PlanRefine} />
           <PrivateRoute exact path="/tasks" component={DailyTasks} />
           <PrivateRoute exact path="/fasting" component={Fasting} />
           <PrivateRoute exact path="/migration" component={Migration} />

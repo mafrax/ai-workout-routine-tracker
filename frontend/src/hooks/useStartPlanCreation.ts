@@ -44,7 +44,7 @@ export const useStartPlanCreation = (): StartPlanResult => {
     missingFields,
     startPlanCreation: () => {
       if (canCreatePlan) {
-        history.push('/chat');
+        history.push('/plans/new');
       } else {
         // Profile incomplete — send the user to fill it out first.
         history.push({

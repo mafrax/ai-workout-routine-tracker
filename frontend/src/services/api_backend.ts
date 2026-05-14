@@ -1,5 +1,20 @@
 import axios from 'axios';
-import { User, WorkoutPlan, WorkoutSession, ProgressSummary, FastingPreset, FastingSession, EatingWindow } from '../types';
+import { User, WorkoutPlan, WorkoutSession, ProgressSummary, FastingPreset, FastingSession, EatingWindow, BodyweightExercise } from '../types';
+
+/** Payload accepted by POST /api/plans/generate. Mirrors generatePlanSchema in workout-plans.ts. */
+export interface GeneratePlanPayload {
+  userId: number;
+  name: string;
+  focus: 'strength' | 'hypertrophy' | 'endurance' | 'mobility' | 'weight-loss';
+  daysPerWeek: number;
+  durationWeeks: number;
+  equipment: string[];
+  bodyweight: BodyweightExercise[];
+  injuries?: string;
+  sessionMinutes?: number;
+  intensity: 'easy' | 'moderate' | 'hard';
+  activate: boolean;
+}
 
 // Use environment variable for API URL (defaults to production if not set)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://workout-marcs-projects-3a713b55.vercel.app/api';
@@ -72,6 +87,17 @@ export const workoutPlanApi = {
       plan?: WorkoutPlan;
       message?: string;
     }>(`/plans/${planId}/regenerate-incomplete`, { userId });
+    return response.data;
+  },
+  /**
+   * Structured plan-creation endpoint (POST /api/plans/generate).
+   * Used by the wizard at /plans/new; replaces the free-form chat flow.
+   */
+  generate: async (payload: GeneratePlanPayload) => {
+    const response = await api.post<{
+      plan: WorkoutPlan;
+      previewDays: Array<{ day: number; exerciseCount: number }>;
+    }>('/plans/generate', payload);
     return response.data;
   },
 };
