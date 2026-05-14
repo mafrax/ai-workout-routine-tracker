@@ -37,10 +37,12 @@ const migrationSchema = z.object({
     fitnessLevel: z.string().optional().nullable(),
     goals: z.array(z.string()).optional().nullable(),
     availableEquipment: z.array(z.string()).optional().nullable(),
-    bodyweightExercises: z.array(z.object({
-      name: z.string(),
-      maxReps: z.number()
-    })).optional().nullable()
+    // Accept either the new {name, unit, max} shape or the legacy
+    // {name, maxReps} shape — MigrationService normalises before insert.
+    bodyweightExercises: z.array(z.union([
+      z.object({ name: z.string(), unit: z.enum(['reps', 'seconds']), max: z.number() }),
+      z.object({ name: z.string(), maxReps: z.number() }),
+    ])).optional().nullable()
   }).optional().nullable(),
   telegramConfig: z.object({
     botToken: z.string().optional().nullable(),

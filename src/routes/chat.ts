@@ -2,6 +2,7 @@ import express from 'express';
 import { ChatService } from '../services/ChatService';
 import { PrismaClient } from '@prisma/client';
 import { isDev } from '../config/env';
+import { parseBodyweightColumn } from '../utils/bodyweight';
 
 const router = express.Router();
 const chatService = new ChatService();
@@ -44,6 +45,8 @@ router.post('/', async (req, res) => {
         return null;
       }
     };
+    // ChatService takes a string[] of exercise names; pass the names only.
+    const bodyweight = userRow ? parseBodyweightColumn(userRow.bodyweightExercises) : [];
     const userProfile = userRow
       ? {
           age: userRow.age,
@@ -52,7 +55,7 @@ router.post('/', async (req, res) => {
           fitnessLevel: userRow.fitnessLevel,
           goals: parseJsonArray(userRow.goals),
           availableEquipment: parseJsonArray(userRow.availableEquipment),
-          bodyweightExercises: parseJsonArray(userRow.bodyweightExercises),
+          bodyweightExercises: bodyweight.map((b) => b.name),
         }
       : undefined;
 

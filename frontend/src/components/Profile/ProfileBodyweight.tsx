@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   IonButton,
   IonButtons,
@@ -19,49 +19,68 @@ import {
 } from '@ionic/react';
 import { addCircle, closeCircle, fitness } from 'ionicons/icons';
 import type { BodyweightExercise } from '../../types';
+import { defaultUnitFor } from '../../utils/bodyweight';
 
 interface Props {
   bodyweightExercises: BodyweightExercise[];
   onChange: (next: BodyweightExercise[]) => void;
 }
 
-const BODYWEIGHT_EXERCISES_WITH_DESC = [
-  { name: 'Pull-ups', description: 'Hang from bar, pull body up until chin over bar (palms away)' },
-  { name: 'Chin-ups', description: 'Like pull-ups but with palms facing towards you' },
-  { name: 'Push-ups', description: 'Standard push-up with hands shoulder-width apart' },
-  { name: 'Diamond Push-ups', description: 'Push-ups with hands forming diamond shape, targets triceps' },
-  { name: 'Wide Push-ups', description: 'Push-ups with hands wider than shoulders, targets chest' },
-  { name: 'Pike Push-ups', description: 'Push-ups with hips raised, targets shoulders' },
-  { name: 'Dips', description: 'Lower body between parallel bars, push back up' },
-  { name: 'Bodyweight Squats', description: 'Lower hips until thighs parallel to ground, stand back up' },
-  { name: 'Jump Squats', description: 'Squat down then explosively jump up' },
-  { name: 'Lunges', description: 'Step forward, lower back knee towards ground' },
-  { name: 'Walking Lunges', description: 'Lunges moving forward with each rep' },
-  { name: 'Burpees', description: 'Squat, kick feet back to plank, push-up, jump back to squat, jump up' },
-  { name: 'Mountain Climbers', description: 'Plank position, alternate bringing knees to chest quickly' },
-  { name: 'Planks', description: 'Hold body straight in push-up position on forearms (time-based)' },
-  { name: 'Sit-ups', description: 'Lie on back, bring torso up to sitting position' },
-  { name: 'Crunches', description: 'Like sit-ups but lift shoulders only, lower back stays down' },
-  { name: 'Jumping Jacks', description: 'Jump while spreading legs and raising arms overhead' },
-  { name: 'High Knees', description: 'Run in place bringing knees up to waist level' },
+const BODYWEIGHT_EXERCISE_NAMES = [
+  // rep-based
+  'Pull-ups',
+  'Chin-ups',
+  'Push-ups',
+  'Diamond Push-ups',
+  'Wide Push-ups',
+  'Pike Push-ups',
+  'Dips',
+  'Bodyweight Squats',
+  'Jump Squats',
+  'Lunges',
+  'Walking Lunges',
+  'Burpees',
+  'Mountain Climbers',
+  'Sit-ups',
+  'Crunches',
+  'Jumping Jacks',
+  'High Knees',
+  // time-based
+  'Plank',
+  'Side Plank',
+  'Wall Sit',
+  'L-sit',
+  'Hollow Hold',
+  'Superman Hold',
+  'Dead Hang',
 ];
 
-const BODYWEIGHT_EXERCISES = BODYWEIGHT_EXERCISES_WITH_DESC.map((ex) => ex.name);
+const labelForUnit = (unit: 'reps' | 'seconds') =>
+  unit === 'seconds' ? 'Max hold (sec)' : 'Max reps';
 
 const ProfileBodyweight: React.FC<Props> = ({ bodyweightExercises, onChange }) => {
   const [showModal, setShowModal] = useState(false);
   const [exerciseToAdd, setExerciseToAdd] = useState('');
-  const [maxReps, setMaxReps] = useState<number>(0);
+  const [unit, setUnit] = useState<'reps' | 'seconds'>('reps');
+  const [maxValue, setMaxValue] = useState<number>(0);
+
+  // Auto-pick the unit when the user selects an exercise; they can still
+  // override via the toggle.
+  useEffect(() => {
+    if (!exerciseToAdd) return;
+    setUnit(defaultUnitFor(exerciseToAdd));
+  }, [exerciseToAdd]);
 
   const resetModal = () => {
     setShowModal(false);
     setExerciseToAdd('');
-    setMaxReps(0);
+    setUnit('reps');
+    setMaxValue(0);
   };
 
   const handleAdd = () => {
-    if (exerciseToAdd && maxReps > 0 && !bodyweightExercises.find((ex) => ex.name === exerciseToAdd)) {
-      onChange([...bodyweightExercises, { name: exerciseToAdd, maxReps }]);
+    if (exerciseToAdd && maxValue > 0 && !bodyweightExercises.find((ex) => ex.name === exerciseToAdd)) {
+      onChange([...bodyweightExercises, { name: exerciseToAdd, unit, max: maxValue }]);
       resetModal();
     }
   };
@@ -70,11 +89,15 @@ const ProfileBodyweight: React.FC<Props> = ({ bodyweightExercises, onChange }) =
     onChange(bodyweightExercises.filter((ex) => ex.name !== exerciseName));
   };
 
-  const handleUpdate = (exerciseName: string, newMaxReps: number) => {
-    onChange(bodyweightExercises.map((ex) => (ex.name === exerciseName ? { ...ex, maxReps: newMaxReps } : ex)));
+  const handleUpdateMax = (exerciseName: string, newMax: number) => {
+    onChange(
+      bodyweightExercises.map((ex) => (ex.name === exerciseName ? { ...ex, max: newMax } : ex))
+    );
   };
 
-  const remaining = BODYWEIGHT_EXERCISES.filter((ex) => !bodyweightExercises.find((bw) => bw.name === ex));
+  const remaining = BODYWEIGHT_EXERCISE_NAMES.filter(
+    (ex) => !bodyweightExercises.find((bw) => bw.name === ex)
+  );
 
   return (
     <>
@@ -98,13 +121,16 @@ const ProfileBodyweight: React.FC<Props> = ({ bodyweightExercises, onChange }) =
                 <IonItem key={index} lines="full">
                   <IonLabel>
                     <h3>{exercise.name}</h3>
-                    <p>Max Reps: {exercise.maxReps}</p>
+                    <p>
+                      {exercise.unit === 'seconds' ? 'Max hold' : 'Max reps'}: {exercise.max}
+                      {exercise.unit === 'seconds' ? 's' : ''}
+                    </p>
                   </IonLabel>
                   <IonInput
                     type="number"
-                    value={exercise.maxReps}
-                    onIonChange={(e) => handleUpdate(exercise.name, parseInt(e.detail.value!) || 0)}
-                    placeholder="Max reps"
+                    value={exercise.max}
+                    onIonChange={(e) => handleUpdateMax(exercise.name, parseInt(e.detail.value!) || 0)}
+                    placeholder={exercise.unit === 'seconds' ? 'Seconds' : 'Reps'}
                     style={{ maxWidth: '80px', textAlign: 'right' }}
                   />
                   <IonIcon
@@ -148,22 +174,41 @@ const ProfileBodyweight: React.FC<Props> = ({ bodyweightExercises, onChange }) =
             </IonItem>
 
             <IonItem>
-              <IonLabel position="stacked">Maximum Reps</IonLabel>
+              <IonLabel position="stacked">Measured in</IonLabel>
+              <IonSelect value={unit} onIonChange={(e) => setUnit(e.detail.value)}>
+                <IonSelectOption value="reps">Reps (count)</IonSelectOption>
+                <IonSelectOption value="seconds">Seconds (hold time)</IonSelectOption>
+              </IonSelect>
+            </IonItem>
+
+            <IonItem>
+              <IonLabel position="stacked">{labelForUnit(unit)}</IonLabel>
               <IonInput
                 type="number"
-                value={maxReps}
-                onIonInput={(e) => setMaxReps(parseInt(e.detail.value!) || 0)}
-                placeholder="Enter your max reps (e.g., 15)"
+                value={maxValue}
+                onIonInput={(e) => setMaxValue(parseInt(e.detail.value!) || 0)}
+                placeholder={
+                  unit === 'seconds' ? 'Enter your max hold (e.g., 60)' : 'Enter your max reps (e.g., 15)'
+                }
               />
             </IonItem>
 
             <div style={{ padding: '16px', color: '#666', fontSize: '14px' }}>
-              <p>💡 Enter the maximum number of consecutive reps you can do with good form.</p>
-              <p>This will help generate appropriate rep ranges in your workouts.</p>
+              {unit === 'seconds' ? (
+                <>
+                  <p>💡 Enter the longest hold you can sustain with good form, in seconds.</p>
+                  <p>The AI uses this as a hard cap when programming static holds.</p>
+                </>
+              ) : (
+                <>
+                  <p>💡 Enter the maximum number of consecutive reps you can do with good form.</p>
+                  <p>The AI uses this as a hard cap when programming this exercise.</p>
+                </>
+              )}
             </div>
           </IonList>
           <div style={{ padding: '16px' }}>
-            <IonButton expand="block" onClick={handleAdd} disabled={!exerciseToAdd || maxReps <= 0}>
+            <IonButton expand="block" onClick={handleAdd} disabled={!exerciseToAdd || maxValue <= 0}>
               Add Exercise
             </IonButton>
           </div>

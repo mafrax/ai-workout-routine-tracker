@@ -28,7 +28,7 @@ const buildPlanGenerationPrompt = (user: User): string => {
   const bodyweightInfo = bodyweightExercises.length > 0
     ? `
 BODYWEIGHT EXERCISES (with max reps):
-${bodyweightExercises.map(ex => `- ${ex.name}: Max ${ex.maxReps} reps`).join('\n')}
+${bodyweightExercises.map(ex => `- ${ex.name}: Max ${ex.max} ${ex.unit === 'seconds' ? 'seconds' : 'reps'}`).join('\n')}
 
 CRITICAL INSTRUCTION: You MUST incorporate bodyweight exercises into EVERY workout day. Program them based on max reps:
 - For strength: 40-60% of max reps
@@ -221,7 +221,7 @@ export const generateCustomWorkoutPlan = async (
   const bodyweightInfo = bodyweightExercises.length > 0
     ? `
 BODYWEIGHT EXERCISES (with max reps):
-${bodyweightExercises.map(ex => `- ${ex.name}: Max ${ex.maxReps} reps`).join('\n')}
+${bodyweightExercises.map(ex => `- ${ex.name}: Max ${ex.max} ${ex.unit === 'seconds' ? 'seconds' : 'reps'}`).join('\n')}
 
 Program bodyweight exercises based on max reps:
 - For strength: 40-60% of max reps

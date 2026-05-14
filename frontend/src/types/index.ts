@@ -1,6 +1,23 @@
+/**
+ * Bodyweight exercise the user has personally calibrated.
+ *
+ * `unit === 'reps'` for movements like Pull-ups, Push-ups, Squats — `max`
+ * is the maximum number of clean reps the user can do in one set.
+ *
+ * `unit === 'seconds'` for static holds like Plank, Wall Sit, L-sit —
+ * `max` is the maximum hold duration in seconds.
+ *
+ * The retroactive cap script and the regenerate-incomplete endpoint
+ * both switch on `unit` to enforce ceilings correctly.
+ *
+ * Legacy `{ name, maxReps }` rows (from before Phase D) are migrated
+ * on read by `normalizeBodyweightExercises()` in
+ * `src/utils/bodyweight.ts`; never write that shape going forward.
+ */
 export interface BodyweightExercise {
   name: string;
-  maxReps: number;
+  unit: 'reps' | 'seconds';
+  max: number;
 }
 
 export interface User {

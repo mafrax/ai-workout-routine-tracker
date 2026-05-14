@@ -21,6 +21,7 @@ import {
   workoutPlanApi as backendWorkoutPlanApi,
 } from '../services/api_backend';
 import type { BodyweightExercise } from '../types';
+import { normalizeBodyweightExercises } from '../utils/bodyweight';
 import ProfileBasicInfo from '../components/Profile/ProfileBasicInfo';
 import ProfileEquipment from '../components/Profile/ProfileEquipment';
 import ProfileBodyweight from '../components/Profile/ProfileBodyweight';
@@ -96,7 +97,9 @@ const Profile: React.FC = () => {
     setFitnessLevel(userData.fitnessLevel || '');
     setGoals(userData.goals || []);
     setAvailableEquipment(userData.availableEquipment || []);
-    setBodyweightExercises(userData.bodyweightExercises || []);
+    // Backend may still serve legacy `{name, maxReps}` rows; normaliser
+    // converts them to the new `{name, unit, max}` shape on read.
+    setBodyweightExercises(normalizeBodyweightExercises(userData.bodyweightExercises || []));
   }, [userQuery.data]);
 
   const handleToast = (msg: string) => {

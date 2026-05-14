@@ -3,6 +3,7 @@ import prisma from '../lib/database';
 import { WorkoutGenerationService } from '../services/WorkoutGenerationService';
 import { ChatService } from '../services/ChatService';
 import { isDev } from '../config/env';
+import { parseBodyweightColumn } from '../utils/bodyweight';
 
 const router = Router();
 const chatService = new ChatService();
@@ -403,14 +404,17 @@ router.post('/:planId/regenerate-incomplete', async (req: Request, res: Response
         return [];
       }
     };
-    const bodyweight = parseArr(user.bodyweightExercises) as Array<{ name: string; maxReps: number }>;
+    const bodyweight = parseBodyweightColumn(user.bodyweightExercises);
     const equipment = parseArr(user.availableEquipment) as string[];
     const goals = parseArr(user.goals) as string[];
 
-    // Strict bodyweight constraint — make it a HARD cap, not a percentage.
+    // Strict bodyweight constraint — make it a HARD cap. Use the right
+    // unit per exercise: reps for Pull-ups etc., seconds for Plank holds.
     const bodyweightCap = bodyweight
-      .filter((b) => typeof b?.name === 'string' && typeof b?.maxReps === 'number' && b.maxReps > 0)
-      .map((b) => `- ${b.name}: ABSOLUTE MAX ${b.maxReps} reps per set. Programming more than ${b.maxReps} reps for ${b.name} is FORBIDDEN.`)
+      .map((b) => {
+        const u = b.unit === 'seconds' ? 'seconds per set' : 'reps per set';
+        return `- ${b.name}: ABSOLUTE MAX ${b.max} ${u}. Programming more than ${b.max} ${b.unit === 'seconds' ? 'seconds' : 'reps'} for ${b.name} is FORBIDDEN.`;
+      })
       .join('\n');
 
     const regenerated: Array<{ day: number; text: string }> = [];
@@ -467,18 +471,29 @@ ${plan.planDetails.slice(0, 1500)}
         });
       }
 
-      // Post-validate bodyweight caps: scan exercise lines for over-cap reps.
+      // Post-validate bodyweight caps. Rep-based exercises match "NxR"
+      // and the rep count must be <= cap. Time-based exercises (Plank etc.)
+      // match "NxRs" where the trailing "s" marks seconds; the duration
+      // must be <= the cap in seconds.
       for (const line of cleaned.split('\n')) {
-        const m = line.match(/^\d+\.\s*(.+?)\s*-\s*(\d+)x(\d+)\b/i);
-        if (!m) continue;
-        const [, name, , repsStr] = m;
-        const reps = parseInt(repsStr ?? '0', 10);
+        const repMatch = line.match(/^\d+\.\s*(.+?)\s*-\s*(\d+)x(\d+)(s?)\b/i);
+        if (!repMatch) continue;
+        const [, name, , unitValueStr, secsFlag] = repMatch;
+        const unitValue = parseInt(unitValueStr ?? '0', 10);
         const matchedBw = bodyweight.find(
           (b) => b.name && name && name.toLowerCase().includes(b.name.toLowerCase())
         );
-        if (matchedBw && reps > matchedBw.maxReps) {
+        if (!matchedBw) continue;
+        const isSecondsInLine = !!secsFlag;
+        // If the line and the cap agree on unit, compare directly.
+        // If they disagree (e.g. user calibrated Plank in seconds but the
+        // AI emitted "Plank - 3x30" without the s), be charitable: skip
+        // the check rather than false-positive.
+        if (isSecondsInLine !== (matchedBw.unit === 'seconds')) continue;
+        if (unitValue > matchedBw.max) {
+          const u = matchedBw.unit === 'seconds' ? 'seconds' : 'reps';
           return res.status(502).json({
-            error: `AI tried to program ${name?.trim()} at ${reps} reps but your max is ${matchedBw.maxReps}. Try again.`,
+            error: `AI tried to program ${name?.trim()} at ${unitValue} ${u} but your max is ${matchedBw.max}. Try again.`,
           });
         }
       }

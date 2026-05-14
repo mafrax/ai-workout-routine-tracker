@@ -19,28 +19,15 @@
 import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
 dotenv.config();
+import { parseBodyweightColumn } from '../src/utils/bodyweight';
+import type { BodyweightExercise } from '../src/types';
 
 const prisma = new PrismaClient();
 const APPLY = process.argv.includes('--apply');
 
-interface BodyweightCap {
-  name: string;
-  maxReps: number;
-}
+type BodyweightCap = BodyweightExercise;
 
-function parseBodyweight(raw: string | null | undefined): BodyweightCap[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (b: any) =>
-        b && typeof b.name === 'string' && typeof b.maxReps === 'number' && b.maxReps > 0
-    );
-  } catch {
-    return [];
-  }
-}
+const parseBodyweight = parseBodyweightColumn;
 
 function matchedCap(exerciseTitle: string, caps: BodyweightCap[]): BodyweightCap | null {
   const lower = exerciseTitle.toLowerCase();
@@ -99,9 +86,9 @@ async function processUser(user: { id: bigint; email: string | null; bodyweightE
       } catch {
         continue;
       }
-      if (!arr.some((n) => n > cap.maxReps)) continue;
-      const newArr = arr.map((n) => Math.min(n, cap.maxReps));
-      updates.push({ id: ex.id, oldArr: arr, newArr, cap: cap.maxReps, title: ex.exerciseTitle });
+      if (!arr.some((n) => n > cap.max)) continue;
+      const newArr = arr.map((n) => Math.min(n, cap.max));
+      updates.push({ id: ex.id, oldArr: arr, newArr, cap: cap.max, title: ex.exerciseTitle });
     }
 
     // Text-side update: rewrite planDetails so the source-of-truth text matches.
@@ -122,7 +109,7 @@ async function processUser(user: { id: bigint; email: string | null; bodyweightE
           outLines.push(line);
           continue;
         }
-        const { newLine, changed } = capTextLine(line, cap.maxReps);
+        const { newLine, changed } = capTextLine(line, cap.max);
         if (changed) textChanges += 1;
         outLines.push(newLine);
       }
@@ -176,7 +163,7 @@ async function main() {
   for (const user of users) {
     const caps = parseBodyweight(user.bodyweightExercises);
     if (caps.length === 0) continue;
-    console.log(`\nUser ${user.email}  caps: ${caps.map((c) => `${c.name}=${c.maxReps}`).join(', ')}`);
+    console.log(`\nUser ${user.email}  caps: ${caps.map((c) => `${c.name}=${c.max}`).join(', ')}`);
     const result = await processUser(user);
     totalPlans += result.plansTouched;
     totalExercises += result.exercisesTouched;

@@ -1,3 +1,14 @@
+/**
+ * Bodyweight exercise calibrated by the user. See
+ * `frontend/src/types/index.ts` for the matching frontend type and
+ * `src/utils/bodyweight.ts` for the normalize-on-read adapter.
+ */
+export interface BodyweightExercise {
+  name: string;
+  unit: 'reps' | 'seconds';
+  max: number;
+}
+
 export interface DailyTaskDto {
   id: number;
   userId: number;
@@ -85,7 +96,11 @@ export interface MigrationRequest {
     fitnessLevel?: string | null;
     goals?: string[] | null;
     availableEquipment?: string[] | null;
-    bodyweightExercises?: Array<{ name: string; maxReps: number }> | null;
+    // Accept the new shape OR the legacy {name, maxReps} shape so the
+    // migration endpoint can ingest pre-Phase-D phone exports.
+    bodyweightExercises?:
+      | Array<BodyweightExercise | { name: string; maxReps: number }>
+      | null;
   } | null;
 }
 
