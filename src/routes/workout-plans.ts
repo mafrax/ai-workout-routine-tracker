@@ -1,9 +1,11 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import prisma from '../lib/database';
 import { WorkoutGenerationService } from '../services/WorkoutGenerationService';
 import { ChatService } from '../services/ChatService';
 import { isDev } from '../config/env';
 import { parseBodyweightColumn } from '../utils/bodyweight';
+import type { BodyweightExercise } from '../types';
 
 const router = Router();
 const chatService = new ChatService();
@@ -543,5 +545,175 @@ ${plan.planDetails.slice(0, 1500)}
     });
   }
 });
+
+/**
+ * POST /api/plans/generate
+ *
+ * Generates a workout plan from a structured payload assembled by the
+ * wizard at /plans/new. Replaces the free-form chat flow for plan
+ * creation: the AI receives a typed shape instead of parsing intent
+ * from prose, so the prompt is shorter, the output is more consistent,
+ * and the post-validation can be strict.
+ *
+ * On success the plan is created, structured Workout/Exercise rows are
+ * generated via WorkoutGenerationService, and (if `activate: true`) any
+ * other active plan for the user is paused and this one becomes active.
+ *
+ * The endpoint does NOT route the user anywhere — the frontend keeps
+ * control and shows Step 7 (conversational refinement) before the user
+ * commits.
+ */
+const generatePlanSchema = z.object({
+  userId: z.number().int().positive(),
+  name: z.string().min(1).max(80),
+  focus: z.enum(['strength', 'hypertrophy', 'endurance', 'mobility', 'weight-loss']),
+  daysPerWeek: z.number().int().min(2).max(6),
+  durationWeeks: z.number().int().min(2).max(24),
+  equipment: z.array(z.string()).default([]),
+  bodyweight: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        unit: z.enum(['reps', 'seconds']),
+        max: z.number().int().positive(),
+      })
+    )
+    .default([]),
+  injuries: z.string().max(500).optional(),
+  sessionMinutes: z.number().int().min(10).max(180).optional(),
+  intensity: z.enum(['easy', 'moderate', 'hard']).default('moderate'),
+  activate: z.boolean().default(true),
+});
+
+router.post('/generate', async (req: Request, res: Response) => {
+  const parsed = generatePlanSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid plan-generation request',
+      details: parsed.error.flatten(),
+    });
+  }
+  const payload = parsed.data;
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: BigInt(payload.userId) } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const planDetails = await buildPlanDetailsViaAI(payload);
+
+    // The same parser we use everywhere else — refuses to save a plan
+    // whose text doesn't yield at least one structured day.
+    const preview = WorkoutGenerationService.previewParsedWorkouts(planDetails);
+    if (preview.length === 0) {
+      return res.status(502).json({
+        error: "Couldn't parse the generated plan — please retry.",
+        details: { rawOutput: planDetails.slice(0, 500) },
+      });
+    }
+
+    // Atomic create: plan -> structured workouts in the same flow. Optionally
+    // deactivate any other active plan for the same user so "isActive" stays
+    // a single-row property.
+    if (payload.activate) {
+      await prisma.workoutPlan.updateMany({
+        where: { userId: BigInt(payload.userId), isActive: true },
+        data: { isActive: false },
+      });
+    }
+
+    const plan = await prisma.workoutPlan.create({
+      data: {
+        userId: BigInt(payload.userId),
+        name: payload.name,
+        planDetails,
+        isActive: payload.activate,
+        isArchived: false,
+        daysPerWeek: payload.daysPerWeek,
+        durationWeeks: payload.durationWeeks,
+        difficultyLevel: payload.intensity,
+        description: describeFromPayload(payload),
+      },
+    });
+
+    await WorkoutGenerationService.generateWorkoutsFromPlanDetails(plan.id, planDetails);
+
+    return res.json({
+      plan: {
+        ...plan,
+        id: plan.id.toString(),
+        userId: plan.userId.toString(),
+      },
+      previewDays: preview,
+    });
+  } catch (err: any) {
+    console.error('❌ /api/plans/generate failed:', err?.message || err);
+    return res.status(500).json({
+      error: 'Failed to generate plan',
+      details: isDev ? err?.message : undefined,
+    });
+  }
+});
+
+/**
+ * Build the planDetails text by sending a strict, typed prompt to Claude.
+ * Pulled out of the route handler so the prompt logic is testable and can
+ * be reused by Phase D's Step 7 refinement flow.
+ */
+async function buildPlanDetailsViaAI(payload: z.infer<typeof generatePlanSchema>): Promise<string> {
+  const chat = new ChatService();
+
+  const bodyweightCap = payload.bodyweight
+    .map((b: BodyweightExercise) => {
+      const u = b.unit === 'seconds' ? 'seconds per set' : 'reps per set';
+      return `- ${b.name}: ABSOLUTE MAX ${b.max} ${u}.`;
+    })
+    .join('\n');
+
+  const focusLabel: Record<typeof payload.focus, string> = {
+    strength: 'Strength (low reps, heavy load, long rest)',
+    hypertrophy: 'Hypertrophy (moderate reps, moderate load)',
+    endurance: 'Endurance (high reps, short rest)',
+    mobility: 'Mobility / Flexibility',
+    'weight-loss': 'Weight Loss (high volume, mixed cardio + strength)',
+  };
+
+  const prompt = `Generate a complete ${payload.daysPerWeek}-day workout plan.
+
+PLAN PROFILE
+- Name: ${payload.name}
+- Focus: ${focusLabel[payload.focus]}
+- Days per week: ${payload.daysPerWeek}
+- Duration: ${payload.durationWeeks} weeks
+- Intensity preference: ${payload.intensity}
+${payload.sessionMinutes ? `- Target session length: ${payload.sessionMinutes} minutes` : ''}
+${payload.injuries ? `- Injuries / limitations: ${payload.injuries}` : ''}
+- Available equipment: ${payload.equipment.length ? payload.equipment.join(', ') : 'bodyweight only'}
+${bodyweightCap ? `\nBODYWEIGHT MAX CALIBRATION (HARD CAPS — DO NOT EXCEED):\n${bodyweightCap}` : ''}
+
+OUTPUT RULES
+- Output ONLY the plan content. No commentary, preface, or closing remarks.
+- Produce exactly ${payload.daysPerWeek} day blocks, numbered Day 1 .. Day ${payload.daysPerWeek}.
+- Each day MUST start with: Day N - <Muscle group / focus>:
+- Each day MUST contain 5-7 numbered exercise lines in EXACTLY this format:
+  N. Exercise Name - SetsxReps @ Weight | RestBetweenSetsS | RestBeforeNextS
+- Reps must be a single integer (e.g. "4x8"), not a range.
+- For BODYWEIGHT exercises use "@ bodyweight" as the weight.
+- For TIME-BASED bodyweight exercises (Plank, Wall Sit, L-sit, etc.) use
+  "NxRs" where R is the per-set duration in seconds (e.g. "3x30s @ bodyweight").
+- Use ONLY equipment from the available list above.
+- NEVER exceed the bodyweight HARD CAPS.
+
+Begin output now:`;
+
+  const text = await chat.chat(prompt, {});
+  // Strip a leading commentary paragraph if any — keep from the first day header onward.
+  const headerIdx = text.search(/^\*{0,2}Day\s+1\b/im);
+  return (headerIdx >= 0 ? text.slice(headerIdx) : text).trim();
+}
+
+function describeFromPayload(payload: z.infer<typeof generatePlanSchema>): string {
+  const focus = payload.focus.replace('-', ' ');
+  return `${payload.daysPerWeek}-day ${focus} plan over ${payload.durationWeeks} weeks (${payload.intensity} intensity).`;
+}
 
 export default router;
