@@ -542,7 +542,7 @@ const TodaysWorkout: React.FC = () => {
             <h2>No Active Plans</h2>
             <p>You don't have any active workout plans yet.</p>
             <IonButton onClick={startPlanCreation} disabled={isCheckingProfile}>
-              {canCreatePlan ? 'Create a Plan' : 'Finish profile to create a plan'}
+              Create a Plan
             </IonButton>
           </div>
         </IonContent>
@@ -571,7 +571,7 @@ const TodaysWorkout: React.FC = () => {
           <IonButtons slot="end">
             <IonButton onClick={startPlanCreation} disabled={isCheckingProfile}>
               <IonIcon icon={add} slot="start" />
-              {canCreatePlan ? 'New Plan' : 'Profile'}
+              New Plan
             </IonButton>
           </IonButtons>
         </IonToolbar>

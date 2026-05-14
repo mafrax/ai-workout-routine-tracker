@@ -258,7 +258,7 @@ const Profile: React.FC = () => {
             onChange={handleBodyweightChange}
           />
 
-          <ProfileGoals goals={goals} />
+          <ProfileGoals goals={goals} onChange={setGoals} />
 
           <ProfileTelegram userId={user.id!} onToast={handleToast} />
 
